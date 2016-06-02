@@ -4,102 +4,86 @@ import (
         "fmt"
         "os"
         "strings"
-//      "github.com/pborman/getopt"
-//        "github.com/alecthomas/kingpin"
-        "gopkg.in/alecthomas/kingpin.v2"
-//      "os/exec"
-//        "bytes"
-//        "log"
-//      "path"
-//        "bufio"
-//        "time"
-//        "io"
-//        "syscall"
-//        "gopkg.in/yaml.v2"
         "net/http"
-        "net/url"
         "io/ioutil"
         "github.com/smallfish/simpleyaml"
-//        "reflect"
 )
 
 
-// TODO: Support multiple contrib sources.
-// TODO: Add flag for branch name to ensure local git branch is correct.
+/* Load driver options to a Command requested.
 
-// Struct for Additional drivers flags for an action
-type AdditionalFlags struct {
-  ContribRepo_uri *url.URL // URL to github raw files
-  Branch string      // branch name
-  flags map[string]*kingpin.FlagClause // list of additional flags loaded.
-  drivers map[string]string // List of drivers to use.
-}
+Currently there is no distinction about setting different options for a specific task on the driver.
 
-func (*AdditionalFlags) value(context *kingpin.ParseContext, f *kingpin.FlagClause) (value string, found bool){
- for _, element := range context.Elements {
-     if flag, ok := element.Clause.(*kingpin.FlagClause); ok && flag == f {
-        value = *element.Value
-        found = true
-     }
-  }
+*/
+func (a *Forj) load_driver_options(opts *ActionOpts, service_type string) (err error) {
+ var flags []interface{}
+
+ if flags = a.read_driver_description(service_type) ; flags != nil {
+    a.init_driver_flags(opts, flags)
+ }
  return
 }
 
-func (f *AdditionalFlags) load_driver_options(action *kingpin.CmdClause, service_type string) (*simpleyaml.Yaml, error) {
- var (
-      yaml_data string
-      driver_name string = f.drivers[service_type]
-      m *simpleyaml.Yaml = &simpleyaml.Yaml{}
-      err error
-      source string
-      flags []interface{}
-     )
- if driver_name == "" {
-    return m, nil
- }
+/* Read Driver yaml document
 
-if f.ContribRepo_uri.Scheme == "" {
+*/
+func (a *Forj) read_driver_description(service_type string) (flags []interface{}) {
+ var (
+      yaml_data []byte
+      driver_name string = a.drivers[service_type]
+      source string
+     )
+
+ if driver_name == "" { return }
+
+ if a.ContribRepo_uri.Scheme == "" {
     // File to read locally
-    source = fmt.Sprintf("%s/%s/%s/%s.yaml", f.ContribRepo_uri.Path, service_type, driver_name, driver_name)
-    if d, err := ioutil.ReadFile(source) ; err != nil {
-       return m, err
-    } else {
-       yaml_data = string(d)
-    }
+    source = fmt.Sprintf("%s/%s/%s/%s.yaml", a.ContribRepo_uri.Path, service_type, driver_name, driver_name)
+    if d, err := ioutil.ReadFile(source) ; err != nil { return } else { yaml_data = d }
+
  } else {
-    source = fmt.Sprintf("%s/%s/%s/%s/%s.yaml", f.ContribRepo_uri, f.Branch, service_type, driver_name, driver_name)
+    // File to read for an url. Usually, a raw from github.
+    source = fmt.Sprintf("%s/%s/%s/%s/%s.yaml", a.ContribRepo_uri, a.Branch, service_type, driver_name, driver_name)
     if resp, err := http.Get(source) ; err != nil {
-       return m, err
+       return
+
     } else {
+
        defer resp.Body.Close()
 
        if d, err := ioutil.ReadAll(resp.Body) ; err != nil {
-          return m, err
+          return
        } else {
-         if strings.Contains(http.DetectContentType(d), "text/plain") {
-            yaml_data = string(d)
-         }
+          if strings.Contains(http.DetectContentType(d), "text/plain") { yaml_data = d }
        }
     }
  }
 
- m, err = simpleyaml.NewYaml([]byte(yaml_data))
+ m, err := simpleyaml.NewYaml([]byte(yaml_data))
  if err != nil {
-    return m, err
+    fmt.Printf("FORJJ: warning! '%s' is not a valid yaml document. %s\n", source, err)
+    return
  }
 
  m = m.Get("flags")
  if m.IsEmpty() {
    fmt.Printf("FORJJ: warning! %s/%s - flags not defined or empty in '%s'\n", service_type, driver_name, source)
-   return m, nil
+   return
  }
 
-flags, err = m.Array()
+ flags, err = m.Array()
  if err != nil {
    fmt.Printf("FORJJ: warning! %s/%s - flags is in invalid format in '%s'. Expect a list of map.\n%s\n", service_type, driver_name, source, err)
-   return m, nil
  }
- // flags is map[interface{}]interface{}
+ return
+}
+
+/* Initialize command drivers with plugin definition loaded from flags (yaml representation).
+*/
+func (a *Forj) init_driver_flags(opts *ActionOpts, flags []interface{}) {
+ // Small GO explanation:
+ //
+ // flag is map[interface{}]interface{}
  // So, in a for range loop, key and value are respectively of interface{}
  // If the underlying value is more, like another map of interfaces, we need to assert it.
  // This will dynamically 'cast' the type value to become a map of something.
@@ -118,84 +102,39 @@ flags, err = m.Array()
    for o, params := range m_flag {
      option_name := o.(string)
      if params == nil {
-        f.flags[option_name] = action.Flag(option_name, "")
+        flag := opts.Cmd.Flag(option_name, "")
+        opts.flags[option_name] = flag
+        opts.flagsv[option_name] = flag.String()
         continue
      }
      m_params := params.(map[interface {}]interface {})
 
-     help := toString(m_params["help"])
+     help := to_string(m_params["help"])
 
-     f.flags[option_name] = action.Flag(option_name, help)
+     flag := opts.Cmd.Flag(option_name, help)
+     opts.flags[option_name] = flag
+     opts.flagsv[option_name] = flag.String()
 
-     if toBool(m_params["required"]) {
-        f.flags[option_name] = f.flags[option_name].Required()
+     if to_bool(m_params["required"]) {
+        flag.Required()
      }
    }
  }
- //fmt.Printf("Document content: \n%v\n", m)
 
- return m, nil
 }
 
-// This function is dedicated to provide a string systematically.
-// If the type value is not string converted, the string returns will
-// still be there, but empty.
-func toString(v interface{}) (result string) {
- result, _ = v.(string)
- return
-}
+func (a *Forj) GetDriversFlags(args []string) {
+ opts := a.LoadContext(os.Args[1:])
+ if opts == nil { return }
 
-func toBool(v interface{}) (result bool) {
- switch v :=v.(type) {
-  case string:
-    if v == "true" { result=true }
- }
- return
-}
-
-func (f *AdditionalFlags) GetDriversFlags(args []string) {
-
- context, _ := app.ParseContext(args)
-
- // Identifying appropriate Contribution Repository.
- if value, found := f.value(context, cr_contrib_repo_flag); found {
-
-   if u, err := url.Parse(value); err != nil {
-      println(err)
-      os.Exit(1)
-   } else {
-     f.ContribRepo_uri = u
-   }
- }
-
-
- // Identifying `ci` drivers options
- if value, found := f.value(context, cr_ci_driver_flag); found {
-   f.drivers["ci"] = value
- }
-
- if _, err := f.load_driver_options(context.SelectedCommand, "ci") ; err != nil {
+ if err := a.load_driver_options(opts, "ci") ; err != nil {
     fmt.Printf("Error: %#v\n", err)
     os.Exit(1)
  }
 
- // Identifying `git-us` drivers options
- if value, found := f.value(context, cr_gitus_driver_flag); found {
-   f.drivers["upstream"] = value
- }
- if _, err := f.load_driver_options(context.SelectedCommand, "upstream") ; err != nil {
+ if err := a.load_driver_options(opts, "upstream") ; err != nil {
     fmt.Printf("Error: %#v\n", err)
     os.Exit(1)
- }
-}
-
-func NewAddFlags() *AdditionalFlags {
- u, _ := url.Parse("https://github.hpe.com/forj/forjj-contribs/raw")
- return &AdditionalFlags{
-    ContribRepo_uri: u,
-    Branch: "master",
-    drivers: make(map[string]string),
-    flags: make(map[string]*kingpin.FlagClause),
  }
 }
 
