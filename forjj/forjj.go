@@ -13,8 +13,9 @@ const Docker_image = "docker.hos.hpecorp.net/devops/forjj"
 // ************************** MAIN ******************************
 func main() {
  forj_app.init()
-
- switch kingpin.MustParse(forj_app.app.Parse(os.Args[1:])) {
+ parse, err := forj_app.app.Parse(os.Args[1:])
+ forj_app.InitializeDriversFlag()
+ switch kingpin.MustParse(parse, err) {
    case "create":
         forj_app.Create()
         //forj_app.Maintain()

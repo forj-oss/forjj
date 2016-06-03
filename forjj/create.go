@@ -28,6 +28,8 @@ func (a *Forj) Create() {
  cmd_args = append(cmd_args, Docker_image)
  cmd_args = append(cmd_args, "/usr/local/bin/forjj-create.sh")
 
+ cmd_args = a.GetDriversParameters(cmd_args, "create")
+
  cmd := exec.Command(cmd_args[0], cmd_args[1:]...)
  fmt.Printf("FORJJ - RUNNING: %s\n\n", strings.Join(cmd_args, " "))
 

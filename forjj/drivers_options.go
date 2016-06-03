@@ -16,7 +16,7 @@ Currently there is no distinction about setting different options for a specific
 
 */
 func (a *Forj) load_driver_options(opts *ActionOpts, service_type string) (err error) {
- var flags []interface{}
+ var flags map[interface{}]interface{}
 
  if flags = a.read_driver_description(service_type) ; flags != nil {
     a.init_driver_flags(opts, flags, service_type)
@@ -27,7 +27,7 @@ func (a *Forj) load_driver_options(opts *ActionOpts, service_type string) (err e
 /* Read Driver yaml document
 
 */
-func (a *Forj) read_driver_description(service_type string) (flags []interface{}) {
+func (a *Forj) read_driver_description(service_type string) (flags map[interface{}]interface{}) {
  var (
       yaml_data []byte
       driver_name string = a.drivers[service_type].name
@@ -71,16 +71,16 @@ func (a *Forj) read_driver_description(service_type string) (flags []interface{}
    return
  }
 
- flags, err = m.Array()
+ flags, err = m.Map()
  if err != nil {
-   fmt.Printf("FORJJ: warning! %s/%s - flags is in invalid format in '%s'. Expect a list of map.\n%s\n", service_type, driver_name, source, err)
+   fmt.Printf("FORJJ: warning! %s/%s - flags is in invalid format in '%s'. Expect a map of typical forjj commands (comon/create/update/maintain).\n%s\n", service_type, driver_name, source, err)
  }
  return
 }
 
 /* Initialize command drivers with plugin definition loaded from flags (yaml representation).
 */
-func (a *Forj) init_driver_flags(opts *ActionOpts, flags []interface{}, service_type string) {
+func (a *Forj) init_driver_flags(opts *ActionOpts, commands_i map[interface{}]interface{}, service_type string) {
  // Small GO explanation:
  //
  // flag is map[interface{}]interface{}
@@ -97,28 +97,37 @@ func (a *Forj) init_driver_flags(opts *ActionOpts, flags []interface{}, service_
 
  // To get the underlying type of an interface value, we can use reflect.TypeOf(v)
 
- for _, flag := range flags {
-   m_flag := flag.(map[interface {}]interface {})
-   for o, params := range m_flag {
-     option_name := o.(string)
-     // a.drivers[service_type].flags = append(a.drivers[service_type].flags, option_name)
-     a.drivers[service_type].flags[option_name] = "" // No value by default. Will be set later after complete parse.
-     if params == nil {
-        flag := opts.Cmd.Flag(option_name, "")
-        opts.flags[option_name] = flag
-        opts.flagsv[option_name] = flag.String()
-        continue
-     }
-     m_params := params.(map[interface {}]interface {})
+ for command_i, flags := range commands_i {
+   command := command_i.(string)
+   flags_i, _ := flags.([]interface {})
 
-     help := to_string(m_params["help"])
+   if _, ok := a.drivers[service_type].cmds[command] ; !ok {
+      fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.",
+                 a.drivers[service_type], command)
+   }
+   for _, flag := range flags_i {
+     m_flag := flag.(map[interface {}]interface {})
+     for o, params := range m_flag {
+       option_name := o.(string)
 
-     flag := opts.Cmd.Flag(option_name, help)
-     opts.flags[option_name] = flag
-     opts.flagsv[option_name] = flag.String()
+       a.drivers[service_type].cmds[command].flags[option_name] = "" // No value by default. Will be set later after complete parse.
+       if params == nil {
+          flag := opts.Cmd.Flag(option_name, "")
+          opts.flags[option_name] = flag
+          opts.flagsv[option_name] = flag.String()
+          continue
+       }
+       m_params := params.(map[interface {}]interface {})
 
-     if to_bool(m_params["required"]) {
-        flag.Required()
+       help := to_string(m_params["help"])
+
+       flag := opts.Cmd.Flag(option_name, help)
+       opts.flags[option_name] = flag
+       opts.flagsv[option_name] = flag.String()
+
+       if to_bool(m_params["required"]) {
+          flag.Required()
+       }
      }
    }
  }

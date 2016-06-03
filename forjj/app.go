@@ -24,11 +24,15 @@ type ActionOpts struct {
   Cmd *kingpin.CmdClause               // Command object
 }
 
+type DriverCmdOptions struct {
+  flags map[string]string         // list of flags values
+  args map[string]string          // list of args values
+}
+
 type DriverOptions struct {
   name string                     // driver name
   driver_type string              // driver type name
-  flags map[string]string         // list of flags values
-  args map[string]string          // list of args values
+  cmds map[string]DriverCmdOptions// List of flags per commands
 }
 
 type Forj struct {
@@ -170,10 +174,35 @@ func (a *Forj) init() {
 //
 // Generic Application function settings
 //
+
 func (a *Forj)GetActionOpts(cmd *kingpin.CmdClause) *ActionOpts {
  if v, found := a.Actions[cmd.FullCommand()] ; found { return &v }
  kingpin.Fatalf("FORJJ Internal error. No matching '%s' in declared commands", cmd.FullCommand())
  return nil
+}
+
+func (a *Forj)InitializeDriversFlag(){
+ for service_type, driverOpts := range a.drivers {
+   if driverOpts.name == "" { continue }
+
+   for driver_flag_name, _ := range driverOpts.cmds[a.CurrentCommand.name].flags {
+     for flag_name, flag_value := range a.CurrentCommand.flagsv {
+       if flag_name == driver_flag_name {
+          a.drivers[service_type].cmds[a.CurrentCommand.name].flags[flag_name] = *flag_value
+       }
+     }
+   }
+ }
+}
+
+func (a *Forj)GetDriversParameters(cmd_args []string, cmd string) ([]string) {
+
+ for _, pluginOpts := range a.drivers {
+   for k,v := range pluginOpts.cmds[cmd].flags {
+     if v != "" { cmd_args = append(cmd_args, fmt.Sprintf("--%s", k), v) }
+   }
+ }
+ return cmd_args
 }
 
 // Load cli context to adapt the list of options/flags from the driver definition.
@@ -184,7 +213,7 @@ func (a *Forj)GetActionOpts(cmd *kingpin.CmdClause) *ActionOpts {
 // - detect ci/us drivers name (to stored in app)
 func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
  context, err := a.app.ParseContext(args)
- kingpin.FatalIfError(err, "Issue in parsing '%s'", args)
+ if context == nil { kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?") }
 
  cmd := context.SelectedCommand
  if cmd == nil { return }
@@ -218,14 +247,32 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
  // Identifying `ci` drivers options
  // The value is not set in flagsv. But is in the parser context.
  if value, found := a.flagValue(context, opts.flags[ci_flag_name]) ; found {
-   a.drivers["ci"] = DriverOptions{ value, "ci", make(map[string]string), make(map[string]string) }
+   a.drivers["ci"] = DriverOptions{
+     name:        value,
+     driver_type: "ci",
+     cmds: map[string]DriverCmdOptions {
+       "common":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+       "create":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+       "update":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+       "maintain": DriverCmdOptions { make(map[string]string), make(map[string]string) },
+     },
+   }
    fmt.Printf("Selected '%s' driver: %#v\n", ci_flag_name, value)
  }
 
  // Identifying `git-us` drivers options
  // The value is not set in flagsv. But is in the parser context.
  if value, found := a.flagValue(context, opts.flags[us_flag_name]) ; found {
-   a.drivers["upstream"] = DriverOptions{ value, "upstream", make(map[string]string), make(map[string]string) }
+   a.drivers["upstream"] = DriverOptions{
+     name:        value,
+     driver_type: "upstream",
+     cmds: map[string]DriverCmdOptions {
+       "common":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+       "create":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+       "update":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+       "maintain": DriverCmdOptions { make(map[string]string), make(map[string]string) },
+     },
+   }
    fmt.Printf("Selected '%s' driver: %#v\n", us_flag_name, value)
  }
  return
