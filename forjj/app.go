@@ -16,11 +16,19 @@ var debug *bool
 
 // Struct for args/flags for an action
 type ActionOpts struct {
+  name string                          // Action name
   flags map[string]*kingpin.FlagClause // list of additional flags loaded.
   flagsv map[string]*string            // list of additional flags value loaded.
   args map[string]*kingpin.ArgClause   // List of Arguments by name
   argsv map[string]*string             // List of Arguments value by name
   Cmd *kingpin.CmdClause               // Command object
+}
+
+type DriverOptions struct {
+  name string                     // driver name
+  driver_type string              // driver type name
+  flags map[string]string         // list of flags values
+  args map[string]string          // list of args values
 }
 
 type Forj struct {
@@ -31,7 +39,7 @@ type Forj struct {
   Branch string                   // branch name
   app *kingpin.Application        // Kingpin Application object
   Actions map[string]ActionOpts   // map of Commands with their arguments/flags
-  drivers map[string]string       // List of drivers to use, defined by cli.
+  drivers map[string]DriverOptions// List of drivers type to use, defined by cli.
   CurrentCommand *ActionOpts      // Loaded CurrentCommand reference.
 }
 
@@ -54,7 +62,7 @@ func (a *Forj) init() {
 
  a.ContribRepo_uri = u
  a.Branch = "master"
- a.drivers = make(map[string]string)
+ a.drivers = make(map[string]DriverOptions)
  a.Actions = make(map[string]ActionOpts)
 
  /*********** CREATE Action ********** //
@@ -187,6 +195,8 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
 
  // The value is not set in argsv. But is in the parser context.
  if orga, found := a.argValue(context, opts.args["organization"]) ; found {
+    // TODO: Test the path given.
+    // TODO: Expose so internal data like Organization as --forj-organization to expose it to any plugins that request it.
     a.Organization = path.Base(orga)
     a.Orga_path = path.Dir(orga)
     fmt.Printf("Organization '%s' found in '%s' (given: %s)\n", a.Organization, a.Orga_path, orga)
@@ -208,14 +218,14 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
  // Identifying `ci` drivers options
  // The value is not set in flagsv. But is in the parser context.
  if value, found := a.flagValue(context, opts.flags[ci_flag_name]) ; found {
-   a.drivers["ci"] = value
+   a.drivers["ci"] = DriverOptions{ value, "ci", make(map[string]string), make(map[string]string) }
    fmt.Printf("Selected '%s' driver: %#v\n", ci_flag_name, value)
  }
 
  // Identifying `git-us` drivers options
  // The value is not set in flagsv. But is in the parser context.
  if value, found := a.flagValue(context, opts.flags[us_flag_name]) ; found {
-   a.drivers["upstream"] = value
+   a.drivers["upstream"] = DriverOptions{ value, "upstream", make(map[string]string), make(map[string]string) }
    fmt.Printf("Selected '%s' driver: %#v\n", us_flag_name, value)
  }
  return
@@ -246,6 +256,7 @@ func (*Forj)flagValue(context *kingpin.ParseContext, f *kingpin.FlagClause) (val
 // Set an application command
 func (a *Forj)SetCommand(name, help string) {
  a.Actions[name] = ActionOpts{
+   name: name,
    Cmd: a.app.Command(name, help),
    flags: make(map[string]*kingpin.FlagClause),
    flagsv: make(map[string]*string),

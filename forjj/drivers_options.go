@@ -19,7 +19,7 @@ func (a *Forj) load_driver_options(opts *ActionOpts, service_type string) (err e
  var flags []interface{}
 
  if flags = a.read_driver_description(service_type) ; flags != nil {
-    a.init_driver_flags(opts, flags)
+    a.init_driver_flags(opts, flags, service_type)
  }
  return
 }
@@ -30,7 +30,7 @@ func (a *Forj) load_driver_options(opts *ActionOpts, service_type string) (err e
 func (a *Forj) read_driver_description(service_type string) (flags []interface{}) {
  var (
       yaml_data []byte
-      driver_name string = a.drivers[service_type]
+      driver_name string = a.drivers[service_type].name
       source string
      )
 
@@ -80,7 +80,7 @@ func (a *Forj) read_driver_description(service_type string) (flags []interface{}
 
 /* Initialize command drivers with plugin definition loaded from flags (yaml representation).
 */
-func (a *Forj) init_driver_flags(opts *ActionOpts, flags []interface{}) {
+func (a *Forj) init_driver_flags(opts *ActionOpts, flags []interface{}, service_type string) {
  // Small GO explanation:
  //
  // flag is map[interface{}]interface{}
@@ -101,6 +101,8 @@ func (a *Forj) init_driver_flags(opts *ActionOpts, flags []interface{}) {
    m_flag := flag.(map[interface {}]interface {})
    for o, params := range m_flag {
      option_name := o.(string)
+     // a.drivers[service_type].flags = append(a.drivers[service_type].flags, option_name)
+     a.drivers[service_type].flags[option_name] = "" // No value by default. Will be set later after complete parse.
      if params == nil {
         flag := opts.Cmd.Flag(option_name, "")
         opts.flags[option_name] = flag
