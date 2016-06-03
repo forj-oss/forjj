@@ -17,10 +17,10 @@ import (
 func (a *Forj) Create() {
  cmd_args := append([]string{}, "sudo", "docker", "run", "-i", "--rm")
  cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s:/home/devops/.ssh", *a.CurrentCommand.flagsv[ssh_dir_flag_name]))
- cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s:/devops", a.Organization))
+ cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s:/devops", *a.Orga_name))
 
  if a.contrib_repo_path == "" {
-   cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s-forjj-contribs:/forjj-contribs", a.Organization))
+   cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s-forjj-contribs:/forjj-contribs", *a.Orga_name))
  } else {
    cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s:/forjj-contribs", a.contrib_repo_path))
  }
@@ -45,9 +45,9 @@ func (a *Forj) Create() {
   }
  cmd.Wait()
  if status := cmd.ProcessState.Sys().(syscall.WaitStatus) ; status.ExitStatus() != 0 {
-    fmt.Printf("\nFORJJ - create %s ERROR.\nCommand status: %s\n", a.Organization, cmd.ProcessState.String())
+    fmt.Printf("\nFORJJ - create %s ERROR.\nCommand status: %s\n", *a.Orga_name, cmd.ProcessState.String())
     os.Exit(status.ExitStatus())
  }
- println("FORJJ - create", a.Organization, "DONE") // , cmd.ProcessState.Sys().WaitStatus)
+ println("FORJJ - create", *a.Orga_name, "DONE") // , cmd.ProcessState.Sys().WaitStatus)
 }
 

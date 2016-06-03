@@ -7,6 +7,7 @@ import (
 //        "github.com/alecthomas/kingpin"
         "net/url"
         "path"
+        "regexp"
 )
 
 var debug *bool
@@ -36,8 +37,12 @@ type DriverOptions struct {
 }
 
 type Forj struct {
-  Organization string             // Organization name
-  Orga_path string                // Organization directory path.
+  Infra_repo *string              // Infra repository name
+  infra_rep_f *kingpin.FlagClause // Infra flag kingpin struct.
+  Orga_name_f *kingpin.FlagClause // Organization flag kingpin struct.
+  Orga_name *string               // Infra repository name
+  Workspace string                // Workspace name
+  Orga_path string                // Workspace directory path.
   ContribRepo_uri *url.URL        // URL to github raw files
   contrib_repo_path string        // Contribution repository Path
   Branch string                   // branch name
@@ -59,7 +64,11 @@ const (
 
 func (a *Forj) init() {
  a.app = kingpin.New(os.Args[0], app_help).UsageTemplate(DefaultUsageTemplate)
- debug = a.app.Flag("debug", "Enable debug mode.").Bool()
+ debug =         a.app.Flag("debug", app_debug_help).Bool()
+ a.infra_rep_f = a.app.Flag("infra", app_infra_name_help).Short('I').Default("<organization>-infra")
+ a.Orga_name_f = a.app.Flag("organization", app_orga_name_help).Short('O')
+ a.Orga_name =   a.Orga_name_f.String()
+ a.Infra_repo =  a.infra_rep_f.String()
  a.app.Version("forjj V0.0.1 (POC)").Author("Christophe Larsonneur <christophe.larsonneur@hpe.com>")
 
  u, _ := url.Parse("https://github.hpe.com/forj/forjj-contribs/raw")
@@ -127,13 +136,11 @@ func (a *Forj) init() {
  no_opts := map[string]interface{}      {}
  required := map[string]interface{}     {"required": true}
  ssh_dir_opts := map[string]interface{} {"default" : fmt.Sprintf("%s/.ssh", os.Getenv("HOME"))}
- infra_opts := map[string]interface{}   {"default" : "<organization>-infra"}
 
  a.SetCommand("create", create_action_help)
- a.SetCmdArg( "create", "organization",    create_orga_help,       required)
+ a.SetCmdArg( "create", "workspace",       create_orga_help,       required)
  a.SetCmdFlag("create", ssh_dir_flag_name, create_ssh_dir_help,    ssh_dir_opts)
  a.SetCmdFlag("create", "contrib-repo",    create_contrib_help,    no_opts)
- a.SetCmdFlag("create", "infra",           create_infra_name_help, infra_opts)
  a.SetCmdFlag("create", "infra_url",       create_infra_url_help,  no_opts)
  a.SetCmdFlag("create", "infra_path",      create_infra_path_help, no_opts)
 
@@ -148,7 +155,7 @@ func (a *Forj) init() {
 
   We could probably use this update to add repositories or migrate the solution to a different place.  */
  a.SetCommand("update", update_action_help)
- a.SetCmdArg( "update", "organization",    update_orga_help,        required)
+ a.SetCmdArg( "update", "workspace",    update_orga_help,        required)
  a.SetCmdFlag("update", ssh_dir_flag_name, update_ssh_dir_help,     ssh_dir_opts)
  a.SetCmdFlag("update", "contrib-repo",    update_contrib_help,     no_opts)
  // Additional options will be loaded from the selected driver itself.
@@ -166,7 +173,8 @@ func (a *Forj) init() {
   The technology to ensure (orchestration), could be puppet/ansible combined with docker.
   This is not fully defined.  */
  a.SetCommand("maintain", maintain_action_help)
- a.SetCmdArg( "maintain", "organization",  maintain_orga_help,    required)
+ a.SetCmdArg( "maintain", "workspace",  maintain_orga_help,    required)
+ a.SetCmdFlag("maintain", "infra_url",  maintain_infra_url_help,  no_opts)
 
  a.GetDriversFlags(os.Args[1:])
 }
@@ -182,17 +190,36 @@ func (a *Forj)GetActionOpts(cmd *kingpin.CmdClause) *ActionOpts {
 }
 
 func (a *Forj)InitializeDriversFlag(){
+
+ forjj_regexp, _ := regexp.Compile("forjj-(.*)")
+
  for service_type, driverOpts := range a.drivers {
    if driverOpts.name == "" { continue }
 
    for driver_flag_name, _ := range driverOpts.cmds[a.CurrentCommand.name].flags {
      for flag_name, flag_value := range a.CurrentCommand.flagsv {
-       if flag_name == driver_flag_name {
-          a.drivers[service_type].cmds[a.CurrentCommand.name].flags[flag_name] = *flag_value
+       if forjj_vars := forjj_regexp.FindStringSubmatch(flag_name); forjj_vars == nil {
+          if flag_name == driver_flag_name {
+             a.drivers[service_type].cmds[a.CurrentCommand.name].flags[flag_name] = *flag_value
+          }
+       } else {
+         a.drivers[service_type].cmds[a.CurrentCommand.name].flags[flag_name] = a.GetInternalData(forjj_vars[0])
        }
      }
    }
  }
+}
+
+func (a *Forj)GetInternalData(param string) (result string) {
+ switch param {
+  case "organization":
+    result = *a.Orga_name
+  case "branch":
+    result = a.Branch
+  case "infra":
+    result = *a.Infra_repo
+ }
+ return
 }
 
 func (a *Forj)GetDriversParameters(cmd_args []string, cmd string) ([]string) {
@@ -209,8 +236,11 @@ func (a *Forj)GetDriversParameters(cmd_args []string, cmd string) ([]string) {
 //
 // It will 
 // - detect the organization name/path (to stored in app)
+//   It will set the default Infra name.
 // - detect the driver list source.
 // - detect ci/us drivers name (to stored in app)
+// 
+// TODO: In the context of a maintain/update, the context is first loaded from the workspace/infra repo.
 func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
  context, err := a.app.ParseContext(args)
  if context == nil { kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?") }
@@ -223,12 +253,22 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
  a.CurrentCommand = opts
 
  // The value is not set in argsv. But is in the parser context.
- if orga, found := a.argValue(context, opts.args["organization"]) ; found {
+ if orga, found := a.argValue(context, opts.args["workspace"]) ; found {
     // TODO: Test the path given.
-    // TODO: Expose so internal data like Organization as --forj-organization to expose it to any plugins that request it.
-    a.Organization = path.Base(orga)
+    a.Workspace = path.Base(orga)
     a.Orga_path = path.Dir(orga)
-    fmt.Printf("Organization '%s' found in '%s' (given: %s)\n", a.Organization, a.Orga_path, orga)
+ }
+
+ if orga, found := a.flagValue(context, a.Orga_name_f) ; !found {
+   a.Orga_name_f = a.Orga_name_f.Default(a.Workspace)
+   *a.Orga_name = a.Workspace
+ } else {
+   *a.Orga_name = orga
+ }
+
+ if *a.Orga_name != "" {
+    fmt.Printf("Organization identified : '%s'\n", *a.Orga_name)
+    a.infra_rep_f = a.infra_rep_f.Default(fmt.Sprintf("%s-infra", *a.Orga_name))
  }
 
  // Identifying appropriate Contribution Repository.
@@ -329,7 +369,9 @@ func (a *Forj)SetCmdFlag(cmd, name, help string, options map[string]interface{})
 
  if v, ok := options["required"] ; ok && to_bool(v) { arg.Required() }
  if v, ok := options["default"] ; ok { arg.Default(to_string(v)) }
+ if v, ok := options["hidden"] ; ok && to_bool(v)  { arg.Hidden() }
 
  a.Actions[cmd].flagsv[name] = arg.String()
  a.Actions[cmd].flags[name] = arg
 }
+
