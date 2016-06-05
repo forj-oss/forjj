@@ -15,13 +15,14 @@ then
    fi
 fi
 
-if [ "$DOCKER_VERSION" != "" ]
-then
-   DOCKER_VERSION_ARG="--build-arg DOCKER_VERSION=$DOCKER_VERSION"
-fi
+#if [ "$DOCKER_VERSION" != "" ]
+#then
+#   DOCKER_VERSION_ARG="--build-arg DOCKER_VERSION=$DOCKER_VERSION"
+#fi
 
 echo "-------------------------
-$ docker build $PROXY $TAG $DOCKER_VERSION_ARG."
+$ docker build $PROXY $TAG ." #$DOCKER_VERSION_ARG."
 
-sudo docker build $PROXY $TAG $DOCKER_VERSION_ARG .
+sudo docker build $PROXY $TAG . 
+# $DOCKER_VERSION_ARG .
 
