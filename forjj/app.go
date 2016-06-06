@@ -230,6 +230,9 @@ func (a *Forj)GetInternalData(param string) (result string) {
 func (a *Forj)GetDriversParameters(cmd_args []string, cmd string) ([]string) {
 
  for _, pluginOpts := range a.drivers {
+   if cmd != "common" {
+      cmd_args = append(cmd_args, fmt.Sprintf("--driver-%s %s", pluginOpts.driver_type, pluginOpts.name))
+   }
    for k,v := range pluginOpts.cmds[cmd].flags {
      if v != "" { cmd_args = append(cmd_args, fmt.Sprintf("--%s", k), v) }
    }
