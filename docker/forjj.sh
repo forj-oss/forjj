@@ -26,44 +26,10 @@ fi
 
 if [ "$1" = create ] || [ "$1" = update ] || [ "$1" = maintain ]
 then
-    sudo chown -R devops:devops /devops
-#   ACTION="$1"
-#   ORGA="$2"
-#   shift
-#   if [ "$CONTRIB_REPO" != "" ]
-#   then
-#      CONTRIB_REPO_ARG="-v $CONTRIB_REPO:/forjj-contribs"
-#   else
-#      CONTRIB_REPO_ARG="-v $(basename $ORGA)-forjj-contribs:/forjj-contribs"
-#   fi
-#   DOCKER_OPTS="-it --rm --shm-size=64m"
-#   DOCKER_VOLS="-v $ORGA:/devops"
-#   if [ "$SSH_DIR" != "" ]
-#   then
-#      DOCKER_VOLS="$DOCKER_VOLS -v $SSH_DIR:/home/devops/.ssh"
-#   fi
-#   DOCKER_IMG="docker.hos.hpecorp.net/devops/forjj"
-#   DOCKER_APP="/usr/local/bin/forjj-$ACTION.sh"
-#   # Determine docker connection
-#   if [[ "$DOCKER_HOST" =~ ".*://.*" ]]
-#   then
-#      echo "Using Docker Host at '$DOCKER_HOST'"
-#   else
-#      DOCKER_API_VERSION=$(sudo docker version -f '{{ .Server.Version }}' 2>&1 | sed 's/.*API version: \([0-9.]*\).*$/\1/g' | tail -n 1)
-#      if [ "$DOCKER_API_VERSION" != "" ]
-#      then
-#         echo "Using old Docker API version : $DOCKER_API_VERSION"
-#         export DOCKER_API_VERSION
-#      fi
-#   fi
-#   exec sudo -E docker run $DOCKER_OPTS $CONTRIB_REPO_ARG $DOCKER_VOLS $DOCKER_IMG $DOCKER_APP "$@"
-#fi
-
-#if [ "$(dirname $1)" = /usr/local/bin ]
-#then
-#   chown devops:devops /devops
+   sudo chown -R devops:devops /devops
+   ACTION="$1"
    shift
-   exec /usr/local/bin/forjj-$1.sh $@
+   exec /usr/local/bin/forjj-$ACTION.sh $@
 fi
 
 echo "Unknown task '$1'."

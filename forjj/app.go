@@ -10,7 +10,6 @@ import (
         "regexp"
 )
 
-var debug *bool
 
 // TODO: Support multiple contrib sources.
 // TODO: Add flag for branch name to ensure local git branch is correct.
@@ -42,7 +41,7 @@ type Forj struct {
   Orga_name_f *kingpin.FlagClause // Organization flag kingpin struct.
   Orga_name *string               // Infra repository name
   Workspace string                // Workspace name
-  Orga_path string                // Workspace directory path.
+  Workspace_path string           // Workspace directory path.
   ContribRepo_uri *url.URL        // URL to github raw files
   contrib_repo_path string        // Contribution repository Path
   Branch string                   // branch name
@@ -196,14 +195,20 @@ func (a *Forj)InitializeDriversFlag(){
  for service_type, driverOpts := range a.drivers {
    if driverOpts.name == "" { continue }
 
-   for driver_flag_name, _ := range driverOpts.cmds[a.CurrentCommand.name].flags {
-     for flag_name, flag_value := range a.CurrentCommand.flagsv {
-       if forjj_vars := forjj_regexp.FindStringSubmatch(flag_name); forjj_vars == nil {
-          if flag_name == driver_flag_name {
-             a.drivers[service_type].cmds[a.CurrentCommand.name].flags[flag_name] = *flag_value
-          }
+   trace("driver: '%s', command: '%s'\n", service_type, a.CurrentCommand.name)
+   for _, command := range []string { "common", a.CurrentCommand.name } {
+     trace("From '%s' flag group\n", command)
+     for flag_name, _ := range driverOpts.cmds[command].flags {
+       forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
+       if forjj_vars == nil {
+         if flag_value, ok := a.CurrentCommand.flagsv[flag_name]; ok {
+            a.drivers[service_type].cmds[command].flags[flag_name] = *flag_value
+            trace("%s := %s\n", flag_name, *flag_value)
+         }
        } else {
-         a.drivers[service_type].cmds[a.CurrentCommand.name].flags[flag_name] = a.GetInternalData(forjj_vars[0])
+         flag_value := a.GetInternalData(forjj_vars[1])
+         a.drivers[service_type].cmds[command].flags[flag_name] = flag_value
+            trace("forjj(%s) => %s := %s\n", forjj_vars[1], flag_name, flag_value)
        }
      }
    }
@@ -256,7 +261,7 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
  if orga, found := a.argValue(context, opts.args["workspace"]) ; found {
     // TODO: Test the path given.
     a.Workspace = path.Base(orga)
-    a.Orga_path = path.Dir(orga)
+    a.Workspace_path = path.Dir(orga)
  }
 
  if orga, found := a.flagValue(context, a.Orga_name_f) ; !found {
@@ -297,7 +302,7 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
        "maintain": DriverCmdOptions { make(map[string]string), make(map[string]string) },
      },
    }
-   fmt.Printf("Selected '%s' driver: %#v\n", ci_flag_name, value)
+   fmt.Printf("Selected '%s' driver: %s\n", ci_flag_name, value)
  }
 
  // Identifying `git-us` drivers options
@@ -313,7 +318,7 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
        "maintain": DriverCmdOptions { make(map[string]string), make(map[string]string) },
      },
    }
-   fmt.Printf("Selected '%s' driver: %#v\n", us_flag_name, value)
+   fmt.Printf("Selected '%s' driver: %s\n", us_flag_name, value)
  }
  return
 }

@@ -28,6 +28,12 @@ function parse_options
      --no-proxy)
        export no_proxy=$2
        shift;shift;;
+     --forjj-infra)
+       INFRA_REPO=$2
+       shift;shift;;
+     --forjj-organization)
+       ORGA_NAME=$2
+       shift;shift;;
      --http-proxy)
        export http_proxy=$2
        export https_proxy=$2

@@ -17,7 +17,7 @@ import (
 func (a *Forj) Create() {
  cmd_args := append([]string{}, "sudo", "docker", "run", "-i", "--rm")
  cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s:/home/devops/.ssh", *a.CurrentCommand.flagsv[ssh_dir_flag_name]))
- cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s:/devops", *a.Orga_name))
+ cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s/%s:/devops", a.Workspace_path, a.Workspace))
 
  if a.contrib_repo_path == "" {
    cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s-forjj-contribs:/forjj-contribs", *a.Orga_name))
@@ -25,8 +25,7 @@ func (a *Forj) Create() {
    cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s:/forjj-contribs", a.contrib_repo_path))
  }
 
- cmd_args = append(cmd_args, Docker_image)
- cmd_args = append(cmd_args, "/usr/local/bin/forjj-create.sh")
+ cmd_args = append(cmd_args, Docker_image, "create")
 
  cmd_args = a.GetDriversParameters(cmd_args, "common")
  cmd_args = a.GetDriversParameters(cmd_args, "create")

@@ -111,10 +111,11 @@ func (a *Forj) init_driver_flags(opts *ActionOpts, commands_i map[interface{}]in
      for o, params := range m_flag {
        option_name := o.(string)
 
+       a.drivers[service_type].cmds[command].flags[option_name] = "" // No value by default. Will be set later after complete parse.
        // drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
        // They are not in the list of possible drivers options from the cli.
        if ok, _ := regexp.MatchString("forjj-.*", option_name) ; ok { continue }
-       a.drivers[service_type].cmds[command].flags[option_name] = "" // No value by default. Will be set later after complete parse.
+
        if params == nil {
           flag := opts.Cmd.Flag(option_name, "")
           opts.flags[option_name] = flag
