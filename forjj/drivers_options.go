@@ -98,40 +98,48 @@ func (a *Forj) init_driver_flags(opts *ActionOpts, commands_i map[interface{}]in
 
  // To get the underlying type of an interface value, we can use reflect.TypeOf(v)
 
- for command_i, flags := range commands_i {
+ for command_i, i := range commands_i {
    command := command_i.(string)
-   flags_i, _ := flags.([]interface {})
 
-   if _, ok := a.drivers[service_type].cmds[command] ; !ok {
-      fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.",
-                 a.drivers[service_type], command)
-   }
-   for _, flag := range flags_i {
-     m_flag := flag.(map[interface {}]interface {})
-     for o, params := range m_flag {
-       option_name := o.(string)
+   if i == nil { continue }
 
-       a.drivers[service_type].cmds[command].flags[option_name] = "" // No value by default. Will be set later after complete parse.
-       // drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
-       // They are not in the list of possible drivers options from the cli.
-       if ok, _ := regexp.MatchString("forjj-.*", option_name) ; ok { continue }
+   cmd_opts_i := i.(map[interface{}]interface{})
+   for cmd_opt_i, i := range cmd_opts_i {
+     cmd_opt := cmd_opt_i.(string)
+     if cmd_opt != "flags" { continue }
+     flags_i, _ := i.([]interface {})
 
-       if params == nil {
-          flag := opts.Cmd.Flag(option_name, "")
-          opts.flags[option_name] = flag
-          opts.flagsv[option_name] = flag.String()
-          continue
-       }
-       m_params := params.(map[interface {}]interface {})
+     if _, ok := a.drivers[service_type].cmds[command] ; !ok {
+        fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.",
+                   a.drivers[service_type], command)
+     }
+     for _, flag := range flags_i {
+       m_flag := flag.(map[interface {}]interface {})
+       for o, params := range m_flag {
+         option_name := o.(string)
 
-       help := to_string(m_params["help"])
+         a.drivers[service_type].cmds[command].flags[option_name] = "" // No value by default. Will be set later after complete parse.
+         // drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
+         // They are not in the list of possible drivers options from the cli.
+         if ok, _ := regexp.MatchString("forjj-.*", option_name) ; ok { continue }
 
-       flag := opts.Cmd.Flag(option_name, help)
-       opts.flags[option_name] = flag
-       opts.flagsv[option_name] = flag.String()
+         if params == nil {
+            flag := opts.Cmd.Flag(option_name, "")
+            opts.flags[option_name] = flag
+            opts.flagsv[option_name] = flag.String()
+            continue
+         }
+         m_params := params.(map[interface {}]interface {})
 
-       if to_bool(m_params["required"]) {
-          flag.Required()
+         help := to_string(m_params["help"])
+
+         flag := opts.Cmd.Flag(option_name, help)
+         opts.flags[option_name] = flag
+         opts.flagsv[option_name] = flag.String()
+
+         if to_bool(m_params["required"]) {
+            flag.Required()
+         }
        }
      }
    }
