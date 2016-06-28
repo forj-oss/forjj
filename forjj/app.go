@@ -8,6 +8,7 @@ import (
         "net/url"
         "path"
         "regexp"
+        "github.hpe.com/christophe-larsonneur/goforjj"
 )
 
 
@@ -29,26 +30,35 @@ type DriverCmdOptions struct {
   args map[string]string          // list of args values
 }
 
-type DriverOptions struct {
+type Driver struct {
   name string                     // driver name
   driver_type string              // driver type name
   cmds map[string]DriverCmdOptions// List of flags per commands
+  data goforjj.PluginData         // Plugin Data
 }
 
 type Forj struct {
-  Infra_repo *string              // Infra repository name
+  // Collections of fields regarding flags given
   infra_rep_f *kingpin.FlagClause // Infra flag kingpin struct.
   Orga_name_f *kingpin.FlagClause // Organization flag kingpin struct.
+  app *kingpin.Application        // Kingpin Application object
+  Actions map[string]ActionOpts   // map of Commands with their arguments/flags
+
+  drivers map[string]Driver       // List of drivers data/flags/...
+
+  // Flags values
+  CurrentCommand *ActionOpts      // Loaded CurrentCommand reference.
+  debug_f *kingpin.FlagClause     // Flag debug
+
+  // Forjj Core values, saved at create time, updated at update time. maintain should save also.
+  Infra_repo *string              // Infra repository name
+  Branch string                   // branch name
   Orga_name *string               // Infra repository name
   Workspace string                // Workspace name
   Workspace_path string           // Workspace directory path.
   ContribRepo_uri *url.URL        // URL to github raw files
   contrib_repo_path string        // Contribution repository Path
-  Branch string                   // branch name
-  app *kingpin.Application        // Kingpin Application object
-  Actions map[string]ActionOpts   // map of Commands with their arguments/flags
-  drivers map[string]DriverOptions// List of drivers type to use, defined by cli.
-  CurrentCommand *ActionOpts      // Loaded CurrentCommand reference.
+  flow string                     // Name of the flow implemented. defined at create time.
 }
 
 const (
@@ -63,7 +73,8 @@ const (
 
 func (a *Forj) init() {
  a.app = kingpin.New(os.Args[0], app_help).UsageTemplate(DefaultUsageTemplate)
- debug =         a.app.Flag("debug", app_debug_help).Bool()
+ a.debug_f = a.app.Flag("debug", app_debug_help)
+ a.debug_f.Bool()
  a.infra_rep_f = a.app.Flag("infra", app_infra_name_help).Short('I').Default("<organization>-infra")
  a.Orga_name_f = a.app.Flag("organization", app_orga_name_help).Short('O')
  a.Orga_name =   a.Orga_name_f.String()
@@ -74,7 +85,7 @@ func (a *Forj) init() {
 
  a.ContribRepo_uri = u
  a.Branch = "master"
- a.drivers = make(map[string]DriverOptions)
+ a.drivers = make(map[string]Driver)
  a.Actions = make(map[string]ActionOpts)
 
  /*********** CREATE Action ********** //
@@ -197,18 +208,19 @@ func (a *Forj)InitializeDriversFlag(){
 
    trace("driver: '%s', command: '%s'\n", service_type, a.CurrentCommand.name)
    for _, command := range []string { "common", a.CurrentCommand.name } {
-     trace("From '%s' flag group\n", command)
+     trace(" From '%s' flags list\n", command)
      for flag_name, _ := range driverOpts.cmds[command].flags {
+       trace("  Flag_name => '%s'\n", flag_name)
        forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
        if forjj_vars == nil {
          if flag_value, ok := a.CurrentCommand.flagsv[flag_name]; ok {
             a.drivers[service_type].cmds[command].flags[flag_name] = *flag_value
-            trace("%s := %s\n", flag_name, *flag_value)
+            trace("   %s := %s\n", flag_name, *flag_value)
          }
        } else {
          flag_value := a.GetInternalData(forjj_vars[1])
          a.drivers[service_type].cmds[command].flags[flag_name] = flag_value
-            trace("forjj(%s) => %s := %s\n", forjj_vars[1], flag_name, flag_value)
+            trace("   forjj(%s) => %s := %s\n", forjj_vars[1], flag_name, flag_value)
        }
      }
    }
@@ -243,6 +255,7 @@ func (a *Forj)GetDriversParameters(cmd_args []string, cmd string) ([]string) {
 // Load cli context to adapt the list of options/flags from the driver definition.
 //
 // It will 
+// - detect the debug mode
 // - detect the organization name/path (to stored in app)
 //   It will set the default Infra name.
 // - detect the driver list source.
@@ -259,6 +272,13 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
  opts = a.GetActionOpts(cmd)
 
  a.CurrentCommand = opts
+
+ if debug_mode, found := a.flagValue(context, a.debug_f) ; found {
+    // global debug defined in trace.go
+    //debug = debug_mode
+    fmt.Printf("Debug set to '%s'.\n", debug_mode)
+    if debug_mode == "true" { debug = true }
+ }
 
  // The value is not set in argsv. But is in the parser context.
  if orga, found := a.argValue(context, opts.args["workspace"]) ; found {
@@ -295,7 +315,7 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
  // Identifying `ci` drivers options
  // The value is not set in flagsv. But is in the parser context.
  if value, found := a.flagValue(context, opts.flags[ci_flag_name]) ; found {
-   a.drivers["ci"] = DriverOptions{
+   a.drivers["ci"] = Driver{
      name:        value,
      driver_type: "ci",
      cmds: map[string]DriverCmdOptions {
@@ -311,7 +331,7 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
  // Identifying `git-us` drivers options
  // The value is not set in flagsv. But is in the parser context.
  if value, found := a.flagValue(context, opts.flags[us_flag_name]) ; found {
-   a.drivers["upstream"] = DriverOptions{
+   a.drivers["upstream"] = Driver{
      name:        value,
      driver_type: "upstream",
      cmds: map[string]DriverCmdOptions {

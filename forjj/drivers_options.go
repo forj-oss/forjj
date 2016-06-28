@@ -3,6 +3,7 @@ package main
 import (
         "fmt"
         "os"
+        "os/user"
         "strings"
         "net/http"
         "io/ioutil"
@@ -40,12 +41,25 @@ func (a *Forj) read_driver_description(service_type string) (flags map[interface
  if a.ContribRepo_uri.Scheme == "" {
     // File to read locally
     source = fmt.Sprintf("%s/%s/%s/%s.yaml", a.ContribRepo_uri.Path, service_type, driver_name, driver_name)
-    if d, err := ioutil.ReadFile(source) ; err != nil { return } else { yaml_data = d }
+    if source[:1] == "~" {
+       if user, err := user.Current() ; err != nil {
+         fmt.Printf("Unable to get your user. %s\n", err)
+       } else {
+         source = string(regexp.MustCompile("^~").ReplaceAll([]byte(source), []byte(user.HomeDir)))
+       }
+    }
+    trace("Load plugin %s file definition at '%s'\n", service_type, source)
+    if d, err := ioutil.ReadFile(source) ; err != nil {
+       fmt.Printf("Unable to read '%s'. %s\n", source, err)
+       return
+    } else { yaml_data = d }
 
  } else {
     // File to read for an url. Usually, a raw from github.
     source = fmt.Sprintf("%s/%s/%s/%s/%s.yaml", a.ContribRepo_uri, a.Branch, service_type, driver_name, driver_name)
+    trace("Load plugin %s file definition at '%s'\n", service_type, source)
     if resp, err := http.Get(source) ; err != nil {
+       fmt.Printf("Unable to read '%s'. %s\n", source, err)
        return
 
     } else {
@@ -67,14 +81,10 @@ func (a *Forj) read_driver_description(service_type string) (flags map[interface
  }
 
  m = m.Get("flags")
- if m.IsEmpty() {
-   fmt.Printf("FORJJ: warning! %s/%s - flags not defined or empty in '%s'\n", service_type, driver_name, source)
-   return
- }
 
  flags, err = m.Map()
  if err != nil {
-   fmt.Printf("FORJJ: warning! %s/%s - flags is in invalid format in '%s'. Expect a map of typical forjj commands (comon/create/update/maintain).\n%s\n", service_type, driver_name, source, err)
+   fmt.Printf("FORJJ: warning! %s/%s - flags is in invalid format in '%s'. Expect a map of typical forjj commands (common/create/update/maintain).\n%s\n", service_type, driver_name, source, err)
  }
  return
 }
