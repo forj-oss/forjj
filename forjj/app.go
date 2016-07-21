@@ -53,14 +53,17 @@ type Forj struct {
   debug_f *kingpin.FlagClause     // Flag debug
 
   // Forjj Core values, saved at create time, updated at update time. maintain should save also.
-  Infra_repo *string              // Infra repository name
+  Infra_repo *string              // Infra repository name flag value
+  Orga_name *string               // Infra repository name flag value
+
   Branch string                   // branch name
-  Orga_name *string               // Infra repository name
   Workspace string                // Workspace name
   Workspace_path string           // Workspace directory path.
   ContribRepo_uri *url.URL        // URL to github raw files
   contrib_repo_path string        // Contribution repository Path
   flow string                     // Name of the flow implemented. defined at create time.
+
+  w Workspace                     // Data structure to stored in the workspace. See workspace.go
 }
 
 const (
@@ -94,7 +97,7 @@ func (a *Forj) init() {
   'Create' is the first part developed.
 
   The objective:
-  - Provide a way to start some additionnal script/tool to build 
+  - Provide a way to start some additionnal script/tool to build
     - an application context (for example, make github ready, with organization/repos/users minimal configuration
     - A relation between application (relation between github/jenkins with a predefined flow like PR flow)
     Those scripts are called 'drivers'
@@ -131,7 +134,7 @@ func (a *Forj) init() {
   The implementation of the infra will be done by the maintain task
 
   By default, 'Create' will create a fully runnable solution. But this solution is made in 2 parts:
-  1. Preparation step: Create 'infra' repo, ensure the upstream is properly set and push it. 
+  1. Preparation step: Create 'infra' repo, ensure the upstream is properly set and push it.
   2. Creation step: the infra is created from the source code (role of Maintain)
 
   During the creation, we could optionnaly limit to the first step. But I'm not fully sure it could be useful for now.
@@ -162,7 +165,7 @@ func (a *Forj) init() {
  // GIT Upstream type Drivers parameters
  a.SetCmdFlag("create", us_flag_name,   create_us_driver_help,  no_opts)
 
- /********** UPDATE Action ************ 
+ /********** UPDATE Action ************
   Update is not as clear as Create except that update should update the infra repository.
 
   We could probably use this update to add repositories or migrate the solution to a different place.  */
@@ -178,8 +181,8 @@ func (a *Forj) init() {
  // GIT Upstream type Drivers parameters
  a.SetCmdFlag("update", us_flag_name,   update_us_driver_help,   no_opts)
 
- /****** MAINTAIN Action ************ 
-  Maintain is the real infra creation/update 
+ /****** MAINTAIN Action ************
+  Maintain is the real infra creation/update
   It has to ensure that the infra is updated as defined by the source code in $INFRA.
 
   The technology to ensure (orchestration), could be puppet/ansible combined with docker.
@@ -237,11 +240,11 @@ func (a *Forj)InitializeDriversFlag(){
 func (a *Forj)GetInternalData(param string) (result string) {
  switch param {
   case "organization":
-    result = *a.Orga_name
+    result = a.w.Organization
   case "branch":
     result = a.Branch
   case "infra":
-    result = *a.Infra_repo
+    result = a.w.Infra
  }
  return
 }
@@ -261,96 +264,124 @@ func (a *Forj)GetDriversParameters(cmd_args []string, cmd string) ([]string) {
 
 // Load cli context to adapt the list of options/flags from the driver definition.
 //
-// It will 
+// It will
 // - detect the debug mode
 // - detect the organization name/path (to stored in app)
 //   It will set the default Infra name.
 // - detect the driver list source.
 // - detect ci/us drivers name (to stored in app)
-// 
+//
 // TODO: In the context of a maintain/update, the context is first loaded from the workspace/infra repo.
 func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
- context, err := a.app.ParseContext(args)
- if context == nil { kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?") }
+     context, err := a.app.ParseContext(args)
+     if context == nil { kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?") }
 
- cmd := context.SelectedCommand
- if cmd == nil { return }
+     cmd := context.SelectedCommand
+     if cmd == nil { return }
 
- opts = a.GetActionOpts(cmd)
+     opts = a.GetActionOpts(cmd)
 
- a.CurrentCommand = opts
+     a.CurrentCommand = opts
 
- if debug_mode, found := a.flagValue(context, a.debug_f) ; found {
-    // global debug defined in trace.go
-    //debug = debug_mode
-    fmt.Printf("Debug set to '%s'.\n", debug_mode)
-    if debug_mode == "true" { gotrace.SetDebug() }
- }
-
- // The value is not set in argsv. But is in the parser context.
- if orga, found := a.argValue(context, opts.args["workspace"]) ; found {
-    // TODO: Test the path given.
-    a.Workspace = path.Base(orga)
-    a.Workspace_path = path.Dir(orga)
- }
-
- if orga, found := a.flagValue(context, a.Orga_name_f) ; !found {
-   a.Orga_name_f = a.Orga_name_f.Default(a.Workspace)
-   *a.Orga_name = a.Workspace
- } else {
-   *a.Orga_name = orga
- }
-
- if *a.Orga_name != "" {
-    fmt.Printf("Organization identified : '%s'\n", *a.Orga_name)
-    a.infra_rep_f = a.infra_rep_f.Default(fmt.Sprintf("%s-infra", *a.Orga_name))
- }
-
- // Identifying appropriate Contribution Repository.
- // The value is not set in flagsv. But is in the parser context.
- if contrib_repo, found := a.flagValue(context, opts.flags["contrib-repo"]) ; found {
-    if u, err := url.Parse(contrib_repo); err != nil {
-       println(err)
-    } else {
-       a.ContribRepo_uri = u
-       if u.Scheme == "" {
-          a.contrib_repo_path = contrib_repo
-       }
+    if debug_mode, found := a.flagValue(context, a.debug_f) ; found {
+        // global debug defined in trace.go
+        fmt.Printf("Debug set to '%s'.\n", debug_mode)
+        if debug_mode == "true" { gotrace.SetDebug() }
     }
- }
 
- // Identifying `ci` drivers options
- // The value is not set in flagsv. But is in the parser context.
- if value, found := a.flagValue(context, opts.flags[ci_flag_name]) ; found {
-   a.drivers["ci"] = Driver{
-     name:        value,
-     driver_type: "ci",
-     cmds: map[string]DriverCmdOptions {
-       "common":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
-       "create":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
-       "update":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
-       "maintain": DriverCmdOptions { make(map[string]string), make(map[string]string) },
-     },
-   }
-   fmt.Printf("Selected '%s' driver: %s\n", ci_flag_name, value)
- }
+    // The value is not set in argsv. But is in the parser context.
+    if orga, found := a.argValue(context, opts.args["workspace"]) ; found {
+        // TODO: Test the path given.
+        a.Workspace = path.Base(orga)
+        a.Workspace_path = path.Dir(orga)
+    }
 
- // Identifying `git-us` drivers options
- // The value is not set in flagsv. But is in the parser context.
- if value, found := a.flagValue(context, opts.flags[us_flag_name]) ; found {
-   a.drivers["upstream"] = Driver{
-     name:        value,
-     driver_type: "upstream",
-     cmds: map[string]DriverCmdOptions {
-       "common":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
-       "create":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
-       "update":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
-       "maintain": DriverCmdOptions { make(map[string]string), make(map[string]string) },
-     },
-   }
-   fmt.Printf("Selected '%s' driver: %s\n", us_flag_name, value)
- }
- return
+    // Load Workspace information
+    a.w.Load(a)
+
+    // Set organization name to use.
+    // Can be set only the first time
+    if a.w.Organization == "" {
+        if orga, found := a.flagValue(context, a.Orga_name_f) ; !found {
+            a.Orga_name_f = a.Orga_name_f.Default(a.Workspace)
+            a.w.Organization = a.Workspace
+        } else {
+            a.w.Organization = orga
+        }
+    } else {
+        if orga, found := a.flagValue(context, a.Orga_name_f) ; found && orga != a.w.Organization {
+            fmt.Printf("Warning!!! You cannot update the organization name in an existing workspace.\n")
+        }
+    }
+
+    if a.w.Organization != "" {
+        fmt.Printf("Organization : '%s'\n", a.w.Organization)
+        // Set the 'infra' default flag value
+        a.infra_rep_f = a.infra_rep_f.Default(fmt.Sprintf("%s-infra", a.w.Organization))
+    }
+
+    // Set the infra repo name to use
+    // Can be set only the first time
+    if a.w.Infra == "" {
+        if infra, found := a.flagValue(context, a.infra_rep_f) ; found {
+            // Get infra name from the flag
+            a.w.Infra = infra
+        } else { // Or use the default setting.
+            a.w.Infra = fmt.Sprintf("%s-infra", a.w.Organization)
+        }
+    } else {
+        if infra, found := a.flagValue(context, a.infra_rep_f) ; found && infra != a.w.Infra {
+            fmt.Printf("Warning!!! You cannot update the Infra repository name in an existing workspace.\n")
+        }
+    }
+
+    gotrace.Trace("Infrastructure repository defined : %s\n", a.w.Infra)
+
+    // Identifying appropriate Contribution Repository.
+    // The value is not set in flagsv. But is in the parser context.
+    if contrib_repo, found := a.flagValue(context, opts.flags["contrib-repo"]) ; found {
+        if u, err := url.Parse(contrib_repo); err != nil {
+            println(err)
+        } else {
+            a.ContribRepo_uri = u
+            if u.Scheme == "" {
+                a.contrib_repo_path = contrib_repo
+            }
+        }
+     }
+
+     // Identifying `ci` drivers options
+     // The value is not set in flagsv. But is in the parser context.
+     if value, found := a.flagValue(context, opts.flags[ci_flag_name]) ; found {
+           a.drivers["ci"] = Driver{
+                 name:        value,
+                 driver_type: "ci",
+                 cmds: map[string]DriverCmdOptions {
+                       "common":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+                       "create":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+                       "update":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+                       "maintain": DriverCmdOptions { make(map[string]string), make(map[string]string) },
+                 },
+           }
+           fmt.Printf("Selected '%s' driver: %s\n", ci_flag_name, value)
+     }
+
+     // Identifying `git-us` drivers options
+     // The value is not set in flagsv. But is in the parser context.
+     if value, found := a.flagValue(context, opts.flags[us_flag_name]) ; found {
+           a.drivers["upstream"] = Driver{
+                 name:        value,
+                 driver_type: "upstream",
+                 cmds: map[string]DriverCmdOptions {
+                       "common":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+                       "create":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+                       "update":   DriverCmdOptions { make(map[string]string), make(map[string]string) },
+                       "maintain": DriverCmdOptions { make(map[string]string), make(map[string]string) },
+                 },
+           }
+           fmt.Printf("Selected '%s' driver: %s\n", us_flag_name, value)
+     }
+     return
 }
 
 func (*Forj)argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool){

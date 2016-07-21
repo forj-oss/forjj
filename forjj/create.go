@@ -1,8 +1,8 @@
 package main
 
 import (
-        "fmt"
-        "os"
+    "fmt"
+    "os"
 )
 
 // Call docker to create the Solution source code from scratch with validated parameters.
@@ -10,22 +10,30 @@ import (
 // I would expect to have this go tool to have a do_create to replace the shell script.
 // But this would be a next version and needs to be validated before this decision is made.
 func (a *Forj) Create() {
- // Ensure upstream driver is given
- if _, ok := a.drivers["upstream"] ; ! ok {
-   fmt.Printf("Missing upstream driver. Please use --git-us\n")
-   os.Exit(1)
- }
+    // Ensure upstream driver is given
+    if _, ok := a.drivers["upstream"] ; ! ok {
+        fmt.Printf("Missing upstream driver. Please use --git-us\n")
+        os.Exit(1)
+    }
 
     // Ensure local repo exists
-    a.ensure_local_repo(a.Workspace_path, a.Workspace, *a.Infra_repo)
+    a.ensure_local_repo(a.w.Infra)
 
- // Ensure remote upstream exists - calling driver
+    // Create source for the infra repository - Calling upstream driver - create
+    a.driver_do("upstream", "create")
 
- // Ensure local repo upstream properly configured
+    // Ensure remote upstream exists - calling upstream driver - maintain
+    //a.driver_do("upstream", "maintain") // This will create/update the upstream service
 
- // git add/commit and push
+    // Ensure local repo upstream properly configured
+    //a.ensure_remote_repo(a.w.Infra)
 
- println("FORJJ - create", *a.Orga_name, "DONE") // , cmd.ProcessState.Sys().WaitStatus)
+    // git add/commit and push
+    // ??
+
+    println("FORJJ - create", a.w.Organization, "DONE") // , cmd.ProcessState.Sys().WaitStatus)
+    // save infra repository location in the workspace.
+    a.w.Save(a)
 }
 
 /*
@@ -33,7 +41,7 @@ func (a *Forj) Create() {
  cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s/%s:/devops", a.Workspace_path, a.Workspace))
 
  if a.contrib_repo_path == "" {
-   cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s-forjj-contribs:/forjj-contribs", *a.Orga_name))
+   cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s-forjj-contribs:/forjj-contribs", a.w.Organization))
  } else {
    cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s:/forjj-contribs", a.contrib_repo_path))
 
