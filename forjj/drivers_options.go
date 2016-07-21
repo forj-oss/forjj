@@ -9,6 +9,7 @@ import (
         "io/ioutil"
         "github.com/smallfish/simpleyaml"
         "regexp"
+        "github.hpe.com/christophe-larsonneur/goforjj/trace"
 )
 
 
@@ -48,7 +49,7 @@ func (a *Forj) read_driver_description(service_type string) (flags map[interface
          source = string(regexp.MustCompile("^~").ReplaceAll([]byte(source), []byte(user.HomeDir)))
        }
     }
-    trace("Load plugin %s file definition at '%s'\n", service_type, source)
+    gotrace.Trace("Load plugin %s file definition at '%s'\n", service_type, source)
     if d, err := ioutil.ReadFile(source) ; err != nil {
        fmt.Printf("Unable to read '%s'. %s\n", source, err)
        return
@@ -57,7 +58,7 @@ func (a *Forj) read_driver_description(service_type string) (flags map[interface
  } else {
     // File to read for an url. Usually, a raw from github.
     source = fmt.Sprintf("%s/%s/%s/%s/%s.yaml", a.ContribRepo_uri, a.Branch, service_type, driver_name, driver_name)
-    trace("Load plugin %s file definition at '%s'\n", service_type, source)
+    gotrace.Trace("Load plugin %s file definition at '%s'\n", service_type, source)
     if resp, err := http.Get(source) ; err != nil {
        fmt.Printf("Unable to read '%s'. %s\n", source, err)
        return

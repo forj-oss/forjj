@@ -16,7 +16,8 @@ func (a *Forj) Create() {
    os.Exit(1)
  }
 
- // Ensure local repo exists
+    // Ensure local repo exists
+    a.ensure_local_repo(a.Workspace_path, a.Workspace, *a.Infra_repo)
 
  // Ensure remote upstream exists - calling driver
 

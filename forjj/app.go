@@ -3,12 +3,14 @@ package main
 import (
         "fmt"
         "os"
+        "os/exec"
         "gopkg.in/alecthomas/kingpin.v2"
 //        "github.com/alecthomas/kingpin"
         "net/url"
         "path"
         "regexp"
         "github.hpe.com/christophe-larsonneur/goforjj"
+        "github.hpe.com/christophe-larsonneur/goforjj/trace"
 )
 
 
@@ -34,7 +36,7 @@ type Driver struct {
   name string                     // driver name
   driver_type string              // driver type name
   cmds map[string]DriverCmdOptions// List of flags per commands
-  data goforjj.PluginData         // Plugin Data
+  goforjj.PluginData              // Plugin Data
 }
 
 type Forj struct {
@@ -187,6 +189,11 @@ func (a *Forj) init() {
  a.SetCmdFlag("maintain", "infra_url",  maintain_infra_url_help,  no_opts)
 
  a.GetDriversFlags(os.Args[1:])
+
+ if _, err := exec.LookPath("git") ; err != nil {
+   fmt.Printf("Unable to find 'git' command. %s Ensure it available in your PATH and retry.\n", err)
+   os.Exit(1)
+ }
 }
 
 //
@@ -206,21 +213,21 @@ func (a *Forj)InitializeDriversFlag(){
  for service_type, driverOpts := range a.drivers {
    if driverOpts.name == "" { continue }
 
-   trace("driver: '%s', command: '%s'\n", service_type, a.CurrentCommand.name)
+   gotrace.Trace("driver: '%s', command: '%s'\n", service_type, a.CurrentCommand.name)
    for _, command := range []string { "common", a.CurrentCommand.name } {
-     trace(" From '%s' flags list\n", command)
+     gotrace.Trace(" From '%s' flags list\n", command)
      for flag_name, _ := range driverOpts.cmds[command].flags {
-       trace("  Flag_name => '%s'\n", flag_name)
+       gotrace.Trace("  Flag_name => '%s'\n", flag_name)
        forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
        if forjj_vars == nil {
          if flag_value, ok := a.CurrentCommand.flagsv[flag_name]; ok {
             a.drivers[service_type].cmds[command].flags[flag_name] = *flag_value
-            trace("   %s := %s\n", flag_name, *flag_value)
+            gotrace.Trace("   %s := %s\n", flag_name, *flag_value)
          }
        } else {
          flag_value := a.GetInternalData(forjj_vars[1])
          a.drivers[service_type].cmds[command].flags[flag_name] = flag_value
-            trace("   forjj(%s) => %s := %s\n", forjj_vars[1], flag_name, flag_value)
+            gotrace.Trace("   forjj(%s) => %s := %s\n", forjj_vars[1], flag_name, flag_value)
        }
      }
    }
@@ -277,7 +284,7 @@ func (a *Forj)LoadContext(args []string) (opts *ActionOpts) {
     // global debug defined in trace.go
     //debug = debug_mode
     fmt.Printf("Debug set to '%s'.\n", debug_mode)
-    if debug_mode == "true" { debug = true }
+    if debug_mode == "true" { gotrace.SetDebug() }
  }
 
  // The value is not set in argsv. But is in the parser context.
