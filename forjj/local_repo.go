@@ -13,8 +13,8 @@ import (
 
 // Ensure local repo exist with at least 1 commit.
 // If non existent, or no commit, it will create it all.
-func (a *Forj) ensure_local_repo(repo_path ...string) error {
-    repo := path.Clean(path.Join(repo_path...))
+func (a *Forj) ensure_local_repo(repo_name string) error {
+    repo := path.Clean(path.Join(a.Workspace_path, a.Workspace, repo_name))
 
     gotrace.Trace("Checking '%s' repository...\n", repo)
     dir, err := os.Stat(repo)
