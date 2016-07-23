@@ -21,6 +21,7 @@ func (a *Forj) driver_do(driver_type, action string, args ...string) {
     }
 
     docker_opts := []string{"-v", source_path + ":/src/"}
-
-    ddata.PluginRun(d.Image, action, docker_opts, args)
+    args = a.GetDriversParameters(args, "common")
+    args = a.GetDriversParameters(args, action)
+    ddata.PluginRun(driver_type, d.Runtime.Image, action, docker_opts, args)
 }

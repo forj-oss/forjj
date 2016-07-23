@@ -31,11 +31,16 @@ type DriverCmdOptions struct {
     args  map[string]string // list of args values
 }
 
+type DriverRuntime struct {
+    Image              string `yaml:"docker_image"`// driver docker image name (yaml:docker_image)
+    Service_type       string                      // Support REST API/shell json
+}
+
 type Driver struct {
     Name               string `yaml:"plugin"`      // driver name              (yaml:plugin)
     Version            string                      // driver version           (yaml:version)
     Description        string                      // driver description       (yaml:description)
-    Image              string `yaml:"docker_image"`// driver docker image name (yaml:docker_image)
+    Runtime            DriverRuntime               // Runtime config
     driver_type        string                      // driver type name
     cmds               map[string]DriverCmdOptions // List of flags per commands
     goforjj.PluginData                             // Plugin Data
