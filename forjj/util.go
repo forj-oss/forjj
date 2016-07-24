@@ -42,7 +42,7 @@ func to_string(v interface{}) (result string) {
 
 
 
-// Simple function to call a shell comand and display to stdout
+// Simple function to call a shell command and display to stdout
 // stdout is displayed as is when it arrives, while stderr is displayed in Red, line per line.
 func run_cmd(command string, args ...string) int{
     logger := log.New(os.Stdout, "", 0)

@@ -31,19 +31,12 @@ type DriverCmdOptions struct {
     args  map[string]string // list of args values
 }
 
-type DriverRuntime struct {
-    Image              string `yaml:"docker_image"`// driver docker image name (yaml:docker_image)
-    Service_type       string                      // Support REST API/shell json
-}
-
 type Driver struct {
-    Name               string `yaml:"plugin"`      // driver name              (yaml:plugin)
-    Version            string                      // driver version           (yaml:version)
-    Description        string                      // driver description       (yaml:description)
-    Runtime            DriverRuntime               // Runtime config
     driver_type        string                      // driver type name
+    name               string                      // Name of driver to load Yaml.Name is the real internal driver name.
     cmds               map[string]DriverCmdOptions // List of flags per commands
     goforjj.PluginData                             // Plugin Data
+    Yaml               goforjj.YamlPlugin          // Plugin yaml definition
 }
 
 type Forj struct {
@@ -218,12 +211,15 @@ func (a *Forj) GetActionOpts(cmd *kingpin.CmdClause) *ActionOpts {
     return nil
 }
 
+// Function initializing driver flags with values.
+// From values found in the commandline, extract them
+// From forjj-* values, get it from Forjj internal data.
 func (a *Forj) InitializeDriversFlag() {
 
     forjj_regexp, _ := regexp.Compile("forjj-(.*)")
 
     for service_type, driverOpts := range a.drivers {
-        if driverOpts.Name == "" {
+        if driverOpts.Yaml.Name == "" {
             continue
         }
 
@@ -264,7 +260,7 @@ func (a *Forj) GetDriversParameters(cmd_args []string, cmd string) []string {
 
     for _, pluginOpts := range a.drivers {
         if cmd != "common" {
-            cmd_args = append(cmd_args, fmt.Sprintf("--driver-%s %s", pluginOpts.driver_type, pluginOpts.Name))
+            cmd_args = append(cmd_args, fmt.Sprintf("--driver-%s %s", pluginOpts.driver_type, pluginOpts.Yaml.Name))
         }
         for k, v := range pluginOpts.cmds[cmd].flags {
             if v != "" {
@@ -373,7 +369,7 @@ func (a *Forj) LoadContext(args []string) (opts *ActionOpts) {
     // The value is not set in flagsv. But is in the parser context.
     if value, found := a.flagValue(context, opts.flags[ci_flag_name]); found {
         a.drivers["ci"] = Driver{
-            Name:        value,
+            name:        value,
             driver_type: "ci",
             cmds: map[string]DriverCmdOptions{
                 "common":   DriverCmdOptions{make(map[string]string), make(map[string]string)},
@@ -389,7 +385,7 @@ func (a *Forj) LoadContext(args []string) (opts *ActionOpts) {
     // The value is not set in flagsv. But is in the parser context.
     if value, found := a.flagValue(context, opts.flags[us_flag_name]); found {
         a.drivers["upstream"] = Driver{
-            Name:        value,
+            name:        value,
             driver_type: "upstream",
             cmds: map[string]DriverCmdOptions{
                 "common":   DriverCmdOptions{make(map[string]string), make(map[string]string)},
