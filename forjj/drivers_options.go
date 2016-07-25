@@ -93,7 +93,7 @@ func (a *Forj) read_driver(service_type string) (flags map[string]goforjj.YamlPl
         return
     }
     a.drivers[service_type] = d
-    flags = d.Yaml.Flags
+    flags = d.Yaml.Actions
     return
 }
 
