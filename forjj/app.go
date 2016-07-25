@@ -32,19 +32,22 @@ type DriverCmdOptions struct {
 }
 
 type Driver struct {
-    driver_type        string                      // driver type name
-    name               string                      // Name of driver to load Yaml.Name is the real internal driver name.
-    cmds               map[string]DriverCmdOptions // List of flags per commands
-    goforjj.PluginData                             // Plugin Data
-    Yaml               goforjj.YamlPlugin          // Plugin yaml definition
+    driver_type        string                         // driver type name
+    name               string                         // Name of driver to load Yaml.Name is the real internal driver name.
+    cmds               map[string]DriverCmdOptions    // List of flags per commands
+    flags              map[string]*kingpin.FlagClause // list of additional flags loaded at app level.
+    flagsv             map[string]*string             // list of additional flags value loaded at app level.
+    goforjj.PluginData                                // Plugin Data
+    Yaml               goforjj.YamlPlugin             // Plugin yaml definition
 }
 
 type Forj struct {
     // Collections of fields regarding flags given
-    infra_rep_f *kingpin.FlagClause   // Infra flag kingpin struct.
-    Orga_name_f *kingpin.FlagClause   // Organization flag kingpin struct.
-    app         *kingpin.Application  // Kingpin Application object
-    Actions     map[string]ActionOpts // map of Commands with their arguments/flags
+    infra_rep_f *kingpin.FlagClause            // Infra flag kingpin struct.
+    Orga_name_f *kingpin.FlagClause            // Organization flag kingpin struct.
+    app         *kingpin.Application           // Kingpin Application object
+    Actions     map[string]ActionOpts          // map of Commands with their arguments/flags
+
 
     drivers map[string]Driver // List of drivers data/flags/...
 
@@ -203,11 +206,17 @@ func (a *Forj) init() {
 // Generic Application function settings
 //
 
-func (a *Forj) GetActionOpts(cmd *kingpin.CmdClause) *ActionOpts {
-    if v, found := a.Actions[cmd.FullCommand()]; found {
+// Get the ActionsOpts of the selected Command clause in kingpin (ie create/update or maintain)
+func (a *Forj) GetActionOptsFromCli(cmd *kingpin.CmdClause) *ActionOpts {
+    return a.GetActionOptsFromString(cmd.FullCommand())
+}
+
+// Get the ActionsOpts of a command string (ie create/update or maintain)
+func (a *Forj) GetActionOptsFromString(cmd string) *ActionOpts {
+    if v, found := a.Actions[cmd]; found {
         return &v
     }
-    kingpin.Fatalf("FORJJ Internal error. No matching '%s' in declared commands", cmd.FullCommand())
+    kingpin.Fatalf("FORJJ Internal error. No matching '%s' in declared commands", cmd)
     return nil
 }
 
@@ -256,15 +265,29 @@ func (a *Forj) GetInternalData(param string) (result string) {
     return
 }
 
-func (a *Forj) GetDriversParameters(cmd_args []string, cmd string) []string {
+// Build the list of plugin shell parameters for dedicated action.
+func (a *Forj) GetDriversActionsParameters(cmd_args []string, cmd string) []string {
+
+    for _, pluginOpts := range a.drivers {
+        for k, v := range pluginOpts.cmds[cmd].flags {
+            if v != "" {
+                cmd_args = append(cmd_args, fmt.Sprintf("--%s", k), v)
+            }
+        }
+    }
+    return cmd_args
+}
+
+// Build the list of plugin shell common parameters.
+func (a *Forj) GetDriversCommonParameters(cmd_args []string, cmd string) []string {
 
     for _, pluginOpts := range a.drivers {
         if cmd != "common" {
             cmd_args = append(cmd_args, fmt.Sprintf("--driver-%s %s", pluginOpts.driver_type, pluginOpts.Yaml.Name))
         }
-        for k, v := range pluginOpts.cmds[cmd].flags {
-            if v != "" {
-                cmd_args = append(cmd_args, fmt.Sprintf("--%s", k), v)
+        for k, v := range pluginOpts.flagsv {
+            if *v != "" {
+                cmd_args = append(cmd_args, fmt.Sprintf("--%s", k), *v)
             }
         }
     }
@@ -280,8 +303,7 @@ func (a *Forj) GetDriversParameters(cmd_args []string, cmd string) []string {
 // - detect the driver list source.
 // - detect ci/us drivers name (to stored in app)
 //
-// TODO: In the context of a maintain/update, the context is first loaded from the workspace/infra repo.
-func (a *Forj) LoadContext(args []string) (opts *ActionOpts) {
+func (a *Forj) LoadContext(args []string) {
     context, err := a.app.ParseContext(args)
     if context == nil {
         kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?")
@@ -292,7 +314,7 @@ func (a *Forj) LoadContext(args []string) (opts *ActionOpts) {
         return
     }
 
-    opts = a.GetActionOpts(cmd)
+    opts := a.GetActionOptsFromCli(cmd)
 
     a.CurrentCommand = opts
 
@@ -396,7 +418,6 @@ func (a *Forj) LoadContext(args []string) (opts *ActionOpts) {
         }
         fmt.Printf("Selected '%s' driver: %s\n", us_flag_name, value)
     }
-    return
 }
 
 func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool) {

@@ -19,14 +19,14 @@ import (
 Currently there is no distinction about setting different options for a specific task on the driver.
 
 */
-func (a *Forj) load_driver_options(opts *ActionOpts, service_type string) (err error) {
+func (a *Forj) load_driver_options(service_type string) (err error) {
     var flags map[string]goforjj.YamlPluginDef
 
     if flags, err = a.read_driver(service_type) ; err != nil {
         fmt.Printf("%s\n", err)
     } else {
         if a.drivers[service_type].Yaml.Name != "" { // if true => Driver Def loaded
-            a.init_driver_flags(opts, flags, service_type)
+            a.init_driver_flags(flags, service_type)
         }
     }
     return
@@ -99,23 +99,38 @@ func (a *Forj) read_driver(service_type string) (flags map[string]goforjj.YamlPl
 
 /* Initialize command drivers with plugin definition loaded from flags (yaml representation).
  */
-func (a *Forj) init_driver_flags(opts *ActionOpts, commands map[string]goforjj.YamlPluginDef, service_type string) {
+func (a *Forj) init_driver_flags(commands map[string]goforjj.YamlPluginDef, service_type string) {
     for command, def := range commands {
         if _, ok := a.drivers[service_type].cmds[command]; !ok {
             fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", a.drivers[service_type], command)
         }
+
+        d := a.drivers[service_type]
         for option_name, params := range def.Flags {
-            a.drivers[service_type].cmds[command].flags[option_name] = "" // No value by default. Will be set later after complete parse.
+            d.cmds[command].flags[option_name] = "" // No value by default. Will be set later after complete parse.
             // drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
             // They are not in the list of possible drivers options from the cli.
             if ok, _ := regexp.MatchString("forjj-.*", option_name); ok {
                 continue
             }
 
-            // Create flag 'option_name' on Cms
-            flag := opts.Cmd.Flag(option_name, params.Help)
-            opts.flags[option_name] = flag
-            opts.flagsv[option_name] = flag.String()
+            var flag *kingpin.FlagClause
+            // Create flag 'option_name' on kingpin cmd or app
+            if command == "common" {
+                flag = a.app.Flag(option_name, params.Help)
+                if d.flags == nil {
+                    d.flags = make(map[string]*kingpin.FlagClause)
+                    d.flagsv = make(map[string]*string)
+                }
+                d.flags[option_name] = flag
+                d.flagsv[option_name] = flag.String()
+            } else
+            {
+                opts := a.GetActionOptsFromString(command)
+                flag = opts.Cmd.Flag(option_name, params.Help)
+                opts.flags[option_name] = flag
+                opts.flagsv[option_name] = flag.String()
+            }
 
             if params.Required {
                 flag.Required()
@@ -126,17 +141,14 @@ func (a *Forj) init_driver_flags(opts *ActionOpts, commands map[string]goforjj.Y
 }
 
 func (a *Forj) GetDriversFlags(args []string) {
-    opts := a.LoadContext(os.Args[1:])
-    if opts == nil {
-        return
-    }
+    a.LoadContext(os.Args[1:])
 
-    if err := a.load_driver_options(opts, "ci"); err != nil {
+    if err := a.load_driver_options("ci"); err != nil {
         fmt.Printf("Error: %#v\n", err)
         os.Exit(1)
     }
 
-    if err := a.load_driver_options(opts, "upstream"); err != nil {
+    if err := a.load_driver_options("upstream"); err != nil {
         fmt.Printf("Error: %#v\n", err)
         os.Exit(1)
     }

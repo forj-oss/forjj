@@ -35,16 +35,3 @@ func (a *Forj) Create() {
     // save infra repository location in the workspace.
     a.w.Save(a)
 }
-
-/*
- cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s:/home/devops/.ssh", *a.CurrentCommand.flagsv[ssh_dir_flag_name]))
- cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s/%s:/devops", a.Workspace_path, a.Workspace))
-
- if a.contrib_repo_path == "" {
-   cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s-forjj-contribs:/forjj-contribs", a.w.Organization))
- } else {
-   cmd_args = append(cmd_args, "-v", fmt.Sprintf("%s:/forjj-contribs", a.contrib_repo_path))
-
- cmd_args = a.GetDriversParameters(cmd_args, "common")
- cmd_args = a.GetDriversParameters(cmd_args, action)
-*/
