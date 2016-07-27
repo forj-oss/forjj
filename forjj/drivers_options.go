@@ -2,40 +2,33 @@ package main
 
 import (
     "fmt"
-    "github.hpe.com/christophe-larsonneur/goforjj"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
-    "gopkg.in/yaml.v2"
+    "gopkg.in/alecthomas/kingpin.v2"
     "io/ioutil"
     "net/http"
     "os"
     "os/user"
     "regexp"
     "strings"
-    "gopkg.in/alecthomas/kingpin.v2"
 )
 
-/* Load driver options to a Command requested.
+// Load driver options to a Command requested.
 
-Currently there is no distinction about setting different options for a specific task on the driver.
-
-*/
-func (a *Forj) load_driver_options(service_type string) (err error) {
-    var flags map[string]goforjj.YamlPluginDef
-
-    if flags, err = a.read_driver(service_type) ; err != nil {
-        fmt.Printf("%s\n", err)
-    } else {
-        if a.drivers[service_type].Yaml.Name != "" { // if true => Driver Def loaded
-            a.init_driver_flags(flags, service_type)
-        }
+// Currently there is no distinction about setting different options for a specific task on the driver.
+func (a *Forj) load_driver_options(service_type string) error {
+    if err := a.read_driver(service_type); err != nil {
+        return err
     }
-    return
+
+    if a.drivers[service_type].plugin.Yaml.Name != "" { // if true => Driver Def loaded
+        a.init_driver_flags(service_type)
+    }
+
+    return nil
 }
 
-/* Read Driver yaml document
-
- */
-func (a *Forj) read_driver(service_type string) (flags map[string]goforjj.YamlPluginDef, funcerr error) {
+// Read Driver yaml document
+func (a *Forj) read_driver(service_type string) (err error) {
     var (
         yaml_data   []byte
         driver_name = a.drivers[service_type].name
@@ -58,8 +51,7 @@ func (a *Forj) read_driver(service_type string) (flags map[string]goforjj.YamlPl
         }
         gotrace.Trace("Load plugin %s file definition at '%s'\n", service_type, source)
         if d, err := ioutil.ReadFile(source); err != nil {
-            funcerr = fmt.Errorf("Unable to read '%s'. %s\n", source, err)
-            return
+            return fmt.Errorf("Unable to read '%s'. %s\n", source, err)
         } else {
             yaml_data = d
         }
@@ -68,38 +60,36 @@ func (a *Forj) read_driver(service_type string) (flags map[string]goforjj.YamlPl
         // File to read for an url. Usually, a raw from github.
         source = fmt.Sprintf("%s/%s/%s/%s/%s.yaml", a.ContribRepo_uri, a.Branch, service_type, driver_name, driver_name)
         gotrace.Trace("Load plugin %s file definition at '%s'\n", service_type, source)
-        if resp, err := http.Get(source); err != nil {
-            funcerr = fmt.Errorf("Unable to read '%s'. %s\n", source, err)
+
+        var resp *http.Response
+        if resp, err = http.Get(source); err != nil {
+            return fmt.Errorf("Unable to read '%s'. %s\n", source, err)
+        }
+        defer resp.Body.Close()
+
+        var d []byte
+        if d, err = ioutil.ReadAll(resp.Body); err != nil {
             return
-        } else {
-
-            defer resp.Body.Close()
-
-            if d, err := ioutil.ReadAll(resp.Body); err != nil {
-                funcerr = err
-                return
-            } else {
-                if strings.Contains(http.DetectContentType(d), "text/plain") {
-                    yaml_data = d
-                }
-            }
+        }
+        if strings.Contains(http.DetectContentType(d), "text/plain") {
+            yaml_data = d
         }
     }
 
     d := a.drivers[service_type] // Copy of the element. Not a reference.
-
-    if err := yaml.Unmarshal([]byte(yaml_data), &d.Yaml); err != nil {
-        funcerr = fmt.Errorf("FORJJ: warning! '%s' is not a valid yaml document. %s\n", source, err)
+    if err = d.plugin.PluginDefLoad(yaml_data); err != nil {
         return
     }
     a.drivers[service_type] = d
-    flags = d.Yaml.Actions
+
     return
 }
 
-/* Initialize command drivers with plugin definition loaded from flags (yaml representation).
- */
-func (a *Forj) init_driver_flags(commands map[string]goforjj.YamlPluginDef, service_type string) {
+// Initialize command drivers with plugin definition loaded from flags (yaml representation).
+func (a *Forj) init_driver_flags(service_type string) {
+    commands := a.drivers[service_type].plugin.Yaml.Actions
+
+    gotrace.Trace("Setting flags from plugin type '%s' (%s)\n", service_type, a.drivers[service_type].plugin.Yaml.Name)
     for command, def := range commands {
         if _, ok := a.drivers[service_type].cmds[command]; !ok {
             fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", a.drivers[service_type], command)
@@ -117,6 +107,7 @@ func (a *Forj) init_driver_flags(commands map[string]goforjj.YamlPluginDef, serv
             var flag *kingpin.FlagClause
             // Create flag 'option_name' on kingpin cmd or app
             if command == "common" {
+                gotrace.Trace("Set Common flag for '%s'\n", option_name)
                 flag = a.app.Flag(option_name, params.Help)
                 if d.flags == nil {
                     d.flags = make(map[string]*kingpin.FlagClause)
@@ -124,8 +115,8 @@ func (a *Forj) init_driver_flags(commands map[string]goforjj.YamlPluginDef, serv
                 }
                 d.flags[option_name] = flag
                 d.flagsv[option_name] = flag.String()
-            } else
-            {
+            } else {
+                gotrace.Trace("Set action '%s' flag for '%s'\n", command, option_name)
                 opts := a.GetActionOptsFromString(command)
                 flag = opts.Cmd.Flag(option_name, params.Help)
                 opts.flags[option_name] = flag

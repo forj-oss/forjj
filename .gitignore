@@ -1,3 +1,3 @@
 *.swp
-test_go
+test_go*
 tasks.json

@@ -31,6 +31,9 @@ func (a *Forj) Create() {
     // git add/commit and push
     // ??
 
+    // To stop/remove all pending plugin services started.
+    // plugins_close_all()
+
     println("FORJJ - create", a.w.Organization, "DONE") // , cmd.ProcessState.Sys().WaitStatus)
     // save infra repository location in the workspace.
     a.w.Save(a)

@@ -37,8 +37,7 @@ type Driver struct {
     cmds               map[string]DriverCmdOptions    // List of flags per commands
     flags              map[string]*kingpin.FlagClause // list of additional flags loaded at app level.
     flagsv             map[string]*string             // list of additional flags value loaded at app level.
-    goforjj.PluginData                                // Plugin Data
-    Yaml               goforjj.YamlPlugin             // Plugin yaml definition
+    plugin goforjj.PluginDef                          // Plugin Data
 }
 
 type Forj struct {
@@ -228,7 +227,7 @@ func (a *Forj) InitializeDriversFlag() {
     forjj_regexp, _ := regexp.Compile("forjj-(.*)")
 
     for service_type, driverOpts := range a.drivers {
-        if driverOpts.Yaml.Name == "" {
+        if driverOpts.plugin.Yaml.Name == "" {
             continue
         }
 
@@ -266,32 +265,29 @@ func (a *Forj) GetInternalData(param string) (result string) {
 }
 
 // Build the list of plugin shell parameters for dedicated action.
-func (a *Forj) GetDriversActionsParameters(cmd_args []string, cmd string) []string {
+// It will be created as a Hash of values
+func (a *Forj) GetDriversActionsParameters(cmd_args map[string]string, cmd string) {
 
     for _, pluginOpts := range a.drivers {
         for k, v := range pluginOpts.cmds[cmd].flags {
             if v != "" {
-                cmd_args = append(cmd_args, fmt.Sprintf("--%s", k), v)
+                cmd_args[k] = v
             }
         }
     }
-    return cmd_args
 }
 
 // Build the list of plugin shell common parameters.
-func (a *Forj) GetDriversCommonParameters(cmd_args []string, cmd string) []string {
+// It will be created as a Hash of values
+func (a *Forj) GetDriversCommonParameters(cmd_args map[string]string) {
 
     for _, pluginOpts := range a.drivers {
-        if cmd != "common" {
-            cmd_args = append(cmd_args, fmt.Sprintf("--driver-%s %s", pluginOpts.driver_type, pluginOpts.Yaml.Name))
-        }
         for k, v := range pluginOpts.flagsv {
             if *v != "" {
-                cmd_args = append(cmd_args, fmt.Sprintf("--%s", k), *v)
+                cmd_args[k] = *v
             }
         }
     }
-    return cmd_args
 }
 
 // Load cli context to adapt the list of options/flags from the driver definition.
