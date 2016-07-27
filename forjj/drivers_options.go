@@ -49,7 +49,7 @@ func (a *Forj) read_driver(service_type string) (err error) {
                 source = string(regexp.MustCompile("^~").ReplaceAll([]byte(source), []byte(user.HomeDir)))
             }
         }
-        gotrace.Trace("Load plugin %s file definition at '%s'\n", service_type, source)
+        gotrace.Trace("Load plugin %s file definition at '%s'", service_type, source)
         if d, err := ioutil.ReadFile(source); err != nil {
             return fmt.Errorf("Unable to read '%s'. %s\n", source, err)
         } else {
@@ -59,7 +59,7 @@ func (a *Forj) read_driver(service_type string) (err error) {
     } else {
         // File to read for an url. Usually, a raw from github.
         source = fmt.Sprintf("%s/%s/%s/%s/%s.yaml", a.ContribRepo_uri, a.Branch, service_type, driver_name, driver_name)
-        gotrace.Trace("Load plugin %s file definition at '%s'\n", service_type, source)
+        gotrace.Trace("Load plugin %s file definition at '%s'", service_type, source)
 
         var resp *http.Response
         if resp, err = http.Get(source); err != nil {
@@ -89,7 +89,7 @@ func (a *Forj) read_driver(service_type string) (err error) {
 func (a *Forj) init_driver_flags(service_type string) {
     commands := a.drivers[service_type].plugin.Yaml.Actions
 
-    gotrace.Trace("Setting flags from plugin type '%s' (%s)\n", service_type, a.drivers[service_type].plugin.Yaml.Name)
+    gotrace.Trace("Setting flags from plugin type '%s' (%s)", service_type, a.drivers[service_type].plugin.Yaml.Name)
     for command, def := range commands {
         if _, ok := a.drivers[service_type].cmds[command]; !ok {
             fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", a.drivers[service_type], command)
@@ -107,7 +107,7 @@ func (a *Forj) init_driver_flags(service_type string) {
             var flag *kingpin.FlagClause
             // Create flag 'option_name' on kingpin cmd or app
             if command == "common" {
-                gotrace.Trace("Set Common flag for '%s'\n", option_name)
+                gotrace.Trace("Set Common flag for '%s'", option_name)
                 flag = a.app.Flag(option_name, params.Help)
                 if d.flags == nil {
                     d.flags = make(map[string]*kingpin.FlagClause)
@@ -116,7 +116,7 @@ func (a *Forj) init_driver_flags(service_type string) {
                 d.flags[option_name] = flag
                 d.flagsv[option_name] = flag.String()
             } else {
-                gotrace.Trace("Set action '%s' flag for '%s'\n", command, option_name)
+                gotrace.Trace("Set action '%s' flag for '%s'", command, option_name)
                 opts := a.GetActionOptsFromString(command)
                 flag = opts.Cmd.Flag(option_name, params.Help)
                 opts.flags[option_name] = flag

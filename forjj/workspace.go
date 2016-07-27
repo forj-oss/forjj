@@ -34,7 +34,7 @@ func (w *Workspace)Save(app *Forj) {
     err = ioutil.WriteFile(fjson, djson, 0644)
     kingpin.FatalIfError(err, "Unable to create/update '%s'", fjson)
 
-    gotrace.Trace("File '%' saved with '%'\n", fjson, w)
+    gotrace.Trace("File '%' saved with '%'", fjson, w)
 }
 
 func (w *Workspace)Load(app *Forj) {
@@ -51,5 +51,5 @@ func (w *Workspace)Load(app *Forj) {
     if err := json.Unmarshal(djson, &w); err != nil {
         log.Fatal(err)
     }
-    gotrace.Trace("File '%s' loaded.\n", fjson)
+    gotrace.Trace("File '%s' loaded.", fjson)
 }

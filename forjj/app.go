@@ -231,21 +231,21 @@ func (a *Forj) InitializeDriversFlag() {
             continue
         }
 
-        gotrace.Trace("driver: '%s', command: '%s'\n", service_type, a.CurrentCommand.name)
+        gotrace.Trace("driver: '%s', command: '%s'", service_type, a.CurrentCommand.name)
         for _, command := range []string{"common", a.CurrentCommand.name} {
-            gotrace.Trace(" From '%s' flags list\n", command)
+            gotrace.Trace(" From '%s' flags list", command)
             for flag_name, _ := range driverOpts.cmds[command].flags {
-                gotrace.Trace("  Flag_name => '%s'\n", flag_name)
+                gotrace.Trace("  Flag_name => '%s'", flag_name)
                 forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
                 if forjj_vars == nil {
                     if flag_value, ok := a.CurrentCommand.flagsv[flag_name]; ok {
                         a.drivers[service_type].cmds[command].flags[flag_name] = *flag_value
-                        gotrace.Trace("   %s := %s\n", flag_name, *flag_value)
+                        gotrace.Trace("   %s := %s", flag_name, *flag_value)
                     }
                 } else {
                     flag_value := a.GetInternalData(forjj_vars[1])
                     a.drivers[service_type].cmds[command].flags[flag_name] = flag_value
-                    gotrace.Trace("   forjj(%s) => %s := %s\n", forjj_vars[1], flag_name, flag_value)
+                    gotrace.Trace("   forjj(%s) => %s := %s", forjj_vars[1], flag_name, flag_value)
                 }
             }
         }
@@ -368,7 +368,7 @@ func (a *Forj) LoadContext(args []string) {
         }
     }
 
-    gotrace.Trace("Infrastructure repository defined : %s\n", a.w.Infra)
+    gotrace.Trace("Infrastructure repository defined : %s", a.w.Infra)
 
     // Identifying appropriate Contribution Repository.
     // The value is not set in flagsv. But is in the parser context.

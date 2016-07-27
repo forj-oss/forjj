@@ -55,7 +55,7 @@ func run_cmd(command string, args ...string) int{
     defer logStreamerErr.Close()
 
     cmd := exec.Command(command, args...)
-    gotrace.Trace("RUNNING: %s %s\n", command, strings.Join(args, " "))
+    gotrace.Trace("RUNNING: %s %s", command, strings.Join(args, " "))
 
     cmd.Stderr = logStreamerErr
     cmd.Stdout = logStreamerOut
@@ -71,7 +71,7 @@ func run_cmd(command string, args ...string) int{
         fmt.Printf("\nERROR: wait failure\n%s: %s\n", command, err)
         return 1
     }
-    gotrace.Trace("Command done\n")
+    gotrace.Trace("Command done")
     if status := cmd.ProcessState.Sys().(syscall.WaitStatus) ; status.ExitStatus() != 0 {
         fmt.Printf("\n%s ERROR: Unable to get process status.\n%s: %s\n", command, cmd.ProcessState.String())
         return status.ExitStatus()
