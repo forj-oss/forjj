@@ -1,9 +1,6 @@
 package main
 
-import (
-    "fmt"
-    "os"
-)
+import "gopkg.in/alecthomas/kingpin.v2"
 
 // Call docker to create the Solution source code from scratch with validated parameters.
 // This container do the real stuff (git/call drivers)
@@ -12,15 +9,15 @@ import (
 func (a *Forj) Create() {
     // Ensure upstream driver is given
     if _, ok := a.drivers["upstream"] ; ! ok {
-        fmt.Printf("Missing upstream driver. Please use --git-us\n")
-        os.Exit(1)
+        kingpin.Fatalf("Missing upstream driver. Please use --git-us\n")
     }
 
     // Ensure local repo exists
     a.ensure_local_repo(a.w.Infra)
 
     // Create source for the infra repository - Calling upstream driver - create
-    a.driver_do("upstream", "create")
+    _, err := a.driver_do("upstream", "create")
+    kingpin.FatalIfError(err, "Driver create issue")
 
     // Ensure remote upstream exists - calling upstream driver - maintain
     //a.driver_do("upstream", "maintain") // This will create/update the upstream service
