@@ -27,13 +27,13 @@ func (a *Forj) driver_do(driver_type, action string, args ...string) (*goforjj.P
         return nil, err
     }
 
-    return a.driverRunAction(&d, action)
+    plugin_args := make(map[string]string)
+    a.GetDriversCommonParameters(plugin_args)
+    a.GetDriversActionsParameters(plugin_args, action)
+    return d.plugin.PluginRunAction(action, plugin_args)
 }
 
-func (a *Forj)driverRunAction(d *Driver, action string) (*goforjj.PluginResult, error) {
-    // TODO: Must return a map[string]interface{} instead of []string
-    args := make(map[string]string)
-    a.GetDriversCommonParameters(args)
-    a.GetDriversActionsParameters(args, action)
-    return d.plugin.PluginRunAction(action, args)
+func (a *Forj) driver_cleanup(driver_type string) {
+    d := a.drivers[driver_type]
+    d.plugin.PluginStopService()
 }

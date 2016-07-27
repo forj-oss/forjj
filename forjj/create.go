@@ -16,6 +16,7 @@ func (a *Forj) Create() {
     a.ensure_local_repo(a.w.Infra)
 
     // Create source for the infra repository - Calling upstream driver - create
+    defer a.driver_cleanup("upstream")
     _, err := a.driver_do("upstream", "create")
     kingpin.FatalIfError(err, "Driver create issue")
 
