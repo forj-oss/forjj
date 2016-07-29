@@ -54,6 +54,8 @@ type Forj struct {
     CurrentCommand *ActionOpts         // Loaded CurrentCommand reference.
     debug_f        *kingpin.FlagClause // Flag debug
 
+    CurrentPluginDriver *Driver     // Driver executing
+
     // Forjj Core values, saved at create time, updated at update time. maintain should save also.
     Infra_repo *string // Infra repository name flag value
     Orga_name  *string // Infra repository name flag value
@@ -260,6 +262,10 @@ func (a *Forj) GetInternalData(param string) (result string) {
         result = a.Branch
     case "infra":
         result = a.w.Infra
+    case "source-mount" : // where the plugin has source mounted
+        result = a.CurrentPluginDriver.plugin.SourceMount
+    case "workspace-mount" : // where the plugin has source mounted
+        result = a.CurrentPluginDriver.plugin.WorkspaceMount
     }
     return
 }

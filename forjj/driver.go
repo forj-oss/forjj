@@ -15,6 +15,7 @@ const (
 // Start driver task.
 func (a *Forj) driver_do(driver_type, action string, args ...string) (*goforjj.PluginResult, error) {
     d := a.drivers[driver_type]
+    a.CurrentPluginDriver = &d
 
     if err := d.plugin.PluginInit(a.Workspace) ; err != nil {
         return nil, err
