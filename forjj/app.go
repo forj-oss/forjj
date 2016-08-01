@@ -263,9 +263,13 @@ func (a *Forj) GetInternalData(param string) (result string) {
     case "infra":
         result = a.w.Infra
     case "source-mount" : // where the plugin has source mounted
-        result = a.CurrentPluginDriver.plugin.SourceMount
+        if a.CurrentPluginDriver != nil {
+            result = a.CurrentPluginDriver.plugin.SourceMount
+        }
     case "workspace-mount" : // where the plugin has source mounted
-        result = a.CurrentPluginDriver.plugin.WorkspaceMount
+        if a.CurrentPluginDriver != nil {
+            result = a.CurrentPluginDriver.plugin.WorkspaceMount
+        }
     }
     return
 }
