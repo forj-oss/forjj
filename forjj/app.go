@@ -265,23 +265,35 @@ func (a *Forj) GetInternalData(param string) (result string) {
     case "source-mount" : // where the plugin has source mounted
         if a.CurrentPluginDriver != nil {
             result = a.CurrentPluginDriver.plugin.SourceMount
+        } else {
+            gotrace.Trace("Warning. source-mount requested outside plugin context.")
         }
     case "workspace-mount" : // where the plugin has source mounted
         if a.CurrentPluginDriver != nil {
             result = a.CurrentPluginDriver.plugin.WorkspaceMount
+        } else {
+            gotrace.Trace("Warning. workspace-mount requested outside plugin context.")
         }
     }
+    gotrace.Trace("'%s' requested. Value returned '%s'", param, result)
     return
 }
 
 // Build the list of plugin shell parameters for dedicated action.
 // It will be created as a Hash of values
 func (a *Forj) GetDriversActionsParameters(cmd_args map[string]string, cmd string) {
+    forjj_regexp, _ := regexp.Compile("forjj-(.*)")
 
     for _, pluginOpts := range a.drivers {
         for k, v := range pluginOpts.cmds[cmd].flags {
-            if v != "" {
-                cmd_args[k] = v
+            forjj_vars := forjj_regexp.FindStringSubmatch(k)
+            gotrace.Trace("'%s' candidate as parameters.", k)
+            if forjj_vars == nil {
+                if v != "" {
+                    cmd_args[k] = v
+                }
+            } else {
+                cmd_args[k] = a.GetInternalData(forjj_vars[1])
             }
         }
     }
@@ -289,16 +301,23 @@ func (a *Forj) GetDriversActionsParameters(cmd_args map[string]string, cmd strin
 
 // Build the list of plugin shell common parameters.
 // It will be created as a Hash of values
-func (a *Forj) GetDriversCommonParameters(cmd_args map[string]string) {
+/*func (a *Forj) GetDriversCommonParameters(cmd_args map[string]string) {
+    forjj_regexp, _ := regexp.Compile("forjj-(.*)")
 
     for _, pluginOpts := range a.drivers {
-        for k, v := range pluginOpts.flagsv {
-            if *v != "" {
-                cmd_args[k] = *v
+        for k, v := range pluginOpts.cmds["common"].flags {
+            gotrace.Trace("'%s' candidate as parameters.", k)
+            forjj_vars := forjj_regexp.FindStringSubmatch(k)
+            if forjj_vars == nil {
+                if *v != "" {
+                    cmd_args[k] = *v
+                }
+            } else {
+                cmd_args[k] = a.GetInternalData(forjj_vars[1])
             }
         }
     }
-}
+}*/
 
 // Load cli context to adapt the list of options/flags from the driver definition.
 //

@@ -29,7 +29,7 @@ func (a *Forj) driver_do(driver_type, action string, args ...string) (*goforjj.P
     }
 
     plugin_args := make(map[string]string)
-    a.GetDriversCommonParameters(plugin_args)
+    a.GetDriversActionsParameters(plugin_args, "common")
     a.GetDriversActionsParameters(plugin_args, action)
     return d.plugin.PluginRunAction(action, plugin_args)
 }
