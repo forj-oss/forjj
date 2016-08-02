@@ -14,20 +14,25 @@ func (a *Forj) Create() {
 
     // Ensure local repo exists
     a.ensure_local_repo(a.w.Infra)
+    // Now, we are in the infra repo root directory.
 
     // Create source for the infra repository - Calling upstream driver - create
     defer a.driver_cleanup("upstream")
-    _, err := a.driver_do("upstream", "create")
+    d, err := a.driver_do("upstream", "create")
     kingpin.FatalIfError(err, "Driver create issue")
 
+    // Commit driver files created/updated
+    err = a.DoCommit(&d.Data)
+    kingpin.FatalIfError(err, "git commit issue")
+
     // Ensure remote upstream exists - calling upstream driver - maintain
-    //a.driver_do("upstream", "maintain") // This will create/update the upstream service
+    a.driver_do("upstream", "maintain") // This will create/update the upstream service
 
     // Ensure local repo upstream properly configured
     //a.ensure_remote_repo(a.w.Infra)
 
     // git add/commit and push
-    // ??
+    //git("push")
 
     // To stop/remove all pending plugin services started.
     // plugins_close_all()

@@ -9,6 +9,7 @@ import (
     "strings"
     "io/ioutil"
     "path/filepath"
+    "github.hpe.com/christophe-larsonneur/goforjj"
 )
 
 // Ensure local repo exist with at least 1 commit.
@@ -55,6 +56,26 @@ func (a *Forj) ensure_local_repo(repo_name string) error {
     } else {
         gotrace.Trace("nothing done on existing '%s' git repository...", repo)
     }
+    return nil
+}
+
+// Do commit from data returned by a plugin.
+func (a *Forj) DoCommit(d *goforjj.PluginData) error {
+    gotrace.Trace("Committing %d files as '%s'", len(d.Files), d.CommitMessage)
+    if len(d.Files) == 0 {
+        return fmt.Errorf("Nothing to commit")
+    }
+
+    if d.CommitMessage == "" {
+        return fmt.Errorf("Unable to commit without a commit message.")
+    }
+
+    for _, file := range d.Files {
+        if i := git("add", path.Join("apps", a.CurrentPluginDriver.driver_type, file)); i >0 {
+            return fmt.Errorf("Issue while adding code to git. RC=%d", i)
+        }
+    }
+    git("commit", "-m", d.CommitMessage)
     return nil
 }
 
@@ -106,3 +127,4 @@ func git_1st_commit(repo string) {
         }
     }
 }
+
