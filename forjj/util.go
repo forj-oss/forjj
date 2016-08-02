@@ -64,16 +64,16 @@ func run_cmd(command string, args ...string) int{
     logStreamerErr.FlushRecord()
     // Execute command
     if err := cmd.Start() ; err != nil {
-        fmt.Printf("ERROR could not spawn command.", err.Error())
+        fmt.Printf("ERROR could not spawn command.\n", err.Error())
     }
 
     if err := cmd.Wait(); err != nil {
-        fmt.Printf("\nERROR: wait failure\n%s: %s\n", command, err)
+        fmt.Printf("\nERROR: wait failure - %s: %s\n", command, err)
         return 1
     }
     gotrace.Trace("Command done")
     if status := cmd.ProcessState.Sys().(syscall.WaitStatus) ; status.ExitStatus() != 0 {
-        fmt.Printf("\n%s ERROR: Unable to get process status.\n%s: %s\n", command, cmd.ProcessState.String())
+        fmt.Printf("\n%s ERROR: Unable to get process status - %s: %s\n", command, cmd.ProcessState.String())
         return status.ExitStatus()
     }
     return 0
