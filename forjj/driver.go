@@ -5,6 +5,7 @@ import (
     "github.hpe.com/christophe-larsonneur/goforjj"
     "path"
     "time"
+    "fmt"
 )
 
 const (
@@ -31,7 +32,12 @@ func (a *Forj) driver_do(driver_type, action string, args ...string) (*goforjj.P
     plugin_args := make(map[string]string)
     a.GetDriversActionsParameters(plugin_args, "common")
     a.GetDriversActionsParameters(plugin_args, action)
-    return d.plugin.PluginRunAction(action, plugin_args)
+    res, err := d.plugin.PluginRunAction(action, plugin_args)
+    if err != nil {
+        return nil, err
+    }
+    fmt.Printf("%s:\n%s\n", d.name, res.Data.Status)
+    return res, nil
 }
 
 func (a *Forj) driver_cleanup(driver_type string) {
