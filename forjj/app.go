@@ -47,6 +47,7 @@ type Forj struct {
     app         *kingpin.Application           // Kingpin Application object
     Actions     map[string]ActionOpts          // map of Commands with their arguments/flags
 
+    flags_loaded map[string]string             // key/values for flags laoded. Used when doing a create AND maintain at the same time (create case)
 
     drivers map[string]Driver // List of drivers data/flags/...
 
@@ -284,13 +285,21 @@ func (a *Forj) GetInternalData(param string) (result string) {
 func (a *Forj) GetDriversActionsParameters(cmd_args map[string]string, cmd string) {
     forjj_regexp, _ := regexp.Compile("forjj-(.*)")
 
+    if a.flags_loaded == nil {
+        a.flags_loaded = make(map[string]string)
+    }
+
     for _, pluginOpts := range a.drivers {
         for k, v := range pluginOpts.cmds[cmd].flags {
             forjj_vars := forjj_regexp.FindStringSubmatch(k)
             gotrace.Trace("'%s' candidate as parameters.", k)
             if forjj_vars == nil {
+                if v_saved, ok := a.flags_loaded[k] ; ok {
+                    v = v_saved
+                }
                 if v != "" {
                     cmd_args[k] = v
+                    a.flags_loaded[k] = v
                 }
             } else {
                 cmd_args[k] = a.GetInternalData(forjj_vars[1])
