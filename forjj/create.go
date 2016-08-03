@@ -19,20 +19,23 @@ func (a *Forj) Create() {
     // Create source for the infra repository - Calling upstream driver - create
     defer a.driver_cleanup("upstream")
     d, err := a.driver_do("upstream", "create")
-    kingpin.FatalIfError(err, "Driver create issue")
+    kingpin.FatalIfError(err, "Driver create issue. Unable to create plugin source code.")
 
     // Commit driver files created/updated
     err = a.DoCommit(&d.Data)
     kingpin.FatalIfError(err, "git commit issue")
 
     // Ensure remote upstream exists - calling upstream driver - maintain
-    a.driver_do("upstream", "maintain") // This will create/update the upstream service
+    d, err = a.driver_do("upstream", "maintain") // This will create/update the upstream service
+    kingpin.FatalIfError(err, "Driver create issue. Unable to instantiate requested resources.")
 
     // Ensure local repo upstream properly configured
-    //a.ensure_remote_repo(a.w.Infra)
+    //err = a.ensure_remote_repo(a.w.Infra)
+    kingpin.FatalIfError(err, "Driver create issue. Unable to set git upstream.")
 
     // git add/commit and push
-    //git("push")
+    //err = git("push")
+    kingpin.FatalIfError(err, "Driver create issue. Unable to push.")
 
     // To stop/remove all pending plugin services started.
     // plugins_close_all()
