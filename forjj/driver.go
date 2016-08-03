@@ -23,6 +23,7 @@ func (a *Forj) driver_do(driver_type, action string, args ...string) (*goforjj.P
     }
 
     d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, "apps", d.driver_type))
+    d.plugin.PluginSetWorkspace(path.Join(a.Workspace_path, a.Workspace))
     d.plugin.PluginSocketPath(path.Join(a.Workspace_path, a.Workspace, "lib"))
 
     if err := d.plugin.PluginStartService() ; err != nil {
