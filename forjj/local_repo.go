@@ -9,7 +9,6 @@ import (
     "strings"
     "io/ioutil"
     "path/filepath"
-    "github.hpe.com/christophe-larsonneur/goforjj"
 )
 
 // Ensure local repo exist with at least 1 commit.
@@ -59,24 +58,46 @@ func (a *Forj) ensure_local_repo(repo_name string) error {
     return nil
 }
 
-// Do commit from data returned by a plugin.
-func (a *Forj) DoCommit(d *goforjj.PluginData) error {
-    gotrace.Trace("Committing %d files as '%s'", len(d.Files), d.CommitMessage)
-    if len(d.Files) == 0 {
-        return fmt.Errorf("Nothing to commit")
+// Commit Plugins generated files and plugin options updates.
+func (a *Forj) DoCommitAll(commit_msg string) error {
+
+    for _, driver := range a.drivers {
+        plugin_msg, err := driver.gitAddPluginFiles()
+        if err != nil {
+            return fmt.Errorf("Issue to add driver '%s' generated files. %s.", driver.name, err)
+        }
+        commit_msg += "\n - " + plugin_msg
     }
 
-    if d.CommitMessage == "" {
-        return fmt.Errorf("Unable to commit without a commit message.")
+    if err := a.SaveForjjPluginsOptions() ; err != nil {
+        return err
     }
 
-    for _, file := range d.Files {
-        if i := git("add", path.Join("apps", a.CurrentPluginDriver.driver_type, file)); i >0 {
-            return fmt.Errorf("Issue while adding code to git. RC=%d", i)
+    git("commit", "-m", commit_msg)
+    return nil
+}
+
+// Add Plugins generated files to ready to be commit git space.
+func (d *Driver)gitAddPluginFiles() (string, error) {
+    if d.plugin.Result == nil {
+        return "", fmt.Errorf("Strange... The plugin as no result (plugin.Result is nil). Did the plugin '%s' executed?", d.name)
+    }
+
+    gotrace.Trace("Adding %d files related to '%s'", len(d.plugin.Result.Data.Files), d.plugin.Result.Data.CommitMessage)
+    if len(d.plugin.Result.Data.Files) == 0 {
+        return "", fmt.Errorf("Nothing to commit")
+    }
+
+    if d.plugin.Result.Data.CommitMessage == "" {
+        return "", fmt.Errorf("Unable to commit without a commit message.")
+    }
+
+    for _, file := range d.plugin.Result.Data.Files {
+        if i := git("add", path.Join("apps", d.driver_type, file)); i >0 {
+            return "", fmt.Errorf("Issue while adding code to git. RC=%d", i)
         }
     }
-    git("commit", "-m", d.CommitMessage)
-    return nil
+    return d.plugin.Result.Data.CommitMessage, nil
 }
 
 // Call git command with arguments. All print out displayed. It returns git Return code.

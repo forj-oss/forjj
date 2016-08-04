@@ -32,7 +32,7 @@ func main() {
    case "maintain":
         //forj_app := App{}
         //forj_app.Load()
-        //forj_app.Maintain()
+        forj_app.Maintain()
         println("maintain")
    }
 }

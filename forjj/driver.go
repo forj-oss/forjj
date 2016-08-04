@@ -1,8 +1,6 @@
 package main
 
 import (
-//    "github.hpe.com/christophe-larsonneur/goforjj/trace"
-    "github.hpe.com/christophe-larsonneur/goforjj"
     "path"
     "time"
     "fmt"
@@ -14,12 +12,12 @@ const (
     default_mount_path = "/src"
 )
 // Start driver task.
-func (a *Forj) driver_do(driver_type, action string, args ...string) (*goforjj.PluginResult, error) {
-    d := a.drivers[driver_type]
+func (a *Forj) driver_do(driver_type, action string, args ...string) error {
+    d := a.drivers[driver_type] // copy. not a ref.
     a.CurrentPluginDriver = &d
 
     if err := d.plugin.PluginInit(a.Workspace) ; err != nil {
-        return nil, err
+        return  err
     }
 
     d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, "apps", d.driver_type))
@@ -27,18 +25,26 @@ func (a *Forj) driver_do(driver_type, action string, args ...string) (*goforjj.P
     d.plugin.PluginSocketPath(path.Join(a.Workspace_path, a.Workspace, "lib"))
 
     if err := d.plugin.PluginStartService() ; err != nil {
-        return nil, err
+        return err
     }
 
     plugin_args := make(map[string]string)
+    a.drivers_options.GetDriversMaintainParameters(plugin_args, action)
     a.GetDriversActionsParameters(plugin_args, "common")
     a.GetDriversActionsParameters(plugin_args, action)
-    res, err := d.plugin.PluginRunAction(action, plugin_args)
-    if err != nil {
-        return nil, err
+
+    if res, err := d.plugin.PluginRunAction(action, plugin_args) ; err != nil {
+        return  err
+    } else {
+        d.plugin.Result = res
     }
-    fmt.Printf("%s:\n%s\n", d.name, res.Data.Status)
-    return res, nil
+    fmt.Printf("%s:\n%s\n", d.name, d.plugin.Result.Data.Status)
+
+    // store plugins options required at maintain phase from what the plugin returned.
+    a.drivers_options.AddForjjPluginOptions(d.name, d.plugin.Result.Data.Options)
+
+    a.drivers[driver_type] = d
+    return nil
 }
 
 func (a *Forj) driver_cleanup(driver_type string) {

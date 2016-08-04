@@ -37,4 +37,5 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps.
   maintain_action_help   = "Used by your CI to update the infra from the 'infra' repository.\n"
   maintain_orga_help     = "organization workspace used to store repositories locally or in docker volume."
   maintain_infra_url_help= "Infra repository url to git clone. This option is required if the workspace is empty."
+  maintain_option_file   = "Forjj yaml file for plugins options"
 )

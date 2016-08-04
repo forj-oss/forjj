@@ -40,22 +40,32 @@ type Driver struct {
     plugin goforjj.PluginDef                          // Plugin Data
 }
 
+// List of maintain drivers options required by each plugin.
+type DriverOptions struct {
+    Options map[string]goforjj.PluginOption  // List of options with helps given by the plugin through create/update phase.
+}
+
+type DriversOptions struct {
+    Drivers map[string]DriverOptions         // List of options for each drivers
+}
+
 type Forj struct {
     // Collections of fields regarding flags given
-    infra_rep_f *kingpin.FlagClause            // Infra flag kingpin struct.
-    Orga_name_f *kingpin.FlagClause            // Organization flag kingpin struct.
-    app         *kingpin.Application           // Kingpin Application object
-    Actions     map[string]ActionOpts          // map of Commands with their arguments/flags
+    infra_rep_f *kingpin.FlagClause      // Infra flag kingpin struct.
+    Orga_name_f *kingpin.FlagClause      // Organization flag kingpin struct.
+    app         *kingpin.Application     // Kingpin Application object
+    Actions     map[string]ActionOpts    // map of Commands with their arguments/flags
 
-    flags_loaded map[string]string             // key/values for flags laoded. Used when doing a create AND maintain at the same time (create case)
+    flags_loaded map[string]string       // key/values for flags laoded. Used when doing a create AND maintain at the same time (create case)
 
-    drivers map[string]Driver // List of drivers data/flags/...
+    drivers map[string]Driver            // List of drivers data/flags/...
+    drivers_options DriversOptions       // forjj-maintain.yml See infra-maintain.go
 
     // Flags values
-    CurrentCommand *ActionOpts         // Loaded CurrentCommand reference.
-    debug_f        *kingpin.FlagClause // Flag debug
+    CurrentCommand *ActionOpts           // Loaded CurrentCommand reference.
+    debug_f        *kingpin.FlagClause   // Flag debug
 
-    CurrentPluginDriver *Driver     // Driver executing
+    CurrentPluginDriver *Driver          // Driver executing
 
     // Forjj Core values, saved at create time, updated at update time. maintain should save also.
     Infra_repo *string // Infra repository name flag value
@@ -195,6 +205,7 @@ func (a *Forj) init() {
     a.SetCommand("maintain", maintain_action_help)
     a.SetCmdArg("maintain", "workspace", maintain_orga_help, required)
     a.SetCmdFlag("maintain", "infra_url", maintain_infra_url_help, no_opts)
+    a.SetCmdFlag("maintain", "file", maintain_option_file, required)
 
     a.GetDriversFlags(os.Args[1:])
 
