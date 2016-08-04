@@ -41,7 +41,7 @@ func (a *Forj) driver_do(driver_type, action string, args ...string) error {
     fmt.Printf("%s:\n%s\n", d.name, d.plugin.Result.Data.Status)
 
     // store plugins options required at maintain phase from what the plugin returned.
-    a.drivers_options.AddForjjPluginOptions(d.name, d.plugin.Result.Data.Options)
+    a.drivers_options.AddForjjPluginOptions(d.name, d.plugin.Result.Data.Options, driver_type)
 
     a.drivers[driver_type] = d
     return nil

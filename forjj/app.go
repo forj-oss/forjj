@@ -42,6 +42,7 @@ type Driver struct {
 
 // List of maintain drivers options required by each plugin.
 type DriverOptions struct {
+    driver_type string
     Options map[string]goforjj.PluginOption  // List of options with helps given by the plugin through create/update phase.
 }
 

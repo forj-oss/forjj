@@ -25,7 +25,8 @@ type forjjPlugins struct {
 }
 
 type forjjPluginsOptions struct {
-    Options map[string]string `,inline`
+    Type string
+    Options map[string]string `,inline,omitempty`
 }
 
 func (a *Forj)SaveForjjPluginsOptions() error {
@@ -36,10 +37,7 @@ func (a *Forj)SaveForjjPluginsOptions() error {
     def := forjjPlugins{ make(map[string]forjjPluginsOptions) }
 
     for driver, opts := range a.drivers_options.Drivers {
-        if len(opts.Options) == 0 {
-            continue
-        }
-        o := forjjPluginsOptions{ make(map[string]string) }
+        o := forjjPluginsOptions{ opts.driver_type, make(map[string]string) }
         for option, v := range opts.Options {
             o.Options[option] = v.Help
         }
@@ -54,9 +52,6 @@ func (a *Forj)SaveForjjPluginsOptions() error {
     git("add", drivers_def_options_file)
 
     for driver, opts := range a.drivers_options.Drivers {
-        if len(opts.Options) == 0 {
-            continue
-        }
         for option, v := range opts.Options {
             def.Plugins[driver].Options[option] = v.Value
         }
@@ -83,7 +78,10 @@ func (f *forjjPlugins)Save(file string) error {
     return nil
 }
 
+// FIXME: Should read the repo file and the file given as parameter of forjj maintain cli.
+
 // This functions loads the forjj plugins options definitions
+// 2 files have to be loaded. The definition in forj-repo and the one given at forjj cli.
 func (a *Forj)LoadForjjPluginsOptions() error {
     file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, drivers_data_options_file))
 
@@ -98,12 +96,12 @@ func (a *Forj)LoadForjjPluginsOptions() error {
     return nil
 }
 
-func (d *DriversOptions)AddForjjPluginOptions(name string, options map[string]goforjj.PluginOption) {
+func (d *DriversOptions)AddForjjPluginOptions(name string, options map[string]goforjj.PluginOption, driver_type string) {
     if d.Drivers == nil {
         d.Drivers = make(map[string]DriverOptions)
     }
 
-    d.Drivers[name] = DriverOptions{ options }
+    d.Drivers[name] = DriverOptions{ driver_type, options }
 }
 
 func (d *DriversOptions)GetDriversMaintainParameters(plugin_args map[string]string, action string) {
