@@ -26,7 +26,7 @@ type forjjPlugins struct {
 
 type forjjPluginsOptions struct {
     Type string
-    Options map[string]string `,inline,omitempty`
+    Options map[string]string `,omitempty`
 }
 
 func (a *Forj)SaveForjjPluginsOptions() error {
@@ -74,23 +74,58 @@ func (f *forjjPlugins)Save(file string) error {
     if err := ioutil.WriteFile(file, yaml_data , 0644 ) ; err != nil {
         return err
     }
-    gotrace.Trace("Plugin file name saved: %s", file)
+    gotrace.Trace("File name saved: %s", file)
     return nil
 }
 
-// FIXME: Should read the repo file and the file given as parameter of forjj maintain cli.
-
-// This functions loads the forjj plugins options definitions
+// This functions loads the forjj plugins options definitions in 'Maintain' phase context.
 // 2 files have to be loaded. The definition in forj-repo and the one given at forjj cli.
 func (a *Forj)LoadForjjPluginsOptions() error {
-    file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, drivers_data_options_file))
+    // Read definition file from repo.
+    var fpdef forjjPlugins // Plugins/<plugin>/Options/<option>=help
 
+    file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, drivers_data_options_file))
+    if err := fpdef.LoadFile(file) ; err != nil {
+        return err
+    }
+    return nil
+
+    // Load plugins Options data file, given to forjj
+    var fpdata forjjPlugins // Plugins/<plugin>/Options/<option>=value
+
+    file = *a.CurrentCommand.flagsv["file"]
+    if err := fpdata.LoadFile(file) ; err != nil {
+        return err
+    }
+    return nil
+
+    // Load values in Forj.driver_options keys/values pair
+    for name, p_opts := range fpdef.Plugins { // each plugin
+        pluginOptions := make(map[string]goforjj.PluginOption)
+
+        for opt_name, help := range p_opts.Options { // each options
+            _, ok := fpdata.Plugins[name]
+            value, ok2 := fpdata.Plugins[name].Options[opt_name]
+
+            if ok && ok2 {
+                pluginOptions[opt_name] = goforjj.PluginOption{ Value: value }
+            } else {
+                return fmt.Errorf("Missing driver '%s' option '%s'. driver_type : '%s'. You must create and set it in '%s'\nBasic help: %s - %s",
+                                  name, opt_name, p_opts.Type, file, opt_name, help)
+            }
+        }
+        a.drivers_options.AddForjjPluginOptions(name, pluginOptions, p_opts.Type)
+    }
+    return nil
+}
+
+func (fp *forjjPlugins)LoadFile(file string) error {
     yaml_data, err := ioutil.ReadFile(file)
     if err != nil {
         return fmt.Errorf("Unable to read '%s'. %s", drivers_data_options_file, err)
     }
 
-    if err := yaml.Unmarshal(yaml_data, &a.drivers_options) ; err != nil {
+    if err := yaml.Unmarshal(yaml_data, fp) ; err != nil {
         return fmt.Errorf("Unable to decode the required plugin options from yaml format for maintain phase. %s.", err)
     }
     return nil
