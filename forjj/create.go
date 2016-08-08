@@ -17,7 +17,7 @@ func (a *Forj) Create() {
     }
 
     // Ensure local repo exists
-    a.ensure_local_repo(a.w.Infra)
+    a.ensure_local_repo(a.w.Infra, "", fmt.Sprintf("Infrastructure Repository for the organization %s", a.Orga_name))
     // Now, we are in the infra repo root directory.
 
     // Create source for the infra repository - Calling upstream driver - create
@@ -30,7 +30,7 @@ func (a *Forj) Create() {
     kingpin.FatalIfError(err, "git commit issue")
 
     // Ensure remote upstream exists - calling upstream driver - maintain
-    err = a.driver_do("upstream", "maintain") // This will create/update the upstream service
+    err = a.DoMaintainUpstream() // This will create/update the upstream service
     kingpin.FatalIfError(err, "Driver create issue. Unable to instantiate requested resources.")
 
     // Ensure local repo upstream properly configured

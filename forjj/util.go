@@ -40,7 +40,17 @@ func to_string(v interface{}) (result string) {
  return
 }
 
+// Call git command with arguments. All print out displayed. It returns git Return code.
+func git(opts ...string) int {
+    return run_cmd("git", opts...)
+}
 
+// Call a git command and get the output as string output.
+func git_get(opts ...string) (string, error) {
+    gotrace.Trace("RUNNING: git %s", strings.Join(opts, " "))
+    out, err := exec.Command("git", opts...).Output()
+    return string(out), err
+}
 
 // Simple function to call a shell command and display to stdout
 // stdout is displayed as is when it arrives, while stderr is displayed in Red, line per line.

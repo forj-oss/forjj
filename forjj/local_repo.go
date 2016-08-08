@@ -4,16 +4,16 @@ import (
     "fmt"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
     "os"
-    "os/exec"
     "path"
-    "strings"
     "io/ioutil"
     "path/filepath"
+    "regexp"
+    "strings"
 )
 
 // Ensure local repo exist with at least 1 commit.
 // If non existent, or no commit, it will create it all.
-func (a *Forj) ensure_local_repo(repo_name string) error {
+func (a *Forj) ensure_local_repo(repo_name, upstream, README_content string) error {
     repo := path.Clean(path.Join(a.Workspace_path, a.Workspace, repo_name))
 
     gotrace.Trace("Checking '%s' repository...", repo)
@@ -49,11 +49,90 @@ func (a *Forj) ensure_local_repo(repo_name string) error {
         gotrace.Trace("Valid local git config found: \n%s", found)
     }
 
-    if _, err := git_get("log", "-1"); err != nil {
-        git_1st_commit(repo)
-        gotrace.Trace("Initial commit created.")
+    if upstream == "" {
+        if _, err := git_get("log", "-1", "--oneline"); err != nil {
+            git_1st_commit(repo, README_content)
+            gotrace.Trace("Initial commit created.")
+        } else {
+            gotrace.Trace("nothing done on existing '%s' git repository...", repo)
+        }
+        return nil
     } else {
-        gotrace.Trace("nothing done on existing '%s' git repository...", repo)
+        if err := git_ensure_remote(upstream) ; err != nil {
+            return err
+        }
+
+        // Ensure we are on local master branch
+        if str, _ := git_get("symbolic-ref", "--short", "HEAD"); strings.Trim(str, "\n") != "master" {
+            if git("checkout", "-b", "master") >0 {
+                git("checkout", "master")
+            }
+        }
+
+        var remote_exist, local_exist bool
+
+        if _, err := git_get("log", "origin/master", "-1", "--oneline") ; err == nil {
+            remote_exist = true
+        }
+        if _, err := git_get("log", "-1", "--oneline"); err == nil {
+            local_exist = true
+        }
+
+        // ensure local master branch is connected to origin/master
+        switch {
+        case local_exist:
+            // TODO: Replace following git sequences to avoid unwanted errors that end user will likely need to ignore.
+            if git("branch", "master", "--set-upstream-to", "origin/master")>0 {
+                if git("push", "-u", "origin", "master") != 0 {
+                    return fmt.Errorf("Unable to push to '%s'.", upstream)
+                }
+            } else {
+                if git("push") != 0 {
+                    return fmt.Errorf("Unable to push to '%s'.", upstream)
+                }
+            }
+        case remote_exist && !local_exist:
+            if git("pull") != 0 {
+                    return fmt.Errorf("Unable to pull from '%s'. Please fix the issue and retry.", upstream)
+                }
+        case !remote_exist && !local_exist :
+            git_1st_commit(repo, README_content)
+            if git("push", "-u", "origin", "master") != 0 {
+                return fmt.Errorf("Unable to push to '%s'.", upstream)
+            }
+        }
+        return nil
+    }
+}
+
+// Ensure remote is properly configured
+// If remote is missing. It will be created then fetched.
+// if exists, check remote. If different, old is renamed to original, then created and fetched
+func git_ensure_remote(upstream string) error {
+    origin_ok_regex, _ := regexp.Compile("^origin *" + upstream)
+    origin_exist_regex, _ := regexp.Compile("^origin")
+
+    ret, err := git_get("remote", "-v")
+    if err != nil {
+        return fmt.Errorf("Issue to get git remote list. %s", err)
+    }
+
+    if origin_exist_regex.Match([]byte(ret)) {
+        if ! origin_ok_regex.Match([]byte(ret)) {
+            if git("remote", "rename", "origin", "original") != 0 {
+                return fmt.Errorf("Unable to rename the 'origin' remote.")
+            }
+            if git("remote", "add", "origin", upstream) != 0 {
+                return fmt.Errorf("Unable to create 'origin' remote with '%s'", upstream)
+            }
+        }
+    } else {
+        if git("remote", "add", "origin", upstream) != 0 {
+            return fmt.Errorf("Unable to create 'origin' remote with '%s'", upstream)
+        }
+    }
+    if git("fetch", "origin") != 0 {
+        return fmt.Errorf("Unable to fetch origin.")
     }
     return nil
 }
@@ -100,20 +179,9 @@ func (d *Driver)gitAddPluginFiles() (string, error) {
     return d.plugin.Result.Data.CommitMessage, nil
 }
 
-// Call git command with arguments. All print out displayed. It returns git Return code.
-func git(opts ...string) int {
-    return run_cmd("git", opts...)
-}
-
-// Call a git command and get the output as string output.
-func git_get(opts ...string) (string, error) {
-    gotrace.Trace("RUNNING: git %s", strings.Join(opts, " "))
-    out, err := exec.Command("git", opts...).Output()
-    return string(out), err
-}
 
 // Create initial commit
-func git_1st_commit(repo string) {
+func git_1st_commit(repo, README_content string) {
     readme_path := path.Join(repo, "README.md")
 
     // check if an existing README exist to keep
@@ -129,7 +197,7 @@ func git_1st_commit(repo string) {
     // Generate README.md
     // TODO: Support for a template data instead.
     gotrace.Trace("Generate %s", readme_path)
-    data := []byte(fmt.Sprintf("FYI: This project has been generated by forjj\n\n%s Infra Repository\n", filepath.Base(repo)))
+    data := []byte(fmt.Sprintf("FYI: This Repository has been created by forjj\n\n%s %s\n", filepath.Base(repo), README_content))
     if err := ioutil.WriteFile(readme_path, data, 0644) ; err!= nil {
         fmt.Printf("Unable to create '%s'. %s\n", readme_path, err)
         os.Exit(1)
