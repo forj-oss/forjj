@@ -27,12 +27,18 @@ type ActionOpts struct {
 }
 
 type DriverCmdOptions struct {
-    flags map[string]string // list of flags values
-    args  map[string]string // list of args values
+    flags map[string]DriverCmdOptionFlag // list of flags values
+//    args  map[string]string // list of args values
+}
+
+type DriverCmdOptionFlag struct {
+    driver_flag_name string
+    value string
 }
 
 type Driver struct {
     driver_type        string                         // driver type name
+    instance_name      string                         // Instance name.
     name               string                         // Name of driver to load Yaml.Name is the real internal driver name.
     cmds               map[string]DriverCmdOptions    // List of flags per commands
     flags              map[string]*kingpin.FlagClause // list of additional flags loaded at app level.
@@ -50,23 +56,27 @@ type DriversOptions struct {
     Drivers map[string]DriverOptions         // List of options for each drivers
 }
 
+
 type Forj struct {
     // Collections of fields regarding flags given
-    infra_rep_f *kingpin.FlagClause      // Infra flag kingpin struct.
-    Orga_name_f *kingpin.FlagClause      // Organization flag kingpin struct.
-    app         *kingpin.Application     // Kingpin Application object
-    Actions     map[string]ActionOpts    // map of Commands with their arguments/flags
+    infra_rep_f      *kingpin.FlagClause  // Infra flag kingpin struct.
+    Orga_name_f      *kingpin.FlagClause  // Organization flag kingpin struct.
+    app              *kingpin.Application // Kingpin Application object
+    c_drivers_list_f *kingpin.FlagClause  // Cumulative drivers flag for create
+    u_drivers_list_f *kingpin.FlagClause  // Cumulative drivers flag for update
+    drivers_list     DriversList          // List of drivers passed to the command line argument from --app.
+    Actions        map[string]ActionOpts  // map of Commands with their arguments/flags
 
-    flags_loaded map[string]string       // key/values for flags laoded. Used when doing a create AND maintain at the same time (create case)
+    flags_loaded map[string]string        // key/values for flags laoded. Used when doing a create AND maintain at the same time (create case)
 
-    drivers map[string]Driver            // List of drivers data/flags/...
-    drivers_options DriversOptions       // forjj-maintain.yml See infra-maintain.go
+    drivers map[string]Driver             // List of drivers data/flags/... per instance name (key)
+    drivers_options DriversOptions        // forjj-maintain.yml See infra-maintain.go
 
     // Flags values
-    CurrentCommand *ActionOpts           // Loaded CurrentCommand reference.
-    debug_f        *kingpin.FlagClause   // Flag debug
+    CurrentCommand *ActionOpts            // Loaded CurrentCommand reference.
+    debug_f        *kingpin.FlagClause    // Flag debug
 
-    CurrentPluginDriver *Driver          // Driver executing
+    CurrentPluginDriver *Driver           // Driver executing
 
     // Forjj Core values, saved at create time, updated at update time. maintain should save also.
     Infra_repo *string // Infra repository name flag value
@@ -109,77 +119,18 @@ func (a *Forj) init() {
     a.drivers = make(map[string]Driver)
     a.Actions = make(map[string]ActionOpts)
 
-    /*********** CREATE Action ********** //
-      'Create' is the first part developed.
-
-      The objective:
-      - Provide a way to start some additionnal script/tool to build
-        - an application context (for example, make github ready, with organization/repos/users minimal configuration
-        - A relation between application (relation between github/jenkins with a predefined flow like PR flow)
-        Those scripts are called 'drivers'
-        I'm currently limiting it to be just ci and git-us (to set upstream and his context)
-        We assume that repositories are necessarily GIT.
-      - Context to start those scripts are known (docker container for that.)
-      - a simple binary to help starting docker (mount/env/...) with appropriate parameters. We could simply download and run it.
-      - The list of drivers options from a path or url. They are passed to the docker container.
-
-      direct FORJJ role are:
-      - create any needed GIT repository. The first one is infra.
-      - call the appropriate driver to configure 'ci', 'git-us' and the link. FORJJ won't do any ci/git-us configuration stuff, without those drivers.
-      - identify the list of drivers options that is supported.
-      - do any git task (pull/push/add/commit/...)
-
-      drivers roles:
-      * CI:
-        - create a directory containing any source files required to build a CI from code.
-          MUST be stored in $INFRA/ci/<driverName>/
-          No git task are done. This is the role of FORJJ to get files updated by the drivers back in the repo
-        - Stored the configuration in the $INFRA/ci/<driverName>/ path.
-        - MUST have a complete documentation on how to configure it to build the appropriate configuration.
-      * GIT Upstream:
-        - create a directory containing any source files required to build a GIT upstream service.
-          For github, for example, it will use the API to create organization/repositories
-          For gitlab, for example, it will do the same as github, but could also install it before if asked.
-          Any source files MUST be stored in $INFRA/upstream/<driverName>/
-        - Stored the configuration in the $INFRA/upstream/<driverName>/ path.
-        - MUST have a complete documentation on how to configure it to build the appropriate configuration.
-
-      FORJJ 'Create' won't do the update itself except for the SCM. The SCM upstream must exist and properly configured to track and send infra source code.
-      As only the SCM side is really created/configure at create time, the other code is just stored in the INFRA repository.
-      The update of the infra could be done by the Update task.
-      The implementation of the infra will be done by the maintain task
-
-      By default, 'Create' will create a fully runnable solution. But this solution is made in 2 parts:
-      1. Preparation step: Create 'infra' repo, ensure the upstream is properly set and push it.
-      2. Creation step: the infra is created from the source code (role of Maintain)
-
-      During the creation, we could optionnaly limit to the first step. But I'm not fully sure it could be useful for now.
-
-      Normally, I do not expect to re-use 'Create' task, when the infra has been REALLY created. The update should be done by Update task.
-      And the real update of the infra is normally done by Maintain. See later.
-
-      As soon as the Infra exists, ie we have the identification of resources (mesos/docker/openstack/...), then we must use the infra flow to update itself.
-      The update is done by Update and maintain is the apply.
-
-      The update could be done by an infra team member, use the flow to propose the update and when accepted, a jenkins task (or not) should apply the change with forjj maintain from the infra repository source code.
-
-      I expect the FORJJ parameters data should be stored in a yaml file that the driver should create/maintain.  */
     no_opts := map[string]interface{}{}
     required := map[string]interface{}{"required": true}
     ssh_dir_opts := map[string]interface{}{"default": fmt.Sprintf("%s/.ssh", os.Getenv("HOME"))}
+    no_set_value_opts := map[string]interface{}{"set_value": false}
 
     a.SetCommand("create", create_action_help)
     a.SetCmdArg("create", "workspace", create_orga_help, required)
     a.SetCmdFlag("create", ssh_dir_flag_name, create_ssh_dir_help, ssh_dir_opts)
     a.SetCmdFlag("create", "contrib-repo", create_contrib_help, no_opts)
-    a.SetCmdFlag("create", "infra_url", create_infra_url_help, no_opts)
-    a.SetCmdFlag("create", "infra_path", create_infra_path_help, no_opts)
+    a.SetCmdFlag("create", "infra-upstream", create_infra_upstream, no_opts)
 
-    // Additional options will be loaded from the selected driver itself.
-    // CI Drivers type parameters
-    a.SetCmdFlag("create", ci_flag_name, create_ci_driver_help, no_opts)
-    // GIT Upstream type Drivers parameters
-    a.SetCmdFlag("create", us_flag_name, create_us_driver_help, no_opts)
+    a.c_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("create", "app", driver_help, no_set_value_opts))
 
     /********** UPDATE Action ************
       Update is not as clear as Create except that update should update the infra repository.
@@ -189,13 +140,10 @@ func (a *Forj) init() {
     a.SetCmdArg("update", "workspace", update_orga_help, required)
     a.SetCmdFlag("update", ssh_dir_flag_name, update_ssh_dir_help, ssh_dir_opts)
     a.SetCmdFlag("update", "contrib-repo", update_contrib_help, no_opts)
+    a.SetCmdFlag("create", "infra_upstream", update_infra_upstream, no_opts)
     // Additional options will be loaded from the selected driver itself.
 
-    // CI Drivers type parameters
-    a.SetCmdFlag("update", ci_flag_name, update_ci_driver_help, no_opts)
-
-    // GIT Upstream type Drivers parameters
-    a.SetCmdFlag("update", us_flag_name, update_us_driver_help, no_opts)
+    a.u_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("update", "app", driver_help, no_set_value_opts))
 
     /****** MAINTAIN Action ************
       Maintain is the real infra creation/update
@@ -243,27 +191,29 @@ func (a *Forj) InitializeDriversFlag() {
 
     forjj_regexp, _ := regexp.Compile("forjj-(.*)")
 
-    for service_type, driverOpts := range a.drivers {
+    for instance_name, driverOpts := range a.drivers {
         if driverOpts.plugin.Yaml.Name == "" {
             continue
         }
 
-        gotrace.Trace("driver: '%s', command: '%s'", service_type, a.CurrentCommand.name)
+        gotrace.Trace("driver: '%s(%s)', command: '%s'", driverOpts.driver_type, instance_name, a.CurrentCommand.name)
         for _, command := range []string{"common", a.CurrentCommand.name} {
             gotrace.Trace(" From '%s' flags list", command)
             for flag_name, _ := range driverOpts.cmds[command].flags {
                 gotrace.Trace("  Flag_name => '%s'", flag_name)
                 forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
+                f, _ := a.drivers[instance_name].cmds[command].flags[flag_name]
                 if forjj_vars == nil {
-                    if flag_value, ok := a.CurrentCommand.flagsv[flag_name]; ok {
-                        a.drivers[service_type].cmds[command].flags[flag_name] = *flag_value
+                    if flag_value, ok := a.CurrentCommand.flagsv[flag_name]; ok && flag_value != nil {
+                        f.value = *flag_value
                         gotrace.Trace("   %s := %s", flag_name, *flag_value)
                     }
                 } else {
                     flag_value := a.GetInternalData(forjj_vars[1])
-                    a.drivers[service_type].cmds[command].flags[flag_name] = flag_value
+                    f.value = flag_value
                     gotrace.Trace("   forjj(%s) => %s := %s", forjj_vars[1], flag_name, flag_value)
                 }
+                a.drivers[instance_name].cmds[command].flags[flag_name] = f
             }
         }
     }
@@ -309,11 +259,11 @@ func (a *Forj) GetDriversActionsParameters(cmd_args map[string]string, cmd strin
             gotrace.Trace("'%s' candidate as parameters.", k)
             if forjj_vars == nil {
                 if v_saved, ok := a.flags_loaded[k] ; ok {
-                    v = v_saved
+                    v.value = v_saved
                 }
-                if v != "" {
-                    cmd_args[k] = v
-                    a.flags_loaded[k] = v
+                if v.value != "" {
+                    cmd_args[v.driver_flag_name] = v.value
+                    a.flags_loaded[k] = v.value
                 }
             } else {
                 cmd_args[k] = a.GetInternalData(forjj_vars[1])
@@ -321,26 +271,6 @@ func (a *Forj) GetDriversActionsParameters(cmd_args map[string]string, cmd strin
         }
     }
 }
-
-// Build the list of plugin shell common parameters.
-// It will be created as a Hash of values
-/*func (a *Forj) GetDriversCommonParameters(cmd_args map[string]string) {
-    forjj_regexp, _ := regexp.Compile("forjj-(.*)")
-
-    for _, pluginOpts := range a.drivers {
-        for k, v := range pluginOpts.cmds["common"].flags {
-            gotrace.Trace("'%s' candidate as parameters.", k)
-            forjj_vars := forjj_regexp.FindStringSubmatch(k)
-            if forjj_vars == nil {
-                if *v != "" {
-                    cmd_args[k] = *v
-                }
-            } else {
-                cmd_args[k] = a.GetInternalData(forjj_vars[1])
-            }
-        }
-    }
-}*/
 
 // Load cli context to adapt the list of options/flags from the driver definition.
 //
@@ -435,37 +365,11 @@ func (a *Forj) LoadContext(args []string) {
         }
     }
 
-    // Identifying `ci` drivers options
-    // The value is not set in flagsv. But is in the parser context.
-    if value, found := a.flagValue(context, opts.flags[ci_flag_name]); found {
-        a.drivers["ci"] = Driver{
-            name:        value,
-            driver_type: "ci",
-            cmds: map[string]DriverCmdOptions{
-                "common":   DriverCmdOptions{make(map[string]string), make(map[string]string)},
-                "create":   DriverCmdOptions{make(map[string]string), make(map[string]string)},
-                "update":   DriverCmdOptions{make(map[string]string), make(map[string]string)},
-                "maintain": DriverCmdOptions{make(map[string]string), make(map[string]string)},
-            },
-        }
-        fmt.Printf("Selected '%s' driver: %s\n", ci_flag_name, value)
-    }
+    // Getting list of drivers (--app)
+    a.drivers_list.list = make(map[string]DriverDef)
+    a.drivers_list.GetDriversFromContext(context, a.c_drivers_list_f)
+    a.drivers_list.GetDriversFromContext(context, a.u_drivers_list_f)
 
-    // Identifying `git-us` drivers options
-    // The value is not set in flagsv. But is in the parser context.
-    if value, found := a.flagValue(context, opts.flags[us_flag_name]); found {
-        a.drivers["upstream"] = Driver{
-            name:        value,
-            driver_type: "upstream",
-            cmds: map[string]DriverCmdOptions{
-                "common":   DriverCmdOptions{make(map[string]string), make(map[string]string)},
-                "create":   DriverCmdOptions{make(map[string]string), make(map[string]string)},
-                "update":   DriverCmdOptions{make(map[string]string), make(map[string]string)},
-                "maintain": DriverCmdOptions{make(map[string]string), make(map[string]string)},
-            },
-        }
-        fmt.Printf("Selected '%s' driver: %s\n", us_flag_name, value)
-    }
 }
 
 func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool) {
@@ -518,8 +422,8 @@ func (a *Forj) SetCmdArg(cmd, name, help string, options map[string]interface{})
 }
 
 // Set a Command flag.
-func (a *Forj) SetCmdFlag(cmd, name, help string, options map[string]interface{}) {
-    arg := a.Actions[cmd].Cmd.Flag(name, help)
+func (a *Forj) SetCmdFlag(cmd, name, help string, options map[string]interface{}) (arg *kingpin.FlagClause) {
+    arg = a.Actions[cmd].Cmd.Flag(name, help)
 
     if v, ok := options["required"]; ok && to_bool(v) {
         arg.Required()
@@ -531,6 +435,17 @@ func (a *Forj) SetCmdFlag(cmd, name, help string, options map[string]interface{}
         arg.Hidden()
     }
 
-    a.Actions[cmd].flagsv[name] = arg.String()
+    if v, ok := options["set_value"]; ok && to_bool(v) {
+        if to_bool(v) {
+            a.Actions[cmd].flagsv[name] = arg.String()
+        } else {
+            a.Actions[cmd].flagsv[name] = nil
+        }
+    } else {
+        a.Actions[cmd].flagsv[name] = arg.String()
+    }
+
     a.Actions[cmd].flags[name] = arg
+
+    return
 }

@@ -19,12 +19,15 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps.
 
   create_orga_help       = "organization workspace used to store repositories locally or in docker volume."
   create_ssh_dir_help    = "PATH to a git ssh keys directory. It will be mounted as local path '/home/devops/.ssh' in the container."
+    driver_help            = "Define the application name and type. Formated as <Type>:<AppName>. It will search for <Type>/<AppName>/<AppName>.yaml from the forjj-contribs repo."
   create_ci_driver_help  = "Defines the Continous Integration system to implement"
   create_us_driver_help  = "Defines the GIT upstream to implement. To get the list of a driver parameter, set this flag in conjonction with --help."
   create_infra_url_help  = "Infra repository url to git clone. By default, the repository will be created."
   create_infra_path_help = "Original infra path containing source code. By default, if the repository is going to be created, it will be empty."
   create_contrib_help    = "Set a local forjj-contribs directory like or a github like url."
+  create_infra_upstream  = "Set infra repository upstream instance"
 
+  update_infra_upstream  = "Set infra repository upstream instance"
   update_action_help     = `Update the infra. Used to create/update/remove projects and infrastructure migration
 (for example from local jenkins to a mesos jenkins solution)
 `

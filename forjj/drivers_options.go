@@ -15,23 +15,24 @@ import (
 // Load driver options to a Command requested.
 
 // Currently there is no distinction about setting different options for a specific task on the driver.
-func (a *Forj) load_driver_options(service_type string) error {
-    if err := a.read_driver(service_type); err != nil {
+func (a *Forj) load_driver_options(instance_name string) error {
+    if err := a.read_driver(instance_name); err != nil {
         return err
     }
 
-    if a.drivers[service_type].plugin.Yaml.Name != "" { // if true => Driver Def loaded
-        a.init_driver_flags(service_type)
+    if a.drivers[instance_name].plugin.Yaml.Name != "" { // if true => Driver Def loaded
+        a.init_driver_flags(instance_name)
     }
 
     return nil
 }
 
 // Read Driver yaml document
-func (a *Forj) read_driver(service_type string) (err error) {
+func (a *Forj) read_driver(instance_name string) (err error) {
     var (
         yaml_data   []byte
-        driver_name = a.drivers[service_type].name
+        driver_name = a.drivers[instance_name].name
+        service_type = a.drivers[instance_name].driver_type
         source      string
     )
 
@@ -57,7 +58,7 @@ func (a *Forj) read_driver(service_type string) (err error) {
         }
 
     } else {
-        // File to read for an url. Usually, a raw from github.
+        // File to read from an url. Usually, a raw from github.
         source = fmt.Sprintf("%s/%s/%s/%s/%s.yaml", a.ContribRepo_uri, a.Branch, service_type, driver_name, driver_name)
         gotrace.Trace("Load plugin %s file definition at '%s'", service_type, source)
 
@@ -76,51 +77,57 @@ func (a *Forj) read_driver(service_type string) (err error) {
         }
     }
 
-    d := a.drivers[service_type] // Copy of the element. Not a reference.
+    d := a.drivers[instance_name] // Copy of the element. Not a reference.
     if err = d.plugin.PluginDefLoad(yaml_data); err != nil {
         return
     }
-    a.drivers[service_type] = d
+    a.drivers[instance_name] = d
 
     return
 }
 
-// Initialize command drivers with plugin definition loaded from flags (yaml representation).
-func (a *Forj) init_driver_flags(service_type string) {
-    commands := a.drivers[service_type].plugin.Yaml.Actions
+// Initialize command drivers flags with plugin definition loaded from plugin yaml file.
+func (a *Forj) init_driver_flags(instance_name string) {
+    d := a.drivers[instance_name]
+    service_type := d.driver_type
+    commands := d.plugin.Yaml.Actions
 
-    gotrace.Trace("Setting flags from plugin type '%s' (%s)", service_type, a.drivers[service_type].plugin.Yaml.Name)
+    gotrace.Trace("Setting flags from plugin type '%s' (%s)", service_type, d.plugin.Yaml.Name)
     for command, def := range commands {
-        if _, ok := a.drivers[service_type].cmds[command]; !ok {
-            fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", a.drivers[service_type], command)
+        if _, ok := a.drivers[instance_name].cmds[command]; !ok {
+            fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", service_type, command)
         }
 
-        d := a.drivers[service_type]
+        search_re, _ := regexp.Compile("^(.*[_-])?(" + service_type +")([_-].*)?$")
         for option_name, params := range def.Flags {
-            d.cmds[command].flags[option_name] = "" // No value by default. Will be set later after complete parse.
+
             // drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
             // They are not in the list of possible drivers options from the cli.
             if ok, _ := regexp.MatchString("forjj-.*", option_name); ok {
+                d.cmds[command].flags[option_name] = DriverCmdOptionFlag{ driver_flag_name: option_name } // No value by default. Will be set later after complete parse.
                 continue
             }
+
+            forjj_option_name := SetAppropriateflagName(option_name, instance_name, search_re)
+            d.cmds[command].flags[forjj_option_name] = DriverCmdOptionFlag{ driver_flag_name: option_name } // No value by default. Will be set later after complete parse.
 
             var flag *kingpin.FlagClause
             // Create flag 'option_name' on kingpin cmd or app
             if command == "common" {
-                gotrace.Trace("Set Common flag for '%s'", option_name)
-                flag = a.app.Flag(option_name, params.Help)
+                gotrace.Trace("Set Common flag for '%s(%s)'", forjj_option_name, option_name)
+                flag = a.app.Flag(forjj_option_name, params.Help)
                 if d.flags == nil {
                     d.flags = make(map[string]*kingpin.FlagClause)
                     d.flagsv = make(map[string]*string)
                 }
-                d.flags[option_name] = flag
-                d.flagsv[option_name] = flag.String()
+                d.flags[forjj_option_name] = flag
+                d.flagsv[forjj_option_name] = flag.String()
             } else {
-                gotrace.Trace("Set action '%s' flag for '%s'", command, option_name)
+                gotrace.Trace("Set action '%s' flag for '%s(%s)'", command, forjj_option_name, option_name)
                 opts := a.GetActionOptsFromString(command)
-                flag = opts.Cmd.Flag(option_name, params.Help)
-                opts.flags[option_name] = flag
-                opts.flagsv[option_name] = flag.String()
+                flag = opts.Cmd.Flag(forjj_option_name, params.Help)
+                opts.flags[forjj_option_name] = flag
+                opts.flagsv[forjj_option_name] = flag.String()
             }
 
             if params.Required {
@@ -131,16 +138,41 @@ func (a *Forj) init_driver_flags(service_type string) {
 
 }
 
+// Define the Forjj flag name for the plugin selected.
+// If instanceName is not equal to service_type, then
+// any flag without <service_type> in flag name will returned with <instance_name>-<FlagName>
+// Any flag having at least .*[_-]<service_type> or <service_type>[_-].*or both, <service_type is replaced by <instance_name>
+func SetAppropriateflagName(flag_name, instance_name string, search_re *regexp.Regexp) string {
+
+    res := search_re.FindStringSubmatch(flag_name)
+    if res == nil {
+        return instance_name + "-" + flag_name
+    }
+
+    return search_re.ReplaceAllString(flag_name, "${1}" + instance_name + "${3}")
+}
+
 func (a *Forj) GetDriversFlags(args []string) {
     a.LoadContext(os.Args[1:])
 
-    if err := a.load_driver_options("ci"); err != nil {
-        fmt.Printf("Error: %#v\n", err)
-        os.Exit(1)
-    }
+    // Loop on drivers to pre-initialized drivers flags.
+    for _, d := range a.drivers_list.list {
+        a.drivers[d.Instance] = Driver{
+            name:          d.Name,
+            driver_type:   d.Type,
+            instance_name: d.Instance,
+            cmds: map[string]DriverCmdOptions{
+                "common":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
+                "create":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
+                "update":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
+                "maintain": DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
+            },
+        }
+        fmt.Printf("Selected '%s' driver: %s\n", d.Type, d.Name)
 
-    if err := a.load_driver_options("upstream"); err != nil {
-        fmt.Printf("Error: %#v\n", err)
-        os.Exit(1)
+        if err := a.load_driver_options(d.Instance); err != nil {
+            fmt.Printf("Error: %#v\n", err)
+            os.Exit(1)
+        }
     }
 }
