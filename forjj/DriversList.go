@@ -31,6 +31,9 @@ func (d *DriversList)Set(value string) error {
         instance = res[2]
     }
     dd.Instance = instance
+    if d.list == nil {
+        d.list = make(map[string]DriverDef)
+    }
     d.list[instance] = dd
     return nil
 }
