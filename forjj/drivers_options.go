@@ -98,7 +98,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
             fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", service_type, command)
         }
 
-        search_re, _ := regexp.Compile("^(.*[_-])?(" + service_type +")([_-].*)?$")
+        search_re, _ := regexp.Compile("^(.*[_-])?(" + d.plugin.Yaml.Name +")([_-].*)?$")
         for option_name, params := range def.Flags {
 
             // drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
@@ -114,7 +114,12 @@ func (a *Forj) init_driver_flags(instance_name string) {
             var flag *kingpin.FlagClause
             // Create flag 'option_name' on kingpin cmd or app
             if command == "common" {
-                gotrace.Trace("Set Common flag for '%s(%s)'", forjj_option_name, option_name)
+                if forjj_option_name != option_name {
+                    gotrace.Trace("Set Common flag for '%s(%s)'", forjj_option_name, option_name)
+                } else {
+                    gotrace.Trace("Set Common flag for '%s'", forjj_option_name)
+                }
+
                 flag = a.app.Flag(forjj_option_name, params.Help)
                 if d.flags == nil {
                     d.flags = make(map[string]*kingpin.FlagClause)
@@ -123,7 +128,11 @@ func (a *Forj) init_driver_flags(instance_name string) {
                 d.flags[forjj_option_name] = flag
                 d.flagsv[forjj_option_name] = flag.String()
             } else {
-                gotrace.Trace("Set action '%s' flag for '%s(%s)'", command, forjj_option_name, option_name)
+                if forjj_option_name != option_name {
+                    gotrace.Trace("Set action '%s' flag for '%s(%s)'", command, forjj_option_name, option_name)
+                } else {
+                    gotrace.Trace("Set action '%s' flag for '%s'", command, forjj_option_name)
+                }
                 opts := a.GetActionOptsFromString(command)
                 flag = opts.Cmd.Flag(forjj_option_name, params.Help)
                 opts.flags[forjj_option_name] = flag
@@ -146,6 +155,7 @@ func SetAppropriateflagName(flag_name, instance_name string, search_re *regexp.R
 
     res := search_re.FindStringSubmatch(flag_name)
     if res == nil {
+
         return instance_name + "-" + flag_name
     }
 
