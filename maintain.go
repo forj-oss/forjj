@@ -11,14 +11,15 @@ import (
 // But this would be a next version and needs to be validated before this decision is made.
 func (a *Forj) Maintain() {
     // Load Workspace information
-    a.w.Load(a)
+    err := a.w.Load(a)
+    kingpin.FatalIfError(err, "Unable to maintain requested resources.")
 
     // Read forjj infra file and the options file given
     a.LoadForjjPluginsOptions()
 
     // Loop on instances to maintain them
     for instance, _ := range a.drivers {
-        err := a.do_driver_maintain(instance)
+        err = a.do_driver_maintain(instance)
         kingpin.FatalIfError(err, "Unable to maintain requested resources of %s.", instance)
     }
 

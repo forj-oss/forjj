@@ -105,9 +105,12 @@ func (a *Forj) ensure_local_repo_synced(repo_name, upstream, README_content stri
             }
         }
     case remote_exist && !local_exist :
-        if git("pull") != 0 {
+        if git("pull", "origin", "master") != 0 {
                 return fmt.Errorf("Unable to pull from '%s'. Please fix the issue and retry.", upstream)
             }
+        if git("branch", "master", "--set-upstream-to", "origin/master")>0 {
+            return fmt.Errorf("Unable to set git branch upstream to '%s'", upstream)
+        }
     case !remote_exist && !local_exist :
         git_1st_commit(repo, README_content)
         if git("push", "-u", "origin", "master") != 0 {

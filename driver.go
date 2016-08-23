@@ -11,7 +11,9 @@ const (
     default_socket_baseurl = "http:///anyhost"
     default_mount_path = "/src"
 )
+
 // Start driver task.
+// Forj.CurrentPluginDriver is set to the current driver
 func (a *Forj) driver_do(instance_name, action string, args ...string) error {
     d := a.drivers[instance_name] // copy. not a ref.
     a.CurrentPluginDriver = &d
@@ -34,6 +36,7 @@ func (a *Forj) driver_do(instance_name, action string, args ...string) error {
     a.GetDriversActionsParameters(plugin_args, action)
 
     if res, err := d.plugin.PluginRunAction(action, plugin_args) ; err != nil {
+        d.plugin.Result = res
         return  err
     } else {
         d.plugin.Result = res

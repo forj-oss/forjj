@@ -8,6 +8,7 @@ import (
     "io/ioutil"
     "os"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "fmt"
 )
 
 const forjj_workspace_json_file = "forjj.json"
@@ -38,19 +39,24 @@ func (w *Workspace)Save(app *Forj) {
     gotrace.Trace("File '%' saved with '%'", fjson, w)
 }
 
-func (w *Workspace)Load(app *Forj) {
+func (w *Workspace)Load(app *Forj) error {
     fjson := path.Join(app.Workspace_path, app.Workspace, forjj_workspace_json_file)
 
     _, err := os.Stat(fjson)
-    if os.IsNotExist(err) { return }
-    kingpin.FatalIfError(err, "Issue to access '%s'", fjson)
+    if os.IsNotExist(err) { return nil }
+    if err != nil {
+        return fmt.Errorf("Issue to access '%s'. %s", fjson, err)
+    }
 
     var djson []byte
     djson, err = ioutil.ReadFile(fjson)
-    kingpin.FatalIfError(err, "Unable to read '%s'", fjson)
+    if err != nil {
+        return fmt.Errorf("Unable to read '%s'. %s", fjson, err)
+    }
 
     if err := json.Unmarshal(djson, &w); err != nil {
         log.Fatal(err)
     }
     gotrace.Trace("File '%s' loaded.", fjson)
+    return nil
 }

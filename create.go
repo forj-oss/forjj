@@ -4,6 +4,7 @@ import (
     "gopkg.in/alecthomas/kingpin.v2"
     "fmt"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "log"
 )
 
 
@@ -119,6 +120,20 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
 func (a *Forj) do_driver_create(instance string) error {
     // Calling upstream driver - To create plugin source files for the current upstream infra repository
     if err := a.driver_do(a.w.Instance, "create") ; err != nil {
+        // check if the plugin reports the infra-repo as created to pull it and rebuild the workspace
+        if v, found := a.CurrentPluginDriver.plugin.Result.Data.Repos[a.w.Infra] ; found {
+            if ! v.Exist {
+                return fmt.Errorf("%s\nUnable to rebuild your workspace from the upstream '%s'. Inexistent.", err, a.w.Infra)
+            }
+            a.infra_upstream = v.Upstream
+            log.Printf("Rebuilding your workspace from '%s(%s)'.", a.w.Infra, a.infra_upstream)
+            if err := a.ensure_local_repo_synced(a.w.Infra, a.infra_upstream, a.infra_readme) ; err != nil {
+                return fmt.Errorf("infra repository '%s' issue. %s", err)
+            }
+            err = fmt.Errorf("%s\nNote: As your workspace was empty, it has been rebuilt from '%s'. \nUse create to create new application sources, or update to update existing application sources", err, a.infra_upstream)
+        } else {
+            return fmt.Errorf("%s\nUnable to rebuild your workspace from the upstream '%s'. Not found.", err, a.w.Infra)
+        }
         return err
     }
 
