@@ -16,6 +16,7 @@ const forjj_workspace_json_file = "forjj.json"
 type Workspace struct {
     Infra string
     Organization string
+    Instance string
 }
 
 func (w *Workspace)Save(app *Forj) {

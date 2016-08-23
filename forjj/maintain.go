@@ -16,7 +16,6 @@ func (a *Forj) Maintain() {
     // Read forjj infra file and the options file given
     a.LoadForjjPluginsOptions()
 
-
     // Loop on instances to maintain them
     for instance, _ := range a.drivers {
         err := a.do_driver_maintain(instance)
@@ -38,7 +37,12 @@ func (a *Forj) do_driver_maintain(instance string) error {
     fmt.Printf("%d Repositories to manage.\n", len(a.drivers[instance].plugin.Result.Data.Repos))
     // Loop on upstream repositories to ensure it exists with at least a README.md file.
     for name, repo := range a.drivers[instance].plugin.Result.Data.Repos {
-        if err := a.ensure_local_repo(name, repo.Upstream, "") ; err != nil {
+        if err := a.ensure_local_repo_initialized(name) ; err != nil {
+            return err
+        }
+
+        // TODO: Generate README.md text from template.
+        if err := a.ensure_local_repo_synced(name, repo.Upstream, fmt.Sprintf("Repository %s created by Forjj.", name)) ; err != nil {
             return err
         }
     }

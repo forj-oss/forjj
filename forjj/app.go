@@ -77,6 +77,7 @@ type Forj struct {
     debug_f        *kingpin.FlagClause    // Flag debug
 
     CurrentPluginDriver *Driver           // Driver executing
+    InfraPluginDriver *Driver             // Driver used by upstream
 
     // Forjj Core values, saved at create time, updated at update time. maintain should save also.
     Infra_repo *string // Infra repository name flag value
@@ -88,6 +89,10 @@ type Forj struct {
     ContribRepo_uri   *url.URL // URL to github raw files
     contrib_repo_path string   // Contribution repository Path
     flow              string   // Name of the flow implemented. defined at create time.
+    // TODO: enhance infra README.md with a template.
+
+    infra_readme      string   // Initial infra repo README.md text.
+    infra_upstream    string   // Upstream string used by infra repo.
 
     w Workspace // Data structure to stored in the workspace. See workspace.go
 }

@@ -10,8 +10,16 @@ import (
     "syscall"
     "github.com/kvz/logstreamer"
     "log"
+    "regexp"
 )
 
+
+type GitStatus struct {
+    Added []string
+    Modified []string
+    Untracked []string
+    err error
+}
 
 // Simple function to convert a dynamic type to bool
 // it returns false by default except if the internal type is:
@@ -43,6 +51,38 @@ func to_string(v interface{}) (result string) {
 // Call git command with arguments. All print out displayed. It returns git Return code.
 func git(opts ...string) int {
     return run_cmd("git", opts...)
+}
+
+func git_status() (gs *GitStatus) {
+    gs = new(GitStatus)
+    gs.Added = make([]string, 0, 2)
+    gs.Modified = make([]string, 0, 2)
+    gs.Untracked = make([]string, 0, 2)
+    added_re, _ := regexp.Compile("^[A-Z]  (.*)$")
+    modified_re, _ := regexp.Compile("^ [A-Z] (.*)$")
+    untracked_re, _ := regexp.Compile(`^\?\? (.*)$`)
+
+    var s string
+
+    s, gs.err = git_get("status", "--porcelain")
+    if gs.err != nil {
+        return
+    }
+
+    lines := strings.Split(s, "\n")
+
+    for _, line := range lines {
+        if m := untracked_re.FindStringSubmatch(line) ; m != nil {
+            gs.Untracked = append(gs.Untracked, m[1])
+        }
+        if m := modified_re.FindStringSubmatch(line) ; m != nil {
+            gs.Modified = append(gs.Modified, m[1])
+        }
+        if m := added_re.FindStringSubmatch(line) ; m != nil {
+            gs.Added = append(gs.Added, m[1])
+        }
+    }
+    return
 }
 
 // Call a git command and get the output as string output.
