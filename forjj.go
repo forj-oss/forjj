@@ -25,7 +25,7 @@ func main() {
    case "update":
         //forj_app := App{}
         //forj_app.Load()
-        //forj_app.Update()
+        forj_app.Update()
         println("update")
         //fmt.Printf("Contrib-repo: %#v\n", *up_contrib_repo)
 
