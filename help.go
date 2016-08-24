@@ -19,7 +19,7 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps.
 
   create_orga_help       = "organization workspace used to store repositories locally or in docker volume."
   create_ssh_dir_help    = "PATH to a git ssh keys directory. It will be mounted as local path '/home/devops/.ssh' in the container."
-    driver_help            = "Define the application name and type. Formated as <Type>:<AppName>. It will search for <Type>/<AppName>/<AppName>.yaml from the forjj-contribs repo."
+  driver_help            = "Define the application name and type. Formated as 'APP[,APP ...]' where APP is as '<Type>:<DriverName>[:<InstanceName>]'. It will search for <Type>/<DriverName>/<DriverName>.yaml from the forjj-contribs repo."
   create_ci_driver_help  = "Defines the Continous Integration system to implement"
   create_us_driver_help  = "Defines the GIT upstream to implement. To get the list of a driver parameter, set this flag in conjonction with --help."
   create_infra_url_help  = "Infra repository url to git clone. By default, the repository will be created."

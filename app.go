@@ -132,7 +132,7 @@ func (a *Forj) init() {
     a.SetCmdFlag("create", "contrib-repo", create_contrib_help, no_opts)
     a.SetCmdFlag("create", "infra-upstream", create_infra_upstream, no_opts)
 
-    a.c_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("create", "app", driver_help, no_set_value_opts))
+    a.c_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("create", "apps", driver_help, no_set_value_opts))
 
     /********** UPDATE Action ************
       Update is not as clear as Create except that update should update the infra repository.
@@ -145,7 +145,7 @@ func (a *Forj) init() {
     a.SetCmdFlag("create", "infra_upstream", update_infra_upstream, no_opts)
     // Additional options will be loaded from the selected driver itself.
 
-    a.u_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("update", "app", driver_help, no_set_value_opts))
+    a.u_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("update", "apps", driver_help, no_set_value_opts))
 
     /****** MAINTAIN Action ************
       Maintain is the real infra creation/update

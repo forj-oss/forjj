@@ -4,6 +4,8 @@ import (
     "gopkg.in/alecthomas/kingpin.v2"
     "regexp"
     "fmt"
+    "strings"
+    "github.hpe.com/christophe-larsonneur/goforjj/trace"
 )
 
 type DriversList struct {
@@ -17,10 +19,22 @@ type DriverDef struct {
 }
 
 func (d *DriversList)Set(value string) error {
+    if found, _ := regexp.MatchString(`[a-z0-9_:-]+(,[a-z0-9_:-]*)*`, value) ; !found {
+        return fmt.Errorf("%s is an invalid list of applications string. APPS must be formated as '<APP>[,<APP>[...]] where APP is formated as <type>:<DriverName>[:<InstanceName>]' all lower case. if <Name> is missed, <Name> will be set to <app>", value)
+    }
+    for _, v := range strings.Split(value, ",") {
+        if err := d.Add(v) ; err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+func (d *DriversList)Add(value string) error {
     t, _ := regexp.Compile(`([a-z]+[a-z0-9_-]*):([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*))?`)
     res := t.FindStringSubmatch(value)
     if res == nil {
-        return fmt.Errorf("%s is an invalid application driver. Must be formated as '<type>:<app>[:<Name>]' all lower case. if <Name> is missed, <Name> will be set to <app>", value)
+        return fmt.Errorf("%s is an invalid application driver. APP must be formated as '<type>:<DriverName>[:<InstanceName>]' all lower case. if <Name> is missed, <Name> will be set to <app>", value)
     }
 
     dd := DriverDef{Type: res[1], Name: res[2]}
@@ -35,15 +49,29 @@ func (d *DriversList)Set(value string) error {
         d.list = make(map[string]DriverDef)
     }
     d.list[instance] = dd
+    gotrace.Trace("Driver added %s\n", value)
     return nil
 }
 
+// FIXME: kingpin is having trouble in the context case, where several --apps set, with some flags in between, is ignoring seconds and next --apps flags values. Workaround is to have them all followed or use the --apps APP[,APP ...] format.
 func (d *DriversList)IsCumulative() bool {
     return true
 }
 
 func (d *DriversList)String() string {
-    return ""
+    list := make([]string,0 , 2)
+
+    for _, v := range d.list {
+        var s string
+
+        if v.Instance == v.Name {
+            s = fmt.Sprintf("%s:%s", v.Type, v.Name)
+        } else {
+            s = fmt.Sprintf("%s:%s:%s", v.Type, v.Name, v.Instance)
+        }
+        list = append(list, s)
+    }
+    return strings.Join(list, ",")
 }
 
 func SetDriversListFlag(f *kingpin.FlagClause) (*kingpin.FlagClause) {
@@ -54,7 +82,10 @@ func SetDriversListFlag(f *kingpin.FlagClause) (*kingpin.FlagClause) {
 func (values *DriversList) GetDriversFromContext(context *kingpin.ParseContext, f *kingpin.FlagClause) (found bool) {
     for _, element := range context.Elements {
         if flag, ok := element.Clause.(*kingpin.FlagClause); ok && flag == f {
+            flagModel := flag.Model()
+            fmt.Printf("Value : %s\n", flagModel.Value.String())
             values.Set(*element.Value)
+            gotrace.Trace("Context Found --apps %s\n", *element.Value)
             found = true
         }
     }

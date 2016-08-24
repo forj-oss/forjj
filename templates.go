@@ -24,7 +24,12 @@ const DefaultUsageTemplate = `{{define "FormatCommand"}}\
 {{end}}\
 
 {{if .Context.SelectedCommand}}\
-usage: {{.App.Name}} {{.Context.SelectedCommand}}{{template "FormatUsage" .Context.SelectedCommand}}
+usage: {{.App.Name}} {{.Context.SelectedCommand}}\
+{{  range  $Flagname, $FlagOpts := .Context.Flags}}\
+{{    if eq $FlagOpts.Name "apps" }} --apps {{$FlagOpts.Value}}\
+{{    end}}\
+{{  end}}\
+{{template "FormatUsage" .Context.SelectedCommand}}
 {{else}}\
 usage: {{.App.Name}}{{template "FormatUsage" .App}}
 {{end}}\
