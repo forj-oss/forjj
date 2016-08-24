@@ -14,12 +14,12 @@ const (
 
 // Start driver task.
 // Forj.CurrentPluginDriver is set to the current driver
-func (a *Forj) driver_do(instance_name, action string, args ...string) error {
+func (a *Forj) driver_do(instance_name, action string, args ...string) (error, bool) {
     d := a.drivers[instance_name] // copy. not a ref.
     a.CurrentPluginDriver = &d
 
     if err := d.plugin.PluginInit(a.Workspace) ; err != nil {
-        return  err
+        return err, false
     }
 
     d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, "apps", d.driver_type))
@@ -27,7 +27,7 @@ func (a *Forj) driver_do(instance_name, action string, args ...string) error {
     d.plugin.PluginSocketPath(path.Join(a.Workspace_path, a.Workspace, "lib"))
 
     if err := d.plugin.PluginStartService(instance_name) ; err != nil {
-        return err
+        return err, false
     }
 
     plugin_args := make(map[string]string)
@@ -37,7 +37,11 @@ func (a *Forj) driver_do(instance_name, action string, args ...string) error {
 
     if res, err := d.plugin.PluginRunAction(action, plugin_args) ; err != nil {
         d.plugin.Result = res
-        return  err
+        aborted := false
+        if res.State_code == 419 { // The plugin won't do the task because of requirement not met. This is not an error which requires Forjj to exit.
+            aborted = true // So, when a plugin return 419, the plugin task is considered as aborted. So forjj can continue if it is possible. (create/update action case)
+        }
+        return err, aborted
     } else {
         d.plugin.Result = res
     }
@@ -49,7 +53,7 @@ func (a *Forj) driver_do(instance_name, action string, args ...string) error {
     }
 
     a.drivers[instance_name] = d
-    return nil
+    return nil, false
 }
 
 func (a *Forj) driver_cleanup(driver_type string) {

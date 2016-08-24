@@ -3,6 +3,7 @@ package main
 import (
         "os"
         "gopkg.in/alecthomas/kingpin.v2"
+        "log"
 )
 
 var forj_app Forj
@@ -17,22 +18,18 @@ func main() {
  forj_app.InitializeDriversFlag()
  switch kingpin.MustParse(parse, err) {
    case "create":
-        forj_app.Create()
-        //forj_app.Maintain()
-        //fmt.Printf("Contrib-repo: %#v\n", *cr_contrib_repo)
-
+     if err := forj_app.Create() ; err != nil {
+         log.Fatalf("Forjj create issue. %s", err)
+     }
 
    case "update":
-        //forj_app := App{}
-        //forj_app.Load()
-        forj_app.Update()
-        println("update")
-        //fmt.Printf("Contrib-repo: %#v\n", *up_contrib_repo)
+        if err := forj_app.Update() ; err != nil {
+            log.Fatalf("Forjj update issue. %s", err)
+        }
 
    case "maintain":
-        //forj_app := App{}
-        //forj_app.Load()
-        forj_app.Maintain()
-        println("maintain")
+        if err := forj_app.Maintain() ; err != nil {
+            log.Fatalf("Forjj maintain issue. %s", err)
+        }
    }
 }

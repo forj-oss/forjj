@@ -1,7 +1,6 @@
 package main
 
 import (
-    "gopkg.in/alecthomas/kingpin.v2"
     "fmt"
 )
 
@@ -9,29 +8,32 @@ import (
 // This container do the real stuff (git/call drivers)
 // I would expect to have this go tool to have a do_create to replace the shell script.
 // But this would be a next version and needs to be validated before this decision is made.
-func (a *Forj) Maintain() {
+func (a *Forj) Maintain() error {
     // Load Workspace information
-    err := a.w.Load(a)
-    kingpin.FatalIfError(err, "Unable to maintain requested resources.")
+    if err := a.w.Load(a) ; err != nil {
+        return fmt.Errorf("Unable to maintain requested resources. %s", err)
+    }
 
-    // Read forjj infra file and the options file given
+    // Read forjj infra file and the options file given, defined by create/update driver flags settings saved or not
     a.LoadForjjPluginsOptions()
 
     // Loop on instances to maintain them
     for instance, _ := range a.drivers {
-        err = a.do_driver_maintain(instance)
-        kingpin.FatalIfError(err, "Unable to maintain requested resources of %s.", instance)
+        if err := a.do_driver_maintain(instance) ; err != nil {
+            return fmt.Errorf("Unable to maintain requested resources of %s. %s", instance, err)
+        }
     }
 
     // Loop on each drivers to ask them to maintain the infra, it controls.
 
     println("FORJJ - maintain", a.w.Organization, "DONE") // , cmd.ProcessState.Sys().WaitStatus)
+        return nil
 }
 
 func (a *Forj) do_driver_maintain(instance string) error {
     // Ensure remote upstream exists - calling upstream driver - maintain
     // This will create/update the upstream service
-    if err := a.driver_do(instance, "maintain"); err != nil {
+    if err, _ := a.driver_do(instance, "maintain"); err != nil {
         return fmt.Errorf("Driver issue. %s.", err)
     }
 
