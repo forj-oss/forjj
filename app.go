@@ -44,6 +44,7 @@ type Driver struct {
     flags              map[string]*kingpin.FlagClause // list of additional flags loaded at app level.
     flagsv             map[string]*string             // list of additional flags value loaded at app level.
     plugin goforjj.PluginDef                          // Plugin Data
+    infraRepo          bool                           // True if this driver instance is the one hosting the infra repository.
 }
 
 // List of maintain drivers options required by each plugin.
@@ -69,7 +70,7 @@ type Forj struct {
 
     flags_loaded map[string]string        // key/values for flags laoded. Used when doing a create AND maintain at the same time (create case)
 
-    drivers map[string]Driver             // List of drivers data/flags/... per instance name (key)
+    drivers map[string]*Driver            // List of drivers data/flags/... per instance name (key)
     drivers_options DriversOptions        // forjj-maintain.yml See infra-maintain.go
 
     // Flags values
@@ -117,7 +118,7 @@ func (a *Forj) init() {
 
     a.ContribRepo_uri = u
     a.Branch = "master"
-    a.drivers = make(map[string]Driver)
+    a.drivers = make(map[string]*Driver)
     a.Actions = make(map[string]ActionOpts)
 
     no_opts := map[string]interface{}{}

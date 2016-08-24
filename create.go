@@ -45,7 +45,7 @@ func (a *Forj) Create() error {
         }
     }
 
-    log.Print("FORJJ - create", a.w.Organization, "DONE")
+    log.Print("FORJJ - create ", a.w.Organization, " DONE")
     return nil
 }
 
@@ -63,7 +63,7 @@ func (a *Forj) ensure_infra_exists() (err error, aborted bool) {
     // Set the Initial README.md content for the infra repository.
     a.infra_readme = fmt.Sprintf("Infrastructure Repository for the organization %s", a.Orga_name)
 
-    if i_d := a.InfraPluginDriver ; i_d == nil { // upstream UNdefined.
+    if a.InfraPluginDriver == nil { // upstream UNdefined.
         if *a.Actions["create"].flagsv["infra-upstream"] != "none"{
             return fmt.Errorf("Your workspace is empty and you did not identified where %s should be pushed (git upstream). To fix this, you have several options:\nYou can confirm that you do not want to configure any upstream with '--infra-upstream none'.\nOr you should define the upstream service with '--app upstream:<UpstreamDriver>[:<InstanceName>]'.\n If you set multiple upstream instances, you will need to connect the appropriate one to the infra repo with '--infra-upstream <InstanceName>'.", a.w.Infra), false
         }
@@ -100,7 +100,7 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
     infra := a.w.Infra
     a.w.Instance = "none"
     a.infra_upstream = "none"
-    upstreams := []Driver{}
+    upstreams := []*Driver{}
     upstream_requested := *a.Actions[action].flagsv["infra-upstream"]
 
     if upstream_requested == "none" {
@@ -110,7 +110,8 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
 
     defer func() {
         if d, found := a.drivers[a.w.Instance] ; found {
-            a.InfraPluginDriver = &d
+            d.infraRepo = true
+            a.InfraPluginDriver = d
         } else {
             if a.w.Instance != "none" {
                 err = fmt.Errorf("Unable to find driver instance '%s' in loaded drivers list.", a.w.Instance)
@@ -142,6 +143,9 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
 
 // Restore the workspace infra repo from the upstream.
 func (a *Forj) restore_infra_repo() error {
+    if a.InfraPluginDriver.plugin.Result == nil {
+        return fmt.Errorf("Internal Error: The infra plugin did not return a valid result. Forj.InfraPluginDriver.plugin.Result = nil.")
+    }
     v, found := a.InfraPluginDriver.plugin.Result.Data.Repos[a.w.Infra]
 
     if  !found {

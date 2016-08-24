@@ -24,7 +24,7 @@ func (a *Forj)Update() error {
     // save infra repository location in the workspace.
     defer a.w.Save(a)
 
-    log.Print("FORJJ - update", a.w.Organization, "DONE")
+    log.Print("FORJJ - update ", a.w.Organization, " DONE")
     return nil
 }
 

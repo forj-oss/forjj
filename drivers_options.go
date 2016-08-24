@@ -166,8 +166,9 @@ func (a *Forj) GetDriversFlags(args []string) {
     a.LoadContext(os.Args[1:])
 
     // Loop on drivers to pre-initialized drivers flags.
+    gotrace.Trace("Number of plugins provided from parameters: %d", len(a.drivers_list.list))
     for _, d := range a.drivers_list.list {
-        a.drivers[d.Instance] = Driver{
+        a.drivers[d.Instance] = &Driver{
             name:          d.Name,
             driver_type:   d.Type,
             instance_name: d.Instance,

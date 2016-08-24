@@ -26,7 +26,7 @@ func (a *Forj) Maintain() error {
 
     // Loop on each drivers to ask them to maintain the infra, it controls.
 
-    println("FORJJ - maintain", a.w.Organization, "DONE") // , cmd.ProcessState.Sys().WaitStatus)
+    println("FORJJ - maintain ", a.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
         return nil
 }
 
