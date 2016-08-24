@@ -97,11 +97,7 @@ type Forj struct {
     w Workspace // Data structure to stored in the workspace. See workspace.go
 }
 
-const (
-    ci_flag_name      = "ci"
-    us_flag_name      = "git-us"
-    ssh_dir_flag_name = "ssh-dir"
-)
+const ssh_dir_flag_name = "ssh-dir"
 
 //
 // Define application cli options
