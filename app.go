@@ -235,6 +235,12 @@ func (a *Forj) GetInternalData(param string) (result string) {
         result = a.Branch
     case "infra":
         result = a.w.Infra
+    case "instance-name" :
+        if a.CurrentPluginDriver != nil {
+            result = a.CurrentPluginDriver.instance_name
+        } else {
+            gotrace.Trace("Warning. instance_name requested outside plugin context.")
+        }
     case "source-mount" : // where the plugin has source mounted
         if a.CurrentPluginDriver != nil {
             result = a.CurrentPluginDriver.plugin.SourceMount
