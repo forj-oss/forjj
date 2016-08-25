@@ -93,7 +93,6 @@ type Forj struct {
     // TODO: enhance infra README.md with a template.
 
     infra_readme      string   // Initial infra repo README.md text.
-    infra_upstream    string   // Upstream string used by infra repo.
 
     w Workspace // Data structure to stored in the workspace. See workspace.go
 }

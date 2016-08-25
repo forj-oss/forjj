@@ -124,8 +124,8 @@ func (a *Forj) ensure_local_repo_synced(repo_name, upstream, README_content stri
 // If remote is missing. It will be created then fetched.
 // if exists, check remote. If different, old is renamed to original, then created and fetched
 func ensure_git_remote(upstream, upstream_name string) error {
-    origin_ok_regex, _ := regexp.Compile("^" + upstream_name + " *" + upstream)
-    origin_exist_regex, _ := regexp.Compile("^" + upstream_name)
+    origin_ok_regex, _ := regexp.Compile(upstream_name + "\t*" + upstream)
+    origin_exist_regex, _ := regexp.Compile(upstream_name)
 
     ret, err := git_get("remote", "-v")
     if err != nil {
@@ -150,6 +150,29 @@ func ensure_git_remote(upstream, upstream_name string) error {
         return fmt.Errorf("Unable to fetch '%s'.", upstream_name)
     }
     return nil
+}
+
+// test a repository, master connected to an upstream repo master branch.
+func git_remote_exist(branch, remote, upstream string) (exist, found bool, err error) {
+    var out string
+
+    out, err = git_get("branch", "-vv")
+    if err != nil {
+        return false, false, fmt.Errorf("Issue to get git branch list. %s", err)
+    }
+
+    exist, err = regexp.MatchString(`[* ] ` + branch + `.* \[` + remote + "/" + branch + `( .*)?\]`, out)
+    if !exist {
+        return
+    }
+
+    out, err = git_get("remote", "-v")
+    if err != nil {
+        return false, false, fmt.Errorf("Issue to get git branch list. %s", err)
+    }
+
+    found, err = regexp.MatchString(`origin\s*` + upstream, out) // remote + " *" + upstream, out)
+    return
 }
 
 // return true is at least one commit exists.

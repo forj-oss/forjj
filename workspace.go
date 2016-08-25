@@ -15,9 +15,11 @@ const forjj_workspace_json_file = "forjj.json"
 
 // Define the current
 type Workspace struct {
-    Infra string
-    Organization string
-    Instance string
+    Infra string        // Infra repository directory name
+    Organization string // Workspace Organization name
+    Driver string       // Infra upstream driver name
+    Instance string     // Infra upstream instance name
+    Upstream string     // upstream URL
 }
 
 func (w *Workspace)Save(app *Forj) {
