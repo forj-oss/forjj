@@ -4,6 +4,7 @@ import (
     "path"
     "time"
     "fmt"
+    "log"
 )
 
 const (
@@ -15,6 +16,7 @@ const (
 // Start driver task.
 // Forj.CurrentPluginDriver is set to the current driver
 func (a *Forj) driver_do(instance_name, action string, args ...string) (err error, aborted bool) {
+    log.Printf("Running %s on %s...", action, instance_name)
     d := a.drivers[instance_name]
     a.CurrentPluginDriver = d
 

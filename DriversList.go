@@ -49,7 +49,7 @@ func (d *DriversList)Add(value string) error {
         d.list = make(map[string]DriverDef)
     }
     d.list[instance] = dd
-    gotrace.Trace("Driver added %s\n", value)
+    gotrace.Trace("Driver added %s", value)
     return nil
 }
 
@@ -82,8 +82,6 @@ func SetDriversListFlag(f *kingpin.FlagClause) (*kingpin.FlagClause) {
 func (values *DriversList) GetDriversFromContext(context *kingpin.ParseContext, f *kingpin.FlagClause) (found bool) {
     for _, element := range context.Elements {
         if flag, ok := element.Clause.(*kingpin.FlagClause); ok && flag == f {
-            flagModel := flag.Model()
-            fmt.Printf("Value : %s\n", flagModel.Value.String())
             values.Set(*element.Value)
             gotrace.Trace("Context Found --apps %s\n", *element.Value)
             found = true
