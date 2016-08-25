@@ -32,9 +32,14 @@ func (a *Forj) Maintain() error {
 }
 
 func (a *Forj) do_driver_maintain(instance string) error {
+    if err := a.driver_start(instance) ; err != nil {
+        return err
+    }
+    d := a.CurrentPluginDriver
+
     // Ensure remote upstream exists - calling upstream driver - maintain
     // This will create/update the upstream service
-    if err, _ := a.driver_do(instance, "maintain"); err != nil {
+    if err, _ := d.driver_do(a, instance, "maintain"); err != nil {
         return fmt.Errorf("Driver issue. %s.", err)
     }
 

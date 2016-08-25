@@ -4,6 +4,7 @@ import (
     "path"
     "time"
     "log"
+    "fmt"
 )
 
 const (
@@ -12,13 +13,23 @@ const (
     default_mount_path = "/src"
 )
 
+// Define starting on this driver
+// Forj.CurrentPluginDriver set
+func (a *Forj) driver_start(instance string) (error) {
+
+    d, found := a.drivers[instance]
+    if !found {
+        return fmt.Errorf("Internal error: Unable to find %s from drivers.", instance)
+    }
+    a.CurrentPluginDriver = d
+    return nil
+}
+
 // Start driver task.
 // Forj.CurrentPluginDriver is set to the current driver
-func (a *Forj) driver_do(instance_name, action string, args ...string) (err error, aborted bool) {
+func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string) (err error, aborted bool) {
     log.Print("-------------------------------------------")
     log.Printf("Running %s on %s...", action, instance_name)
-    d := a.drivers[instance_name]
-    a.CurrentPluginDriver = d
 
     if err := d.plugin.PluginInit(a.Workspace) ; err != nil {
         return err, false
@@ -28,7 +39,7 @@ func (a *Forj) driver_do(instance_name, action string, args ...string) (err erro
     d.plugin.PluginSetWorkspace(path.Join(a.Workspace_path, a.Workspace))
     d.plugin.PluginSocketPath(path.Join(a.Workspace_path, a.Workspace, "lib"))
 
-    if err := d.plugin.PluginStartService(instance_name) ; err != nil {
+    if err := d.plugin.PluginStartService(a.w.Organization + "_" + instance_name) ; err != nil {
         return err, false
     }
 
@@ -52,7 +63,7 @@ func (a *Forj) driver_do(instance_name, action string, args ...string) (err erro
     return
 }
 
-func (a *Forj) driver_cleanup(driver_type string) {
-    d := a.drivers[driver_type]
+func (a *Forj) driver_cleanup(instance_name string) {
+    d := a.drivers[instance_name]
     d.plugin.PluginStopService()
 }

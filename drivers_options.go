@@ -10,6 +10,8 @@ import (
     "os/user"
     "regexp"
     "strings"
+    "text/template"
+    "bytes"
 )
 
 // Load driver options to a Command requested.
@@ -25,6 +27,14 @@ func (a *Forj) load_driver_options(instance_name string) error {
     }
 
     return nil
+}
+
+func (d *Driver)Model() (m *DriverModel) {
+    m = &DriverModel{
+        InstanceName : d.instance_name,
+        Name: d.name,
+    }
+    return
 }
 
 // Read Driver yaml document
@@ -77,11 +87,29 @@ func (a *Forj) read_driver(instance_name string) (err error) {
         }
     }
 
-    d := a.drivers[instance_name] // Copy of the element. Not a reference.
+    d := a.drivers[instance_name]
     if err = d.plugin.PluginDefLoad(yaml_data); err != nil {
         return
     }
-    a.drivers[instance_name] = d
+    // Set defaults value for undefined parameters
+    var ff string
+    if d.plugin.Yaml.CreatedFile == "" {
+        ff =  "." + d.instance_name + ".created"
+        d.forjj_flag_file = true // Forjj will test the creation success itself, as the driver did not created it automatically.
+    } else {
+        ff = d.plugin.Yaml.CreatedFile
+    }
+
+    // Initialized defaults value from templates
+    var doc bytes.Buffer
+
+    if t, err := template.New("plugin").Parse(ff) ; err != nil {
+        return fmt.Errorf("Unable to interpret plugin yaml definition. '/created_flag_file' has an invalid template string '%s'. %s", d.plugin.Yaml.CreatedFile, err)
+    } else {
+        t.Execute(&doc, d.Model())
+    }
+    d.flag_file = doc.String()
+    gotrace.Trace("Created flag file name Set to default for plugin instance '%s' to %s", d.instance_name, d.plugin.Yaml.CreatedFile)
 
     return
 }

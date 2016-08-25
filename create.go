@@ -4,6 +4,8 @@ import (
     "fmt"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
     "log"
+    "os"
+    "path"
 )
 
 
@@ -66,7 +68,7 @@ func (a *Forj) ensure_infra_exists() (err error, aborted bool) {
     if a.InfraPluginDriver == nil { // upstream UNdefined.
         // But should be ok if the git remote is already set.
 
-        if *a.Actions["create"].flagsv["infra-upstream"] != "none"{
+        if *a.Actions["create"].flagsv["infra-upstream"] != "none" && a.w.Instance != "none"{
             var remote_exist, remote_connected bool
             remote_exist, remote_connected, err = git_remote_exist("master", "origin", a.w.Upstream)
             if err != nil {
@@ -193,9 +195,46 @@ func (a *Forj) restore_infra_repo() error {
 
 // Execute the driver task, with commit/push and will execute the maintain step.
 func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
-    // Calling upstream driver - To create plugin source files for the current upstream infra repository
-    if err, aborted = a.driver_do(instance, "create") ; err != nil {
+    if err = a.driver_start(instance) ; err != nil {
         return
+    }
+
+    d := a.CurrentPluginDriver
+
+    flag_file := path.Join("apps", d.driver_type , d.flag_file)
+
+    if d.forjj_flag_file {
+        if _, err = os.Stat(flag_file) ; err == nil {
+            err = fmt.Errorf("The driver instance '%s' has already created the resources. Use 'Update' to update it, and maintain to instanciate it as soon as your infra repo flow is completed.", instance)
+            aborted = true
+            return
+        }
+    }
+
+    // Calling upstream driver - To create plugin source files for the current upstream infra repository
+    if err, aborted = d.driver_do(a, instance, "create") ; err != nil {
+        return
+    }
+
+    if _, err = os.Stat(flag_file) ; err != nil {
+        log.Printf("Warning! Driver '%s' has not created the flag file expected. Probably a driver bug. Contact the plugin maintainer to fix it.", d.name)
+        if err = touch(flag_file) ; err != nil {
+            return
+        }
+        err = nil
+
+        var found bool
+        for _, f := range d.plugin.Result.Data.Files {
+            if f == d.flag_file {
+                found = true
+            }
+        }
+        if ! found && ! d.forjj_flag_file {
+            if ! d.forjj_flag_file {
+                log.Printf("Warning! Driver '%s' has identified '%s' as controlled by itself. Probably a driver bug. Contact the plugin maintainer to fix it.", d.name, d.flag_file)
+            }
+            d.plugin.Result.Data.Files = append(d.plugin.Result.Data.Files, d.flag_file)
+        }
     }
 
     if a.InfraPluginDriver != nil && a.w.Upstream == "none" {

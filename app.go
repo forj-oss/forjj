@@ -46,6 +46,14 @@ type Driver struct {
     flagsv             map[string]*string             // list of additional flags value loaded at app level.
     plugin goforjj.PluginDef                          // Plugin Data
     infraRepo          bool                           // True if this driver instance is the one hosting the infra repository.
+    flag_file          string                         // Path to the predefined plugin or generic forjj plugin flag file.
+    forjj_flag_file    bool                           // true if the flag_file is set by forjj.
+}
+
+// Structure used as template context. The way to get it: Driver.Model()
+type DriverModel struct {
+    InstanceName string
+    Name string
 }
 
 // List of maintain drivers options required by each plugin.

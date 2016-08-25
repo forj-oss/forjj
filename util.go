@@ -129,3 +129,11 @@ func run_cmd(command string, args ...string) int{
     }
     return 0
 }
+
+func touch(file string) error {
+    if fd, err := os.Create(file) ; err == nil {
+        return fd.Close()
+    } else {
+        return err
+    }
+}
