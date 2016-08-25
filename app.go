@@ -11,6 +11,7 @@ import (
     "net/url"
     "path"
     "regexp"
+    "log"
 )
 
 // TODO: Support multiple contrib sources.
@@ -161,10 +162,8 @@ func (a *Forj) init() {
 
     a.GetDriversFlags(os.Args[1:])
 
-    if _, err := exec.LookPath("git"); err != nil {
-        fmt.Printf("Unable to find 'git' command. %s Ensure it available in your PATH and retry.\n", err)
-        os.Exit(1)
-    }
+    _, err := exec.LookPath("git")
+    kingpin.FatalIfError(err, "Unable to find 'git' command. Ensure it available in your PATH and retry.\n")
 }
 
 //
@@ -299,7 +298,7 @@ func (a *Forj) LoadContext(args []string) {
 
     if debug_mode, found := a.flagValue(context, a.debug_f); found {
         // global debug defined in trace.go
-        fmt.Printf("Debug set to '%s'.\n", debug_mode)
+        log.Printf("Debug set to '%s'.\n", debug_mode)
         if debug_mode == "true" {
             gotrace.SetDebug()
         }
@@ -331,7 +330,7 @@ func (a *Forj) LoadContext(args []string) {
     }
 
     if a.w.Organization != "" {
-        fmt.Printf("Organization : '%s'\n", a.w.Organization)
+        log.Printf("Organization : '%s'", a.w.Organization)
         // Set the 'infra' default flag value
         a.infra_rep_f = a.infra_rep_f.Default(fmt.Sprintf("%s-infra", a.w.Organization))
     }

@@ -6,11 +6,11 @@ import (
     "strconv"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
     "strings"
-    "fmt"
     "syscall"
     "github.com/kvz/logstreamer"
     "log"
     "regexp"
+    "gopkg.in/alecthomas/kingpin.v2"
 )
 
 
@@ -95,7 +95,7 @@ func git_get(opts ...string) (string, error) {
 // Simple function to call a shell command and display to stdout
 // stdout is displayed as is when it arrives, while stderr is displayed in Red, line per line.
 func run_cmd(command string, args ...string) int{
-    logger := log.New(os.Stdout, "", 0)
+    logger := log.New(os.Stdout, "", log.LstdFlags)
     // Setup a streamer that we'll pipe cmd.Stdout to
     logStreamerOut := logstreamer.NewLogstreamer(logger, "stdout", false)
     defer logStreamerOut.Close()
@@ -114,16 +114,17 @@ func run_cmd(command string, args ...string) int{
     logStreamerErr.FlushRecord()
     // Execute command
     if err := cmd.Start() ; err != nil {
-        fmt.Printf("ERROR could not spawn command.\n", err.Error())
+        kingpin.Errorf("ERROR could not spawn command. %s.", err.Error())
+        return 255
     }
 
     if err := cmd.Wait(); err != nil {
-        fmt.Printf("\nERROR: wait failure - %s: %s\n", command, err)
+        kingpin.Errorf("\nERROR: wait failure - %s: %s.", command, err)
         return 1
     }
     gotrace.Trace("Command done")
     if status := cmd.ProcessState.Sys().(syscall.WaitStatus) ; status.ExitStatus() != 0 {
-        fmt.Printf("\n%s ERROR: Unable to get process status - %s: %s\n", command, cmd.ProcessState.String())
+        kingpin.Errorf("\n%s ERROR: Unable to get process status - %s: %s", command, cmd.ProcessState.String())
         return status.ExitStatus()
     }
     return 0

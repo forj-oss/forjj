@@ -99,7 +99,8 @@ func (a *Forj) ensure_infra_exists() (err error, aborted bool) {
     if aborted {
         // the upstream driver was not able to create the resources because already exist.
         // So the upstream resource may already exist and must be used to restore the local repo content from this resource.
-        if e := a.restore_infra_repo() ; err != nil {
+        log.Printf("Plugin instance %s(%s) informed service already exists. Nothing created.", a.w.Instance, a.w.Driver)
+        if e := a.restore_infra_repo() ; e != nil {
             err = fmt.Errorf("%s\n%s", err, e)
         }
     }
@@ -119,7 +120,7 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
         if d, found := a.drivers[a.w.Instance] ; found {
             d.infraRepo = true
             a.InfraPluginDriver = d
-            a.w.Driver = d.driver_type
+            a.w.Driver = d.name
             gotrace.Trace("Infra Plugin driver identified and referenced.")
         } else {
             gotrace.Trace("Infra '%s' Plugin driver not found.", a.w.Instance)
@@ -185,7 +186,8 @@ func (a *Forj) restore_infra_repo() error {
     if err := a.ensure_local_repo_synced(a.w.Infra, a.w.Upstream, a.infra_readme) ; err != nil {
         return fmt.Errorf("infra repository '%s' issue. %s", a.w.Infra)
     }
-    log.Printf("Note: As the upstream service already exists (not created as requested), forjj has only rebuilt or updated your workspace infra repository from '%s'. \nUse create to create new application sources, or update to update existing application sources", a.w.Upstream)
+    log.Printf("As the upstream service already exists (not created as requested), forjj has only rebuilt or updated your workspace infra repository from '%s'.", a.w.Upstream)
+    log.Print("HINT: Use create to create new application sources, or update to update existing application sources")
     return nil
 }
 

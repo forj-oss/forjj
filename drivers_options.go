@@ -179,7 +179,7 @@ func (a *Forj) GetDriversFlags(args []string) {
                 "maintain": DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
             },
         }
-        fmt.Printf("Selected '%s' driver: %s\n", d.Type, d.Name)
+        gotrace.Trace("Selected '%s' driver: %s\n", d.Type, d.Name)
 
         if err := a.load_driver_options(d.Instance); err != nil {
             fmt.Printf("Error: %#v\n", err)

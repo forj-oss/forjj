@@ -2,6 +2,7 @@ package main
 
 import (
     "fmt"
+    "log"
 )
 
 // Call docker to create the Solution source code from scratch with validated parameters.
@@ -37,7 +38,7 @@ func (a *Forj) do_driver_maintain(instance string) error {
         return fmt.Errorf("Driver issue. %s.", err)
     }
 
-    fmt.Printf("%d Repositories to manage.\n", len(a.drivers[instance].plugin.Result.Data.Repos))
+    log.Printf("%d Repositories to manage.\n", len(a.drivers[instance].plugin.Result.Data.Repos))
     // Loop on upstream repositories to ensure it exists with at least a README.md file.
     for name, repo := range a.drivers[instance].plugin.Result.Data.Repos {
         if err := a.ensure_local_repo_initialized(name) ; err != nil {

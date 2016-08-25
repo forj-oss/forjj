@@ -9,6 +9,7 @@ import (
     "path/filepath"
     "regexp"
     "strings"
+    "gopkg.in/alecthomas/kingpin.v2"
 )
 
 // ensure local repo git exists and is initialized.
@@ -250,7 +251,7 @@ func git_1st_commit(repo, README_content string) {
     if ! os.IsNotExist(err) {
         gotrace.Trace("Renaming '%s' to '%s'", readme_path, readme_path + ".forjj_tmp")
         if err := os.Rename(readme_path, readme_path + ".forjj_tmp") ; err!= nil {
-            fmt.Printf("Unable to rename '%s' to '%s'. %s\n", readme_path, readme_path + ".forjj_tmp", err)
+            kingpin.Fatalf("Unable to rename '%s' to '%s'. %s\n", readme_path, readme_path + ".forjj_tmp", err)
             os.Exit(1)
         }
     }
@@ -260,7 +261,7 @@ func git_1st_commit(repo, README_content string) {
     gotrace.Trace("Generate %s", readme_path)
     data := []byte(fmt.Sprintf("FYI: This Repository has been created by forjj\n\n%s %s\n", filepath.Base(repo), README_content))
     if err := ioutil.WriteFile(readme_path, data, 0644) ; err!= nil {
-        fmt.Printf("Unable to create '%s'. %s\n", readme_path, err)
+        kingpin.Fatalf("Unable to create '%s'. %s\n", readme_path, err)
         os.Exit(1)
     }
 
@@ -272,7 +273,7 @@ func git_1st_commit(repo, README_content string) {
     if ! os.IsNotExist(err) {
         gotrace.Trace("Renaming '%s' to '%s'", readme_path + ".forjj_tmp", readme_path)
         if err := os.Rename(readme_path + ".forjj_tmp", readme_path) ; err!= nil {
-            fmt.Printf("Unable to rename '%s' to '%s'. %s\n", readme_path + ".forjj_tmp", readme_path, err)
+            kingpin.Fatalf("Unable to rename '%s' to '%s'. %s\n", readme_path + ".forjj_tmp", readme_path, err)
             os.Exit(1)
         }
     }

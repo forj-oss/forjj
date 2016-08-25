@@ -3,7 +3,6 @@ package main
 import (
     "path"
     "time"
-    "fmt"
     "log"
 )
 
@@ -16,6 +15,7 @@ const (
 // Start driver task.
 // Forj.CurrentPluginDriver is set to the current driver
 func (a *Forj) driver_do(instance_name, action string, args ...string) (err error, aborted bool) {
+    log.Print("-------------------------------------------")
     log.Printf("Running %s on %s...", action, instance_name)
     d := a.drivers[instance_name]
     a.CurrentPluginDriver = d
@@ -44,8 +44,6 @@ func (a *Forj) driver_do(instance_name, action string, args ...string) (err erro
         }
         return err, aborted
     }
-
-    fmt.Printf("%s:\n%s\n", d.name, d.plugin.Result.Data.Status)
 
     // store plugins options required at maintain phase from what the plugin returned.
     if action != "maintain" {
