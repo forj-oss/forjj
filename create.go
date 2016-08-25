@@ -6,6 +6,7 @@ import (
     "log"
     "os"
     "path"
+    "strings"
 )
 
 
@@ -216,6 +217,7 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
         return
     }
 
+    // Check the flag file
     if _, err = os.Stat(flag_file) ; err != nil {
         log.Printf("Warning! Driver '%s' has not created the flag file expected. Probably a driver bug. Contact the plugin maintainer to fix it.", d.name)
         if err = touch(flag_file) ; err != nil {
@@ -253,6 +255,19 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
     // Add source files
     if err := a.CurrentPluginDriver.gitAddPluginFiles() ; err != nil {
         return fmt.Errorf("Issue to add driver '%s' generated files. %s", a.CurrentPluginDriver.name, err), false
+    }
+
+    // Check about uncontrolled files. Existing if one uncontrolled file is found
+    status := git_status()
+    fmt.Printf("%#v\n", status)
+    if  status.err != nil {
+        return fmt.Errorf("Issue to check git status. %s", err), false
+    } else {
+        if len(status.Untracked) > 0 {
+            log.Print("Following files created by the plugin are not controlled by the plugin. You must fix it manually and contact the plugin maintainer to fix this issue.")
+            log.Printf("files: %s", strings.Join(status.Untracked, ", "))
+            return fmt.Errorf("Unable to commit. Uncontrolled files found."), false
+        }
     }
 
     // Commit files and drivers options
