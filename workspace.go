@@ -13,13 +13,18 @@ import (
 
 const forjj_workspace_json_file = "forjj.json"
 
-// Define the current
+// Define the workspace data saved at create/update time.
+// Workspace data are not controlled by any git repo. It is local.
+// Usually, we stored data to found out where the infra is.
+// But it can store any data that is workspace environment specific.
+// like where is the docker static binary.
 type Workspace struct {
-    Infra string        // Infra repository directory name
-    Organization string // Workspace Organization name
-    Driver string       // Infra upstream driver name
-    Instance string     // Infra upstream instance name
-    Upstream string     // upstream URL
+    Infra string         // Infra repository directory name
+    Organization string  // Workspace Organization name
+    Driver string        // Infra upstream driver name
+    Instance string      // Infra upstream instance name
+    Upstream string      // upstream URL
+    DockerBinPath string // Docker static binary path
 }
 
 func (w *Workspace)Save(app *Forj) {

@@ -4,14 +4,11 @@ import (
     "fmt"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
     "gopkg.in/alecthomas/kingpin.v2"
-    "io/ioutil"
-    "net/http"
     "os"
-    "os/user"
     "regexp"
-    "strings"
     "text/template"
     "bytes"
+    "path"
 )
 
 // Load driver options to a Command requested.
@@ -41,77 +38,49 @@ func (d *Driver)Model() (m *DriverModel) {
 func (a *Forj) read_driver(instance_name string) (err error) {
     var (
         yaml_data   []byte
-        driver_name = a.drivers[instance_name].name
-        service_type = a.drivers[instance_name].driver_type
-        source      string
+        driver      *Driver
     )
+    if d, ok := a.drivers[instance_name] ; ok {
+        driver = d
+    }
 
-    if driver_name == "" {
+    if driver.name == "" {
         return
     }
 
-    if a.ContribRepo_uri.Scheme == "" {
-        // File to read locally
-        source = fmt.Sprintf("%s/%s/%s/%s.yaml", a.ContribRepo_uri.Path, service_type, driver_name, driver_name)
-        if source[:1] == "~" {
-            if user, err := user.Current(); err != nil {
-                kingpin.Fatalf("Unable to get your user. %s. Consider to replace ~ by $HOME\n", err)
-            } else {
-                source = string(regexp.MustCompile("^~").ReplaceAll([]byte(source), []byte(user.HomeDir)))
-            }
-        }
-        gotrace.Trace("Load plugin %s file definition at '%s'", service_type, source)
-        if d, err := ioutil.ReadFile(source); err != nil {
-            return fmt.Errorf("Unable to read '%s'. %s\n", source, err)
-        } else {
-            yaml_data = d
-        }
+    ContribRepoUri := *a.ContribRepo_uri
+    ContribRepoUri.Path = path.Join(ContribRepoUri.Path, driver.driver_type, driver.name, driver.name + ".yaml")
 
-    } else {
-        // File to read from an url. Usually, a raw from github.
-        source = fmt.Sprintf("%s/%s/%s/%s/%s.yaml", a.ContribRepo_uri, a.Branch, service_type, driver_name, driver_name)
-        gotrace.Trace("Load plugin %s file definition at '%s'", service_type, source)
-
-        var resp *http.Response
-        if resp, err = http.Get(source); err != nil {
-            return fmt.Errorf("Unable to read '%s'. %s\n", source, err)
-        }
-        defer resp.Body.Close()
-
-        var d []byte
-        if d, err = ioutil.ReadAll(resp.Body); err != nil {
-            return
-        }
-        if strings.Contains(http.DetectContentType(d), "text/plain") {
-            yaml_data = d
-        }
-    }
-
-    d := a.drivers[instance_name]
-    if err = d.plugin.PluginDefLoad(yaml_data); err != nil {
+    if yaml_data, err = read_document_from(a.ContribRepo_uri) ; err != nil {
         return
     }
+
+    if err = driver.plugin.PluginDefLoad(yaml_data); err != nil {
+        return
+    }
+
     // Set defaults value for undefined parameters
     var ff string
-    if d.plugin.Yaml.CreatedFile == "" {
-        ff =  "." + d.instance_name + ".created"
-        d.forjj_flag_file = true // Forjj will test the creation success itself, as the driver did not created it automatically.
+    if driver.plugin.Yaml.CreatedFile == "" {
+        ff =  "." + driver.instance_name + ".created"
+        driver.forjj_flag_file = true // Forjj will test the creation success itself, as the driver did not created it automatically.
     } else {
-        ff = d.plugin.Yaml.CreatedFile
+        ff = driver.plugin.Yaml.CreatedFile
     }
 
     // Initialized defaults value from templates
     var doc bytes.Buffer
 
     if t, err := template.New("plugin").Parse(ff) ; err != nil {
-        return fmt.Errorf("Unable to interpret plugin yaml definition. '/created_flag_file' has an invalid template string '%s'. %s", d.plugin.Yaml.CreatedFile, err)
+        return fmt.Errorf("Unable to interpret plugin yaml definition. '/created_flag_file' has an invalid template string '%s'. %s", driver.plugin.Yaml.CreatedFile, err)
     } else {
-        t.Execute(&doc, d.Model())
+        t.Execute(&doc, driver.Model())
     }
-    d.flag_file = doc.String()
-    gotrace.Trace("Created flag file name Set to default for plugin instance '%s' to %s", d.instance_name, d.plugin.Yaml.CreatedFile)
+    driver.flag_file = doc.String()
+    gotrace.Trace("Created flag file name Set to default for plugin instance '%s' to %s", driver.instance_name, driver.plugin.Yaml.CreatedFile)
 
     return
+
 }
 
 // Initialize command drivers flags with plugin definition loaded from plugin yaml file.

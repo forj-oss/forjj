@@ -93,12 +93,15 @@ type Forj struct {
     Infra_repo *string // Infra repository name flag value
     Orga_name  *string // Infra repository name flag value
 
-    Branch            string   // branch name
-    Workspace         string   // Workspace name
-    Workspace_path    string   // Workspace directory path.
-    ContribRepo_uri   *url.URL // URL to github raw files
-    contrib_repo_path string   // Contribution repository Path
-    flow              string   // Name of the flow implemented. defined at create time.
+    Workspace              string   // Workspace name
+    Workspace_path         string   // Workspace directory path.
+    ContribRepo_uri        *url.URL // URL to github raw files for plugin files.
+    RepotemplateRepo_uri   *url.URL // URL to github raw files for RepoTemplates.
+    FlowRepo_uri           *url.URL // URL to github raw files for Flows.
+    contrib_repo_path      string   // Contribution repository Path
+    flow_repo_path         string   // Contribution repository Path
+    repotemplate_repo_path string // Contribution repository Path
+    flow                   string // Name of the flow implemented. defined at create time.
     // TODO: enhance infra README.md with a template.
 
     infra_readme      string   // Initial infra repo README.md text.
@@ -122,14 +125,16 @@ func (a *Forj) init() {
     a.Infra_repo = a.infra_rep_f.String()
     a.app.Version("forjj V0.0.1 (POC)").Author("Christophe Larsonneur <christophe.larsonneur@hpe.com>")
 
-    u, _ := url.Parse("https://github.hpe.com/forj/forjj-contribs/raw")
+    u, _ := url.Parse("https://github.hpe.com/forj/forjj-contribs/raw/master")
 
     a.ContribRepo_uri = u
-    a.Branch = "master"
     a.drivers = make(map[string]*Driver)
     a.Actions = make(map[string]ActionOpts)
 
     no_opts := map[string]interface{}{}
+    contribs_repo := map[string]interface{}{"envar": "CONTRIBS_REPO"}
+    repotemplates_repo := map[string]interface{}{"envar": "REPOTEMPLATES_REPO"}
+    flows_repo := map[string]interface{}{"envar": "FLOWS_REPO"}
     required := map[string]interface{}{"required": true}
     ssh_dir_opts := map[string]interface{}{"default": fmt.Sprintf("%s/.ssh", os.Getenv("HOME"))}
     no_set_value_opts := map[string]interface{}{"set_value": false}
@@ -137,8 +142,11 @@ func (a *Forj) init() {
     a.SetCommand("create", create_action_help)
     a.SetCmdArg("create", "workspace", create_orga_help, required)
     a.SetCmdFlag("create", ssh_dir_flag_name, create_ssh_dir_help, ssh_dir_opts)
-    a.SetCmdFlag("create", "contrib-repo", create_contrib_help, no_opts)
+    a.SetCmdFlag("create", "contribs-repo", contribs_repo_help, contribs_repo)
+    a.SetCmdFlag("create", "flows-repo", flows_repo_help, flows_repo)
+    a.SetCmdFlag("create", "repotemplates-repo", repotemplates_repo_help, repotemplates_repo)
     a.SetCmdFlag("create", "infra-upstream", create_infra_upstream, no_opts)
+    a.SetCmdFlag("create", "docker-exe-path", docker_exe_path_help, no_opts)
 
     a.c_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("create", "apps", driver_help, no_set_value_opts))
 
@@ -149,8 +157,11 @@ func (a *Forj) init() {
     a.SetCommand("update", update_action_help)
     a.SetCmdArg("update", "workspace", update_orga_help, required)
     a.SetCmdFlag("update", ssh_dir_flag_name, update_ssh_dir_help, ssh_dir_opts)
-    a.SetCmdFlag("update", "contrib-repo", update_contrib_help, no_opts)
-    a.SetCmdFlag("create", "infra_upstream", update_infra_upstream, no_opts)
+    a.SetCmdFlag("update", "contribs-repo", contribs_repo_help, contribs_repo)
+    a.SetCmdFlag("update", "flows-repo", flows_repo_help, flows_repo)
+    a.SetCmdFlag("update", "repotemplates-repo", repotemplates_repo_help, repotemplates_repo)
+    a.SetCmdFlag("update", "infra_upstream", update_infra_upstream, no_opts)
+    a.SetCmdFlag("update", "docker-exe-path", docker_exe_path_help, no_opts)
     // Additional options will be loaded from the selected driver itself.
 
     a.u_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("update", "apps", driver_help, no_set_value_opts))
@@ -227,12 +238,11 @@ func (a *Forj) InitializeDriversFlag() {
     }
 }
 
+// Provide value for some forjj internal parameters. Used by InitializeDriversFlag to provide values to plugins as they requested it.
 func (a *Forj) GetInternalData(param string) (result string) {
     switch param {
     case "organization":
         result = a.w.Organization
-    case "branch":
-        result = a.Branch
     case "infra":
         result = a.w.Infra
     case "instance-name" :
@@ -368,22 +378,46 @@ func (a *Forj) LoadContext(args []string) {
 
     // Identifying appropriate Contribution Repository.
     // The value is not set in flagsv. But is in the parser context.
-    if contrib_repo, found := a.flagValue(context, opts.flags["contrib-repo"]); found {
-        if u, err := url.Parse(contrib_repo); err != nil {
-            println(err)
-        } else {
-            a.ContribRepo_uri = u
-            if u.Scheme == "" {
-                a.contrib_repo_path = contrib_repo
-            }
-        }
-    }
+    opts.set_from_urlflag(a, context, "contribs-repo", a.ContribRepo_uri, &a.contrib_repo_path)
+    opts.set_from_urlflag(a, context, "flows-repo", a.FlowRepo_uri, &a.flow_repo_path)
+    opts.set_from_urlflag(a, context, "repotemplates-repo", a.RepotemplateRepo_uri, &a.repotemplate_repo_path)
 
-    // Getting list of drivers (--app)
+    // Getting list of drivers (--apps)
     a.drivers_list.list = make(map[string]DriverDef)
     a.drivers_list.GetDriversFromContext(context, a.c_drivers_list_f)
     a.drivers_list.GetDriversFromContext(context, a.u_drivers_list_f)
 
+    // Retrieving additional extra parameters to store in the workspace.
+    opts.set_from_flag(a, context, "docker-exe-path", &a.w.DockerBinPath, nil)
+}
+
+type validateHdlr func(string) error
+
+// Set a string variable pointer with value found in cli context.
+func (o *ActionOpts)set_from_flag(a *Forj, context *kingpin.ParseContext, flag string, store *string, val_fcnt validateHdlr) error {
+    if d, found := a.flagValue(context, o.flags[flag]) ; found {
+        if val_fcnt != nil {
+            if err := val_fcnt(d) ; err != nil {
+                return err
+            }
+        }
+        *store = d
+    }
+    return nil
+}
+
+func (o *ActionOpts)set_from_urlflag(a *Forj, context *kingpin.ParseContext, flag string, theurl *url.URL, store *string) error {
+    if d, found := a.flagValue(context, o.flags[flag]) ; found {
+        if u, err := url.Parse(d); err != nil {
+            println(err)
+        } else {
+            *theurl = *u
+            if u.Scheme == "" {
+                *store = d
+            }
+        }
+    }
+    return nil
 }
 
 func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool) {
@@ -447,6 +481,10 @@ func (a *Forj) SetCmdFlag(cmd, name, help string, options map[string]interface{}
     }
     if v, ok := options["hidden"]; ok && to_bool(v) {
         arg.Hidden()
+    }
+
+    if v, ok := options["envar"]; ok {
+        arg.Envar(to_string(v))
     }
 
     if v, ok := options["set_value"]; ok && to_bool(v) {

@@ -11,6 +11,11 @@ import (
     "log"
     "regexp"
     "gopkg.in/alecthomas/kingpin.v2"
+    "net/url"
+    "os/user"
+    "io/ioutil"
+    "fmt"
+    "net/http"
 )
 
 
@@ -136,4 +141,50 @@ func touch(file string) error {
     } else {
         return err
     }
+}
+
+// Function to read a document from a url like github raw or directly from a local path
+func read_document_from(s *url.URL) (yaml_data []byte, err error) {
+    if s.Scheme == "" {
+        // File to read locally
+        return read_document_from_fs(s.Path)
+    }
+    // File to read from an url. Usually, a raw from github.
+    return read_document_from_url(s.String())
+}
+
+// Read from the filesystem. If the path start with ~, replaced by the user homedir. In some context, this won't work well, like in container.
+func read_document_from_fs(source string) (yaml_data []byte, err error) {
+    // File to read locally
+    if source[:1] == "~" {
+        cur_user := &user.User{}
+        if cur_user, err = user.Current(); err != nil {
+            err = fmt.Errorf("Unable to get your user. %s. Consider to replace ~ by $HOME\n", err)
+            return
+        }
+        source = string(regexp.MustCompile("^~").ReplaceAll([]byte(source), []byte(cur_user.HomeDir)))
+    }
+    gotrace.Trace("Load file definition at '%s'", source)
+    return ioutil.ReadFile(source)
+}
+
+// Read from the URL string. Data is returned is content type is of text/plain
+func read_document_from_url(source string) (yaml_data []byte, err error) {
+    gotrace.Trace("Load file definition at '%s'", source)
+
+    var resp *http.Response
+    if resp, err = http.Get(source); err != nil {
+        err = fmt.Errorf("Unable to read '%s'. %s\n", source, err)
+        return
+    }
+    defer resp.Body.Close()
+
+    var d []byte
+    if d, err = ioutil.ReadAll(resp.Body); err != nil {
+        return
+    }
+    if strings.Contains(http.DetectContentType(d), "text/plain") {
+        yaml_data = d
+    }
+    return
 }
