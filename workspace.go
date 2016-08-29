@@ -1,7 +1,7 @@
 package main
 
 import (
-    "gopkg.in/alecthomas/kingpin.v2"
+    "github.com/alecthomas/kingpin"
     "encoding/json"
     "log"
     "path"

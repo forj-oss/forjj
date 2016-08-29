@@ -39,6 +39,8 @@ func (a *Forj) Create() error {
 
     // Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
+    a.o.update_options()
+
     // Loop on drivers requested like jenkins classified as ci type.
     for instance, _ := range a.drivers {
         if instance == a.w.Instance {
@@ -59,6 +61,11 @@ func (a *Forj) Create() error {
             return err
         }
     }
+
+    a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
+
+    // Start working on repositories
+    a.RepoSave()
 
     log.Print("FORJJ - create ", a.w.Organization, " DONE")
     return nil
@@ -134,9 +141,9 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
     defer func() {
         gotrace.Trace("Getting infra Plugin driver reference ...")
         if d, found := a.drivers[a.w.Instance] ; found {
-            d.infraRepo = true
+            d.InfraRepo = true
             a.InfraPluginDriver = d
-            a.w.Driver = d.name
+            a.w.Driver = d.Name
             gotrace.Trace("Infra Plugin driver identified and referenced.")
         } else {
             gotrace.Trace("Infra '%s' Plugin driver not found.", a.w.Instance)
@@ -160,10 +167,10 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
     }
 
     for _, dv := range a.drivers {
-        if dv.driver_type == "upstream" {
+        if dv.DriverType == "upstream" {
             upstreams = append(upstreams, dv)
         }
-        if dv.name == upstream_requested {
+        if dv.Name == upstream_requested {
             a.w.Instance = upstream_requested
             return
         }
@@ -175,7 +182,7 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
     }
 
     if len(upstreams) == 1 {
-        a.w.Instance = upstreams[0].name
+        a.w.Instance = upstreams[0].Name
     }
     gotrace.Trace("Selected by default '%s' as upstream instance to connect '%s' repo", a.w.Instance, infra)
     return
@@ -204,6 +211,7 @@ func (a *Forj) restore_infra_repo() error {
     }
     log.Printf("As the upstream service already exists (not created as requested), forjj has only rebuilt or updated your workspace infra repository from '%s'.", a.w.Upstream)
     log.Print("HINT: Use create to create new application sources, or update to update existing application sources")
+    a.LoadForjjOptions()
     return nil
 }
 
@@ -215,9 +223,12 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
 
     d := a.CurrentPluginDriver
 
-    flag_file := path.Join("apps", d.driver_type , d.flag_file)
+    // Add ref to this driver in the forjj infra repo
+    a.o.Drivers[instance] = d
 
-    if d.forjj_flag_file {
+    flag_file := path.Join("apps", d.DriverType , d.FlagFile)
+
+    if d.ForjjFlagFile {
         if _, err = os.Stat(flag_file) ; err == nil {
             err = fmt.Errorf("The driver instance '%s' has already created the resources. Use 'Update' to update it, and maintain to instanciate it as soon as your infra repo flow is completed.", instance)
             aborted = true
@@ -232,7 +243,7 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
 
     // Check the flag file
     if _, err = os.Stat(flag_file) ; err != nil {
-        log.Printf("Warning! Driver '%s' has not created the flag file expected. Probably a driver bug. Contact the plugin maintainer to fix it.", d.name)
+        log.Printf("Warning! Driver '%s' has not created the flag file expected. Probably a driver bug. Contact the plugin maintainer to fix it.", d.Name)
         if err = touch(flag_file) ; err != nil {
             return
         }
@@ -240,15 +251,15 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
 
         var found bool
         for _, f := range d.plugin.Result.Data.Files {
-            if f == d.flag_file {
+            if f == d.FlagFile {
                 found = true
             }
         }
-        if ! found && ! d.forjj_flag_file {
-            if ! d.forjj_flag_file {
-                log.Printf("Warning! Driver '%s' has identified '%s' as controlled by itself. Probably a driver bug. Contact the plugin maintainer to fix it.", d.name, d.flag_file)
+        if ! found && ! d.ForjjFlagFile {
+            if ! d.ForjjFlagFile {
+                log.Printf("Warning! Driver '%s' has identified '%s' as controlled by itself. Probably a driver bug. Contact the plugin maintainer to fix it.", d.Name, d.FlagFile)
             }
-            d.plugin.Result.Data.Files = append(d.plugin.Result.Data.Files, d.flag_file)
+            d.plugin.Result.Data.Files = append(d.plugin.Result.Data.Files, d.FlagFile)
         }
     }
 
@@ -267,7 +278,7 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
 
     // Add source files
     if err := a.CurrentPluginDriver.gitAddPluginFiles() ; err != nil {
-        return fmt.Errorf("Issue to add driver '%s' generated files. %s", a.CurrentPluginDriver.name, err), false
+        return fmt.Errorf("Issue to add driver '%s' generated files. %s", a.CurrentPluginDriver.Name, err), false
     }
 
     // Check about uncontrolled files. Existing if one uncontrolled file is found

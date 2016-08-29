@@ -10,7 +10,7 @@ import (
     "github.com/kvz/logstreamer"
     "log"
     "regexp"
-    "gopkg.in/alecthomas/kingpin.v2"
+    "github.com/alecthomas/kingpin"
     "net/url"
     "os/user"
     "io/ioutil"
@@ -51,6 +51,26 @@ func to_string(v interface{}) (result string) {
      return v.(string)
  }
  return
+}
+
+// Do a git commit
+func git_commit(msg string, errorIfEmpty bool) error {
+    s := git_status()
+    if len(s.Added)  == 0 {
+        return fmt.Errorf("No files added. Please check.")
+    }
+    if git("commit", "-m", msg) > 0 {
+        return fmt.Errorf("Unable to commit.")
+    }
+    return nil
+}
+
+// Push latest commits
+func gitPush() error {
+    if git("push") > 0 {
+        return fmt.Errorf("Unable to push commits.")
+    }
+    return nil
 }
 
 // Call git command with arguments. All print out displayed. It returns git Return code.

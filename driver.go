@@ -35,7 +35,7 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
         return err, false
     }
 
-    d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, "apps", d.driver_type))
+    d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, "apps", d.DriverType))
     d.plugin.PluginSetWorkspace(path.Join(a.Workspace_path, a.Workspace))
     d.plugin.PluginSocketPath(path.Join(a.Workspace_path, a.Workspace, "lib"))
 
@@ -58,12 +58,13 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
 
     // store plugins options required at maintain phase from what the plugin returned.
     if action != "maintain" {
-        a.drivers_options.AddForjjPluginOptions(d.name, d.plugin.Result.Data.Options, d.driver_type)
+        a.drivers_options.AddForjjPluginOptions(d.Name, d.plugin.Result.Data.Options, d.DriverType)
     }
     return
 }
 
 func (a *Forj) driver_cleanup(instance_name string) {
-    d := a.drivers[instance_name]
-    d.plugin.PluginStopService()
+    if d, ok := a.drivers[instance_name] ; ok {
+        d.plugin.PluginStopService()
+    }
 }

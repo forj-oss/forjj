@@ -2,10 +2,9 @@ package main
 
 import (
     "fmt"
-    "gopkg.in/alecthomas/kingpin.v2"
     "os"
     "os/exec"
-    //        "github.com/alecthomas/kingpin"
+    "github.com/alecthomas/kingpin"
     "github.hpe.com/christophe-larsonneur/goforjj"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
     "net/url"
@@ -38,16 +37,16 @@ type DriverCmdOptionFlag struct {
 }
 
 type Driver struct {
-    driver_type        string                         // driver type name
-    instance_name      string                         // Instance name.
-    name               string                         // Name of driver to load Yaml.Name is the real internal driver name.
+    DriverType         string                         // driver type name
+    InstanceName       string                         // Instance name.
+    Name               string                         // Name of driver to load Yaml.Name is the real internal driver name.
     cmds               map[string]DriverCmdOptions    // List of flags per commands
     flags              map[string]*kingpin.FlagClause // list of additional flags loaded at app level.
     flagsv             map[string]*string             // list of additional flags value loaded at app level.
     plugin goforjj.PluginDef                          // Plugin Data
-    infraRepo          bool                           // True if this driver instance is the one hosting the infra repository.
-    flag_file          string                         // Path to the predefined plugin or generic forjj plugin flag file.
-    forjj_flag_file    bool                           // true if the flag_file is set by forjj.
+    InfraRepo          bool                           // True if this driver instance is the one hosting the infra repository.
+    FlagFile           string                         // Path to the predefined plugin or generic forjj plugin flag file.
+    ForjjFlagFile      bool                           // true if the flag_file is set by forjj.
 }
 
 // Structure used as template context. The way to get it: Driver.Model()
@@ -74,6 +73,8 @@ type Forj struct {
     app              *kingpin.Application // Kingpin Application object
     c_drivers_list_f *kingpin.FlagClause  // Cumulative drivers flag for create
     u_drivers_list_f *kingpin.FlagClause  // Cumulative drivers flag for update
+    c_repos_list_f   *kingpin.FlagClause  // Cumulative repos flag for create
+    u_repos_list_f   *kingpin.FlagClause  // Cumulative Repos flag for update
     drivers_list     DriversList          // List of drivers passed to the command line argument from --app.
     Actions        map[string]ActionOpts  // map of Commands with their arguments/flags
 
@@ -81,6 +82,8 @@ type Forj struct {
 
     drivers map[string]*Driver            // List of drivers data/flags/... per instance name (key)
     drivers_options DriversOptions        // forjj-maintain.yml See infra-maintain.go
+
+    repos map[string]RepoStruct           // Repository management. See repos.go
 
     // Flags values
     CurrentCommand *ActionOpts            // Loaded CurrentCommand reference.
@@ -93,6 +96,7 @@ type Forj struct {
     Infra_repo *string // Infra repository name flag value
     Orga_name  *string // Infra repository name flag value
 
+    Branch                 string   // Update feature branch name
     Workspace              string   // Workspace name
     Workspace_path         string   // Workspace directory path.
     ContribRepo_uri        *url.URL // URL to github raw files for plugin files.
@@ -101,12 +105,12 @@ type Forj struct {
     contrib_repo_path      string   // Contribution repository Path
     flow_repo_path         string   // Contribution repository Path
     repotemplate_repo_path string // Contribution repository Path
-    flow                   string // Name of the flow implemented. defined at create time.
     // TODO: enhance infra README.md with a template.
 
     infra_readme      string   // Initial infra repo README.md text.
 
-    w Workspace // Data structure to stored in the workspace. See workspace.go
+    w Workspace    // Data structure to stored in the workspace. See workspace.go
+    o ForjjOptions // Data structured stored in the root of the infra repo. See forjj-options.go
 }
 
 const ssh_dir_flag_name = "ssh-dir"
@@ -126,10 +130,15 @@ func (a *Forj) init() {
     a.app.Version("forjj V0.0.1 (POC)").Author("Christophe Larsonneur <christophe.larsonneur@hpe.com>")
 
     u, _ := url.Parse("https://github.hpe.com/forj/forjj-contribs/raw/master")
-
     a.ContribRepo_uri = u
+    u, _ = url.Parse("https://github.hpe.com/forj/forjj-repotemplates/raw/master")
+    a.RepotemplateRepo_uri = u
+    u, _ = url.Parse("https://github.hpe.com/forj/forjj-flows/raw/master")
+    a.FlowRepo_uri = u
+
     a.drivers = make(map[string]*Driver)
     a.Actions = make(map[string]ActionOpts)
+    a.o.Drivers = make(map[string]*Driver)
 
     no_opts := map[string]interface{}{}
     contribs_repo := map[string]interface{}{"envar": "CONTRIBS_REPO"}
@@ -149,6 +158,7 @@ func (a *Forj) init() {
     a.SetCmdFlag("create", "docker-exe-path", docker_exe_path_help, no_opts)
 
     a.c_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("create", "apps", driver_help, no_set_value_opts))
+    a.c_repos_list_f = SetReposListFlag(a.SetCmdFlag("create", "repos", repos_help, no_set_value_opts))
 
     /********** UPDATE Action ************
       Update is not as clear as Create except that update should update the infra repository.
@@ -156,6 +166,7 @@ func (a *Forj) init() {
       We could probably use this update to add repositories or migrate the solution to a different place.  */
     a.SetCommand("update", update_action_help)
     a.SetCmdArg("update", "workspace", update_orga_help, required)
+    a.SetCmdArg("update", "branch", update_branch_help, required)
     a.SetCmdFlag("update", ssh_dir_flag_name, update_ssh_dir_help, ssh_dir_opts)
     a.SetCmdFlag("update", "contribs-repo", contribs_repo_help, contribs_repo)
     a.SetCmdFlag("update", "flows-repo", flows_repo_help, flows_repo)
@@ -165,6 +176,7 @@ func (a *Forj) init() {
     // Additional options will be loaded from the selected driver itself.
 
     a.u_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("update", "apps", driver_help, no_set_value_opts))
+    a.u_repos_list_f = SetReposListFlag(a.SetCmdFlag("update", "repos", repos_help, no_set_value_opts))
 
     /****** MAINTAIN Action ************
       Maintain is the real infra creation/update
@@ -215,7 +227,7 @@ func (a *Forj) InitializeDriversFlag() {
             continue
         }
 
-        gotrace.Trace("driver: '%s(%s)', command: '%s'", driverOpts.driver_type, instance_name, a.CurrentCommand.name)
+        gotrace.Trace("driver: '%s(%s)', command: '%s'", driverOpts.DriverType, instance_name, a.CurrentCommand.name)
         for _, command := range []string{"common", a.CurrentCommand.name} {
             gotrace.Trace(" From '%s' flags list", command)
             for flag_name, _ := range driverOpts.cmds[command].flags {
@@ -247,7 +259,7 @@ func (a *Forj) GetInternalData(param string) (result string) {
         result = a.w.Infra
     case "instance-name" :
         if a.CurrentPluginDriver != nil {
-            result = a.CurrentPluginDriver.instance_name
+            result = a.CurrentPluginDriver.InstanceName
         } else {
             gotrace.Trace("Warning. instance_name requested outside plugin context.")
         }
@@ -338,6 +350,9 @@ func (a *Forj) LoadContext(args []string) {
     // Load Workspace information
     a.w.Load(a)
 
+    // Load Global Forjj options from infra repo, if found.
+    a.LoadForjjOptions()
+
     // Set organization name to use.
     // Can be set only the first time
     if a.w.Organization == "" {
@@ -379,6 +394,7 @@ func (a *Forj) LoadContext(args []string) {
     // Identifying appropriate Contribution Repository.
     // The value is not set in flagsv. But is in the parser context.
     opts.set_from_urlflag(a, context, "contribs-repo", a.ContribRepo_uri, &a.contrib_repo_path)
+    gotrace.Trace("%#v_n", a.contrib_repo_path)
     opts.set_from_urlflag(a, context, "flows-repo", a.FlowRepo_uri, &a.flow_repo_path)
     opts.set_from_urlflag(a, context, "repotemplates-repo", a.RepotemplateRepo_uri, &a.repotemplate_repo_path)
 
@@ -407,14 +423,21 @@ func (o *ActionOpts)set_from_flag(a *Forj, context *kingpin.ParseContext, flag s
 }
 
 func (o *ActionOpts)set_from_urlflag(a *Forj, context *kingpin.ParseContext, flag string, theurl *url.URL, store *string) error {
+    value := ""
     if d, found := a.flagValue(context, o.flags[flag]) ; found {
-        if u, err := url.Parse(d); err != nil {
-            println(err)
-        } else {
-            *theurl = *u
-            if u.Scheme == "" {
-                *store = d
-            }
+        value = d
+    } else {
+        if o.flags[flag].HasEnvarValue() {
+            gotrace.Trace("Getting value from env for flag '%s'", flag)
+            value = o.flags[flag].GetEnvarValue()
+        }
+    }
+    if u, err := url.Parse(value); err != nil {
+        println(err)
+    } else {
+        *theurl = *u
+        if u.Scheme == "" {
+            *store = value
         }
     }
     return nil

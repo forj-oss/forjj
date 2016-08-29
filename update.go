@@ -4,6 +4,7 @@ import (
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
     "fmt"
     "log"
+    "regexp"
 )
 
 
@@ -28,6 +29,12 @@ func (a *Forj)Update() error {
 
     // Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
+    if err := a.MoveToFixBranch(*a.Actions["update"].argsv["branch"]) ; err != nil {
+        return fmt.Errorf("Unable to move to your feature branch. %s", err)
+    }
+
+    a.o.update_options()
+
     // Loop on drivers requested like jenkins classified as ci type.
     for instance, _ := range a.drivers {
         if instance == a.w.Instance {
@@ -44,7 +51,19 @@ func (a *Forj)Update() error {
         }
     }
 
+    a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
+
     log.Print("FORJJ - update ", a.w.Organization, " DONE")
+
+    log.Printf("As soon as you are happy with your fixes, do a git push to submit your collection of fixes related to '%s' to your team.", a.Branch)
     return nil
 }
 
+func (a *Forj)MoveToFixBranch(branch string) error{
+    a.Branch = branch
+
+    if ok, _ := regexp.MatchString(`^[\w_-]+$`, branch) ; ! ok {
+        return fmt.Errorf("Invalid git branch name '%s'. alphanumeric, '_' and '-' are supported.", branch)
+    }
+    return nil
+}

@@ -32,6 +32,10 @@ func (a *Forj) Maintain() error {
 }
 
 func (a *Forj) do_driver_maintain(instance string) error {
+    if instance == "none" {
+        return nil
+    }
+
     if err := a.driver_start(instance) ; err != nil {
         return err
     }

@@ -3,7 +3,7 @@ package main
 import (
     "fmt"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
-    "gopkg.in/alecthomas/kingpin.v2"
+    "github.com/alecthomas/kingpin"
     "os"
     "regexp"
     "text/template"
@@ -28,8 +28,8 @@ func (a *Forj) load_driver_options(instance_name string) error {
 
 func (d *Driver)Model() (m *DriverModel) {
     m = &DriverModel{
-        InstanceName : d.instance_name,
-        Name: d.name,
+        InstanceName : d.InstanceName,
+        Name: d.Name,
     }
     return
 }
@@ -44,14 +44,14 @@ func (a *Forj) read_driver(instance_name string) (err error) {
         driver = d
     }
 
-    if driver.name == "" {
+    if driver.Name == "" {
         return
     }
 
     ContribRepoUri := *a.ContribRepo_uri
-    ContribRepoUri.Path = path.Join(ContribRepoUri.Path, driver.driver_type, driver.name, driver.name + ".yaml")
+    ContribRepoUri.Path = path.Join(ContribRepoUri.Path, driver.DriverType, driver.Name, driver.Name + ".yaml")
 
-    if yaml_data, err = read_document_from(a.ContribRepo_uri) ; err != nil {
+    if yaml_data, err = read_document_from(&ContribRepoUri) ; err != nil {
         return
     }
 
@@ -62,8 +62,8 @@ func (a *Forj) read_driver(instance_name string) (err error) {
     // Set defaults value for undefined parameters
     var ff string
     if driver.plugin.Yaml.CreatedFile == "" {
-        ff =  "." + driver.instance_name + ".created"
-        driver.forjj_flag_file = true // Forjj will test the creation success itself, as the driver did not created it automatically.
+        ff =  "." + driver.InstanceName + ".created"
+        driver.ForjjFlagFile = true // Forjj will test the creation success itself, as the driver did not created it automatically.
     } else {
         ff = driver.plugin.Yaml.CreatedFile
     }
@@ -76,8 +76,8 @@ func (a *Forj) read_driver(instance_name string) (err error) {
     } else {
         t.Execute(&doc, driver.Model())
     }
-    driver.flag_file = doc.String()
-    gotrace.Trace("Created flag file name Set to default for plugin instance '%s' to %s", driver.instance_name, driver.plugin.Yaml.CreatedFile)
+    driver.FlagFile = doc.String()
+    gotrace.Trace("Created flag file name Set to default for plugin instance '%s' to %s", driver.InstanceName, driver.plugin.Yaml.CreatedFile)
 
     return
 
@@ -86,7 +86,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 // Initialize command drivers flags with plugin definition loaded from plugin yaml file.
 func (a *Forj) init_driver_flags(instance_name string) {
     d := a.drivers[instance_name]
-    service_type := d.driver_type
+    service_type := d.DriverType
     commands := d.plugin.Yaml.Actions
 
     gotrace.Trace("Setting flags from plugin type '%s' (%s)", service_type, d.plugin.Yaml.Name)
@@ -166,9 +166,9 @@ func (a *Forj) GetDriversFlags(args []string) {
     gotrace.Trace("Number of plugins provided from parameters: %d", len(a.drivers_list.list))
     for _, d := range a.drivers_list.list {
         a.drivers[d.Instance] = &Driver{
-            name:          d.Name,
-            driver_type:   d.Type,
-            instance_name: d.Instance,
+            Name:          d.Name,
+            DriverType:    d.Type,
+            InstanceName:  d.Instance,
             cmds: map[string]DriverCmdOptions{
                 "common":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
                 "create":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},

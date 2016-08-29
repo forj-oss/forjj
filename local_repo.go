@@ -9,7 +9,7 @@ import (
     "path/filepath"
     "regexp"
     "strings"
-    "gopkg.in/alecthomas/kingpin.v2"
+    "github.com/alecthomas/kingpin"
 )
 
 // ensure local repo git exists and is initialized.
@@ -190,7 +190,7 @@ func (a *Forj) gitCommitAll(commit_msg string) error {
     for _, driver := range a.drivers {
         err := driver.gitAddPluginFiles()
         if err != nil {
-            return fmt.Errorf("Issue to add driver '%s' generated files. %s.", driver.name, err)
+            return fmt.Errorf("Issue to add driver '%s' generated files. %s.", driver.Name, err)
         }
         commit_msg += "\n - " + driver.plugin.Result.Data.CommitMessage
     }
@@ -211,18 +211,10 @@ func (d *Driver) gitCommit() error {
     return nil
 }
 
-// Push latest commits
-func gitPush() error {
-    if git("push") > 0 {
-        return fmt.Errorf("Unable to push commits.")
-    }
-    return nil
-}
-
 // Add Plugins generated files to ready to be commit git space.
 func (d *Driver)gitAddPluginFiles() (error) {
     if d.plugin.Result == nil {
-        return fmt.Errorf("Strange... The plugin as no result (plugin.Result is nil). Did the plugin '%s' executed?", d.name)
+        return fmt.Errorf("Strange... The plugin as no result (plugin.Result is nil). Did the plugin '%s' executed?", d.Name)
     }
 
     gotrace.Trace("Adding %d files related to '%s'", len(d.plugin.Result.Data.Files), d.plugin.Result.Data.CommitMessage)
@@ -235,7 +227,7 @@ func (d *Driver)gitAddPluginFiles() (error) {
     }
 
     for _, file := range d.plugin.Result.Data.Files {
-        if i := git("add", path.Join("apps", d.driver_type, file)); i >0 {
+        if i := git("add", path.Join("apps", d.DriverType, file)); i >0 {
             return fmt.Errorf("Issue while adding code to git. RC=%d", i)
         }
     }

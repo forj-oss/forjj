@@ -88,7 +88,6 @@ func (a *Forj)LoadForjjPluginsOptions() error {
     if err := fpdef.LoadFile(file) ; err != nil {
         return err
     }
-    return nil
 
     // Load plugins Options data file, given to forjj
     var fpdata forjjPlugins // Plugins/<plugin>/Options/<option>=value
@@ -97,7 +96,6 @@ func (a *Forj)LoadForjjPluginsOptions() error {
     if err := fpdata.LoadFile(file) ; err != nil {
         return err
     }
-    return nil
 
     // Load values in Forj.driver_options keys/values pair
     for name, p_opts := range fpdef.Plugins { // each plugin
