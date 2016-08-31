@@ -38,8 +38,10 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
     d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, "apps", d.DriverType))
     d.plugin.PluginSetWorkspace(path.Join(a.Workspace_path, a.Workspace))
     d.plugin.PluginSocketPath(path.Join(a.Workspace_path, a.Workspace, "lib"))
-    if err := d.plugin.PluginDockerBin(*a.Actions[action].flagsv["docker-exe-path"]) ; err != nil {
-        return err, false
+    if v, found := a.Actions[action].flagsv["docker-exe-path"] ; found {
+        if err := d.plugin.PluginDockerBin(*v) ; err != nil {
+            return err, false
+        }
     }
 
     if err := d.plugin.PluginStartService(a.w.Organization + "_" + instance_name) ; err != nil {
