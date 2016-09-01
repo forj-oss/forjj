@@ -204,7 +204,7 @@ func (a *Forj) restore_infra_repo() error {
     }
 
     // Restoring the workspace.
-    a.w.Upstream = v.Upstream
+    a.w.Upstream = v.Remotes["origin"]
     log.Printf("Updating your workspace from '%s(%s)'.", a.w.Infra, a.w.Upstream)
     if err := a.ensure_local_repo_synced(a.w.Infra, a.w.Upstream, a.infra_readme) ; err != nil {
         return fmt.Errorf("infra repository '%s' issue. %s", a.w.Infra)
