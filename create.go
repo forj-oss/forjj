@@ -71,13 +71,22 @@ func (a *Forj) Create() error {
     // Start working on repositories
     a.o.RepoCodeBuild()
 
+    // TODO: If maintain is not sequenced, we could avoid pushing to upstream as well.
+    if a.w.Infra.Remotes["origin"] != "" {
+        if err := gitPush() ; err != nil {
+            return err
+        }
+    }
+
+
     log.Print("FORJJ - create ", a.w.Organization, " DONE")
     return nil
 }
 
 // This function will ensure minimal git repo exists to store resources plugins data files.
 // It will take care of several GIT scenarios. See ensure_local_repo_synced for details
-// Used by create action only.
+// Used by create/update actions only.
+// In case of create, a git push is executed.
 func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
 
     if err := a.ensure_local_repo_initialized(a.w.Infra.Name) ; err != nil {
@@ -138,6 +147,12 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
         }
     }
     a.o.Repos[a.w.Infra.Name] = a.w.Instance // Save the instance supporting the infra.
+
+    if a.w.Infra.Remotes["origin"] != "" && action == "create" {
+        if err := gitPush() ; err != nil {
+            return err, false
+        }
+    }
 
     return
 }
@@ -240,7 +255,7 @@ func (a *Forj) restore_infra_repo() error {
     return nil
 }
 
-// Execute the driver task, with commit/push and will execute the maintain step.
+// Execute the driver task, with commit and will execute the maintain step.
 func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
     if err = a.driver_start(instance) ; err != nil {
         return
@@ -281,7 +296,14 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
     }
 
     // Save Managed repository to forjj options
-    //if d.driver_type == "upstream"
+    if d.DriverType == "upstream" {
+        for repo, _ := range a.o.Repos {
+            if _, found := a.InfraPluginDriver.plugin.Result.Data.Repos[repo] ; found  {
+                // Saving infra repository information to the workspace
+                a.o.Repos[repo] = instance
+            }
+        }
+    }
 
     if aborted {
         // Do not do any normal GIT tasks as everything already exists
@@ -338,12 +360,6 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
     // Commit files and drivers options
     if err := d.gitCommit() ; err != nil {
         return fmt.Errorf("git commit issue. %s", err), false
-    }
-
-    if a.w.Infra.Remotes["origin"] != "" {
-        if err := gitPush() ; err != nil {
-            return err, false
-        }
     }
 
     return
