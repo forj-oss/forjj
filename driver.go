@@ -35,7 +35,7 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
         return err, false
     }
 
-    d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, "apps", d.DriverType))
+    d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, "apps", d.DriverType))
     d.plugin.PluginSetWorkspace(path.Join(a.Workspace_path, a.Workspace))
     d.plugin.PluginSocketPath(path.Join(a.Workspace_path, a.Workspace, "lib"))
     if v, found := a.Actions[action].flagsv["docker-exe-path"] ; found {

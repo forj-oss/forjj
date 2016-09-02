@@ -8,6 +8,7 @@ import (
     "io/ioutil"
     "os"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "github.hpe.com/christophe-larsonneur/goforjj"
     "fmt"
 )
 
@@ -19,12 +20,22 @@ const forjj_workspace_json_file = "forjj.json"
 // But it can store any data that is workspace environment specific.
 // like where is the docker static binary.
 type Workspace struct {
-    Infra string         // Infra repository directory name
-    Organization string  // Workspace Organization name
-    Driver string        // Infra upstream driver name
-    Instance string      // Infra upstream instance name
-    Upstream string      // upstream URL
-    DockerBinPath string // Docker static binary path
+//    Infra string             // Infra repository directory name
+    Organization string      // Workspace Organization name
+    Driver string            // Infra upstream driver name
+    Instance string          // Infra upstream instance name
+//    Upstream string          // upstream URL
+    Infra goforjj.PluginRepo // Infra-repo definition
+    DockerBinPath string     // Docker static binary path
+}
+
+func (w *Workspace)Init() {
+    if w.Infra.Remotes == nil {
+        w.Infra.Remotes = make(map[string]string)
+    }
+    if w.Infra.BranchConnect == nil {
+        w.Infra.BranchConnect = make(map[string]string)
+    }
 }
 
 func (w *Workspace)Save(app *Forj) {
@@ -48,6 +59,8 @@ func (w *Workspace)Save(app *Forj) {
 
 func (w *Workspace)Load(app *Forj) error {
     fjson := path.Join(app.Workspace_path, app.Workspace, forjj_workspace_json_file)
+
+    w.Init()
 
     _, err := os.Stat(fjson)
     if os.IsNotExist(err) { return nil }

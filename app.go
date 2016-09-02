@@ -256,7 +256,7 @@ func (a *Forj) GetInternalData(param string) (result string) {
     case "organization":
         result = a.w.Organization
     case "infra":
-        result = a.w.Infra
+        result = a.w.Infra.Name
     case "instance-name" :
         if a.CurrentPluginDriver != nil {
             result = a.CurrentPluginDriver.InstanceName
@@ -376,25 +376,24 @@ func (a *Forj) LoadContext(args []string) {
 
     // Set the infra repo name to use
     // Can be set only the first time
-    if a.w.Infra == "" {
+    if a.w.Infra.Name == "" {
         if infra, found := a.flagValue(context, a.infra_rep_f); found {
             // Get infra name from the flag
-            a.w.Infra = infra
+            a.w.Infra.Name = infra
         } else { // Or use the default setting.
-            a.w.Infra = fmt.Sprintf("%s-infra", a.w.Organization)
+            a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
         }
     } else {
-        if infra, found := a.flagValue(context, a.infra_rep_f); found && infra != a.w.Infra {
+        if infra, found := a.flagValue(context, a.infra_rep_f); found && infra != a.w.Infra.Name {
             fmt.Printf("Warning!!! You cannot update the Infra repository name in an existing workspace.\n")
         }
     }
 
-    gotrace.Trace("Infrastructure repository defined : %s", a.w.Infra)
+    gotrace.Trace("Infrastructure repository defined : %s", a.w.Infra.Name)
 
     // Identifying appropriate Contribution Repository.
     // The value is not set in flagsv. But is in the parser context.
     opts.set_from_urlflag(a, context, "contribs-repo", a.ContribRepo_uri, &a.contrib_repo_path)
-    gotrace.Trace("%#v_n", a.contrib_repo_path)
     opts.set_from_urlflag(a, context, "flows-repo", a.FlowRepo_uri, &a.flow_repo_path)
     opts.set_from_urlflag(a, context, "repotemplates-repo", a.RepotemplateRepo_uri, &a.repotemplate_repo_path)
 

@@ -15,6 +15,12 @@ import (
 // I would expect to have this go tool to have a do_create to replace the shell script.
 // But this would be a next version and needs to be validated before this decision is made.
 func (a *Forj) Create() error {
+    // Initialize Repos with at least the infra-repo.
+    // TODO: Add list of repos requested from the cli in this list.
+    a.o.Init(a.w.Instance, a.w.Infra.Name)
+
+    // Parent function has loaded context. ie Forj.w and Forj.o are loaded.
+
     if err := a.define_infra_upstream("create") ; err != nil {
         return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
     }
@@ -26,7 +32,7 @@ func (a *Forj) Create() error {
 
     defer a.driver_cleanup(a.w.Instance) // Ensure upstream instances will be shutted down when done.
 
-    if err, aborted := a.ensure_infra_exists() ; err != nil {
+    if err, aborted := a.ensure_infra_exists("create") ; err != nil {
         if !aborted {
             return fmt.Errorf("Failed to ensure infra exists. %s", err)
         }
@@ -38,8 +44,6 @@ func (a *Forj) Create() error {
     }
 
     // Now, we are in the infra repo root directory and at least, the 1st commit exist.
-
-    a.o.update_options()
 
     // Loop on drivers requested like jenkins classified as ci type.
     for instance, _ := range a.drivers {
@@ -65,7 +69,7 @@ func (a *Forj) Create() error {
     a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
 
     // Start working on repositories
-    a.RepoSave()
+    a.o.RepoCodeBuild()
 
     log.Print("FORJJ - create ", a.w.Organization, " DONE")
     return nil
@@ -74,9 +78,9 @@ func (a *Forj) Create() error {
 // This function will ensure minimal git repo exists to store resources plugins data files.
 // It will take care of several GIT scenarios. See ensure_local_repo_synced for details
 // Used by create action only.
-func (a *Forj) ensure_infra_exists() (err error, aborted bool) {
+func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
 
-    if err := a.ensure_local_repo_initialized(a.w.Infra) ; err != nil {
+    if err := a.ensure_local_repo_initialized(a.w.Infra.Name) ; err != nil {
         return fmt.Errorf("Unable to ensure infra repository gets initialized. %s.", err), false
     }
 
@@ -85,32 +89,39 @@ func (a *Forj) ensure_infra_exists() (err error, aborted bool) {
     // Set the Initial README.md content for the infra repository.
     a.infra_readme = fmt.Sprintf("Infrastructure Repository for the organization %s", a.Orga_name)
 
-    if a.InfraPluginDriver == nil { // upstream UNdefined.
+    if a.InfraPluginDriver == nil { // NO infra upstream driver loaded and defined.
         // But should be ok if the git remote is already set.
 
-        if *a.Actions["create"].flagsv["infra-upstream"] != "none" && a.w.Instance != "none"{
-            var remote_exist, remote_connected bool
-            remote_exist, remote_connected, err = git_remote_exist("master", "origin", a.w.Upstream)
-            if err != nil {
-                return err, false
-            }
-
-            msg := fmt.Sprintf("Your workspace contains your infra repository called '%s' but not connected to", a.w.Infra)
-            hint := "\nIf you are ok with this configuration, use '--infra-upstream none' to confirm. Otherwise, please define the --apps with the upstream driver and needed flags."
-            if ! remote_exist {
-                return fmt.Errorf("%s an upstream. %s", msg, hint), false
-            }
-            if ! remote_connected {
-                return fmt.Errorf("%s a valid upstream '%s'. %s", msg, a.w.Upstream, hint), false
-            }
-            return
-        } else {
-            a.w.Instance = "none"
+        var hint string
+        if *a.Actions[action].flagsv["infra-upstream"] == "" {
+            hint = "\nIf you are ok with this configuration, use '--infra-upstream none' to confirm. Otherwise, please define the --apps with the upstream driver and needed flags."
         }
 
-        // Will create the 1st commit and nothing more.
-        if err := a.ensure_local_repo_synced(a.w.Infra, "", a.infra_readme) ; err != nil {
+        var remote_exist, remote_connected bool
+
+        remote_exist, remote_connected, err = git_remote_exist("master", "origin", a.w.Infra.Remotes["origin"])
+        if err != nil {
             return err, false
+        }
+
+        switch {
+            case a.w.Instance == "" : // The infra repo upstream instance has not been defined.
+                msg := fmt.Sprintf("Your workspace contains your infra repository called '%s' but not connected to", a.w.Infra)
+                if ! remote_exist {
+                    return fmt.Errorf("%s an upstream.%s", msg, hint), false
+                }
+                if ! remote_connected {
+                    return fmt.Errorf("%s a valid upstream '%s'.%s", msg, a.w.Infra.Remotes["origin"], hint), false
+                }
+                return
+            case a.w.Instance == "none" : // The infra is set with no upstream instance
+                // Will create the 1st commit and nothing more.
+                if err := a.ensure_local_repo_synced(a.w.Infra.Name, "", a.infra_readme) ; err != nil {
+                    return err, false
+                }
+                return
+            case a.w.Infra.Remotes["origin"] == "" : // The infra upstream string is not defined
+                return fmt.Errorf("You provided the infra upstream instance name to connect to your local repository, without defining the upstream instance. please retry and use --apps to define it."), false
         }
         return
     }
@@ -126,38 +137,53 @@ func (a *Forj) ensure_infra_exists() (err error, aborted bool) {
             err = fmt.Errorf("%s\n%s", err, e)
         }
     }
+    a.o.Repos[a.w.Infra.Name] = a.w.Instance // Save the instance supporting the infra.
 
     return
 }
 
 // Search for upstreams drivers and with or without --infra-upstream setting, the appropriate upstream will define the infra-repo upstream instance to use.
-// It sets
+// It sets/Initialize
 // - Forj.w.Instance     : Instance name
 // - Forj.w.Plugin       : Driver name
+// - Forj.o.Repos        : List Repositories and templates.
 func (a *Forj) define_infra_upstream(action string) (err error) {
     // Identify list of upstream instances
     gotrace.Trace("Identifying the infra Plugin driver...")
 
     defer func() {
-        gotrace.Trace("Getting infra Plugin driver reference ...")
+        if a.w.Instance == "none" {
+            gotrace.Trace("No infra instance driver to load.")
+            return
+        }
         if d, found := a.drivers[a.w.Instance] ; found {
             d.InfraRepo = true
             a.InfraPluginDriver = d
             a.w.Driver = d.Name
             gotrace.Trace("Infra Plugin driver identified and referenced.")
         } else {
-            gotrace.Trace("Infra '%s' Plugin driver not found.", a.w.Instance)
+            log.Printf("Infra '%s' Plugin driver not found. Use --apps upstream:<DriverName>:%s to create/configure the infra repo upstream.", a.w.Instance, a.w.Instance)
         }
     }()
 
+    // Set upstream instance requested to the infra-repo
+    instance_requested := *a.Actions[action].flagsv["infra-upstream"]
+    if instance_requested != "" && a.w.Instance != instance_requested { // Requested to change the infra instance name
+        switch {
+        case a.w.Instance == "none" || a.w.Instance == "":
+            a.w.Instance = instance_requested
+        default:
+            log.Printf("Unable to migrate your infra-repository to a different instance. Not yet implemented.")
+        }
+    }
+
     if a.w.Instance != "" { // No need to define infra upstream as loaded from the workspace context.
-        gotrace.Trace("Loaded from workspace: %s", a.w.Instance)
+        gotrace.Trace("Infra repository instance used: %s", a.w.Instance)
         return
     }
-    infra := a.w.Infra
+    infra := a.w.Infra.Name
     a.w.Instance = ""
     a.w.Driver = "none"
-    a.w.Upstream = ""
     upstreams := []*Driver{}
     upstream_requested := *a.Actions[action].flagsv["infra-upstream"]
 
@@ -193,7 +219,7 @@ func (a *Forj) restore_infra_repo() error {
     if a.InfraPluginDriver.plugin.Result == nil {
         return fmt.Errorf("Internal Error: The infra plugin did not return a valid result. Forj.InfraPluginDriver.plugin.Result = nil.")
     }
-    v, found := a.InfraPluginDriver.plugin.Result.Data.Repos[a.w.Infra]
+    v, found := a.InfraPluginDriver.plugin.Result.Data.Repos[a.w.Infra.Name]
 
     if  !found {
         return fmt.Errorf("Unable to rebuild your workspace from the upstream '%s'. Not found.", a.w.Infra)
@@ -204,12 +230,11 @@ func (a *Forj) restore_infra_repo() error {
     }
 
     // Restoring the workspace.
-    a.w.Upstream = v.Remotes["origin"]
-    log.Printf("Updating your workspace from '%s(%s)'.", a.w.Infra, a.w.Upstream)
-    if err := a.ensure_local_repo_synced(a.w.Infra, a.w.Upstream, a.infra_readme) ; err != nil {
+    log.Printf("Updating your workspace from '%s(%s)'.", a.w.Infra.Name, a.w.Infra.Remotes["origin"])
+    if err := a.ensure_local_repo_synced(a.w.Infra.Name, a.w.Infra.Remotes["origin"], a.infra_readme) ; err != nil {
         return fmt.Errorf("infra repository '%s' issue. %s", a.w.Infra)
     }
-    log.Printf("As the upstream service already exists (not created as requested), forjj has only rebuilt or updated your workspace infra repository from '%s'.", a.w.Upstream)
+    log.Printf("As the upstream service already exists (not created as requested), forjj has only rebuilt or updated your workspace infra repository from '%s'.", a.w.Infra.Remotes["origin"])
     log.Print("HINT: Use create to create new application sources, or update to update existing application sources")
     a.LoadForjjOptions()
     return nil
@@ -237,13 +262,36 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
     }
 
     // Calling upstream driver - To create plugin source files for the current upstream infra repository
-    if err, aborted = d.driver_do(a, instance, "create") ; err != nil {
+    // When the plugin inform that resource already exist, it returns an error with aborted = true
+    if err, aborted = d.driver_do(a, instance, "create") ; err != nil && ! aborted  {
+        return
+    }
+
+    // The driver has created or aborted his task.
+
+    if a.InfraPluginDriver == d { // Infra upstream instance case
+        if v, found := a.InfraPluginDriver.plugin.Result.Data.Repos[a.w.Infra.Name] ; found {
+            // Saving infra repository information to the workspace
+            a.w.Infra = v
+        } else {
+            if a.w.Infra.Name != "none" {
+                return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance), false
+            }
+        }
+    }
+
+    // Save Managed repository to forjj options
+    //if d.driver_type == "upstream"
+
+    if aborted {
+        // Do not do any normal GIT tasks as everything already exists
+        // Do not test the flag file as nothing done by the driver. If aborted, we assume the flag file already exists in the existing upstream repo
         return
     }
 
     // Check the flag file
     if _, err = os.Stat(flag_file) ; err != nil {
-        log.Printf("Warning! Driver '%s' has not created the flag file expected. Probably a driver bug. Contact the plugin maintainer to fix it.", d.Name)
+        log.Printf("Warning! Driver '%s' has not created the expected flag file (%s). Probably a driver bug. Contact the plugin maintainer to fix it.", d.Name, flag_file)
         if err = touch(flag_file) ; err != nil {
             return
         }
@@ -263,28 +311,21 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
         }
     }
 
-    if a.InfraPluginDriver != nil && a.w.Upstream == "none" {
-        if v, found := a.InfraPluginDriver.plugin.Result.Data.Repos[a.w.Infra] ; found {
-            a.w.Upstream = v.Upstream
-        } else {
-            return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra, a.w.Instance), false
-        }
-    }
+
+    gotrace.Trace("----- Do GIT tasks in the INFRA repository.")
 
     // Ensure initial commit exists and upstream are set for the infra repository
-    if err := a.ensure_local_repo_synced(a.w.Infra, a.w.Upstream, a.infra_readme) ; err != nil {
+    if err := a.ensure_local_repo_synced(a.w.Infra.Name, a.w.Infra.Remotes["origin"], a.infra_readme) ; err != nil {
         return fmt.Errorf("infra repository '%s' issue. %s", err), false
     }
 
     // Add source files
-    if err := a.CurrentPluginDriver.gitAddPluginFiles() ; err != nil {
+    if err := d.gitAddPluginFiles() ; err != nil {
         return fmt.Errorf("Issue to add driver '%s' generated files. %s", a.CurrentPluginDriver.Name, err), false
     }
 
     // Check about uncontrolled files. Existing if one uncontrolled file is found
-    status := git_status()
-    fmt.Printf("%#v\n", status)
-    if  status.err != nil {
+    if status := git_status() ; status.err != nil {
         return fmt.Errorf("Issue to check git status. %s", err), false
     } else {
         if len(status.Untracked) > 0 {
@@ -295,11 +336,11 @@ func (a *Forj) do_driver_create(instance string) (err error, aborted bool) {
     }
 
     // Commit files and drivers options
-    if err := a.CurrentPluginDriver.gitCommit() ; err != nil {
+    if err := d.gitCommit() ; err != nil {
         return fmt.Errorf("git commit issue. %s", err), false
     }
 
-    if a.w.Upstream != "" {
+    if a.w.Infra.Remotes["origin"] != "" {
         if err := gitPush() ; err != nil {
             return err, false
         }

@@ -18,6 +18,21 @@ const (
 type ForjjOptions struct {
     Flow string
     Drivers map[string]*Driver
+    Repos map[string]string // List of repositories, with instance implementing it.
+}
+
+// Initialize Forjj options
+// At least, the infra repo must exists.
+func (o *ForjjOptions)Init(instance, infra_repo string) {
+    if o.Repos == nil {
+        o.Repos = make(map[string]string)
+    }
+    if o.Drivers == nil {
+        o.Drivers = make(map[string]*Driver)
+    }
+    if _, found := o.Repos[infra_repo] ; ! found {
+        o.Repos[infra_repo] = instance
+    }
 }
 
 func (o *ForjjOptions)SaveForjjOptions(CommitMsg string) error {
@@ -50,7 +65,7 @@ func (f *ForjjOptions)Save(file string) error {
 // This functions loads the forjj options definitions from the LoadContext().
 func (a *Forj)LoadForjjOptions() error {
     // Read definition file from repo.
-    file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, forjj_options_file))
+    file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, forjj_options_file))
 
     if _, err := os.Stat(file) ; err != nil {
         return nil // Nothing to read.

@@ -20,7 +20,7 @@ func (a *Forj)Update() error {
 
     defer a.driver_cleanup(a.w.Instance) // Ensure upstream instances will be shutted down when done.
 
-    if err, aborted := a.ensure_infra_exists() ; err != nil {
+    if err, aborted := a.ensure_infra_exists("update") ; err != nil {
         if !aborted {
             return fmt.Errorf("Failed to ensure infra exists. %s", err)
         }

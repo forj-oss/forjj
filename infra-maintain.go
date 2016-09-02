@@ -84,7 +84,7 @@ func (a *Forj)LoadForjjPluginsOptions() error {
     // Read definition file from repo.
     var fpdef forjjPlugins // Plugins/<plugin>/Options/<option>=help
 
-    file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra, drivers_data_options_file))
+    file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, drivers_data_options_file))
     if err := fpdef.LoadFile(file) ; err != nil {
         return err
     }

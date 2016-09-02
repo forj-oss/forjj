@@ -55,7 +55,7 @@ func (a *Forj) do_driver_maintain(instance string) error {
         }
 
         // TODO: Generate README.md text from template.
-        if err := a.ensure_local_repo_synced(name, repo.Upstream, fmt.Sprintf("Repository %s created by Forjj.", name)) ; err != nil {
+        if err := a.ensure_local_repo_synced(name, repo.Remotes["origin"], fmt.Sprintf("Repository %s created by Forjj.", name)) ; err != nil {
             return err
         }
     }
