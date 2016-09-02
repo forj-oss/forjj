@@ -47,6 +47,7 @@ type Driver struct {
     InfraRepo          bool                           // True if this driver instance is the one hosting the infra repository.
     FlagFile           string                         // Path to the predefined plugin or generic forjj plugin flag file.
     ForjjFlagFile      bool                           // true if the flag_file is set by forjj.
+    app_request        bool                           // true if the driver is loaded by a apps create/update/maintain task (otherwise requested by Repos or flows request.)
 }
 
 // Structure used as template context. The way to get it: Driver.Model()
@@ -401,6 +402,9 @@ func (a *Forj) LoadContext(args []string) {
     a.drivers_list.list = make(map[string]DriverDef)
     a.drivers_list.GetDriversFromContext(context, a.c_drivers_list_f)
     a.drivers_list.GetDriversFromContext(context, a.u_drivers_list_f)
+
+    // Getting list of Repos to create (--repos)
+    //
 
     // Retrieving additional extra parameters to store in the workspace.
     opts.set_from_flag(a, context, "docker-exe-path", &a.w.DockerBinPath, nil)

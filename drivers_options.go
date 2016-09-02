@@ -159,6 +159,7 @@ func SetAppropriateflagName(flag_name, instance_name string, search_re *regexp.R
     return search_re.ReplaceAllString(flag_name, "${1}" + instance_name + "${3}")
 }
 
+// Load drivers requested (--apps)
 func (a *Forj) GetDriversFlags(args []string) {
     a.LoadContext(os.Args[1:])
 
@@ -169,6 +170,7 @@ func (a *Forj) GetDriversFlags(args []string) {
             Name:          d.Name,
             DriverType:    d.Type,
             InstanceName:  d.Instance,
+            app_request:   true,
             cmds: map[string]DriverCmdOptions{
                 "common":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
                 "create":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
@@ -176,7 +178,7 @@ func (a *Forj) GetDriversFlags(args []string) {
                 "maintain": DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
             },
         }
-        gotrace.Trace("Selected '%s' driver: %s\n", d.Type, d.Name)
+        gotrace.Trace("Selected '%s' app driver: %s\n", d.Type, d.Name)
 
         if err := a.load_driver_options(d.Instance); err != nil {
             fmt.Printf("Error: %#v\n", err)

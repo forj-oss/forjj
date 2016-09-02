@@ -46,9 +46,9 @@ func (a *Forj) Create() error {
     // Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
     // Loop on drivers requested like jenkins classified as ci type.
-    for instance, _ := range a.drivers {
-        if instance == a.w.Instance {
-            continue // Do not try to create infra-upstream twice.
+    for instance, d := range a.drivers {
+        if instance == a.w.Instance || ! d.app_request {
+            continue // Do not try to create infra-upstream twice or create from a non requested app (--apps)
         }
 
         defer a.driver_cleanup(instance) // Ensure all instances will be shutted down when done.
@@ -69,7 +69,7 @@ func (a *Forj) Create() error {
     a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
 
     // Start working on repositories
-    a.o.RepoCodeBuild()
+    a.RepoCodeBuild()
 
     // TODO: If maintain is not sequenced, we could avoid pushing to upstream as well.
     if a.w.Infra.Remotes["origin"] != "" {

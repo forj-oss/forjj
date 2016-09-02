@@ -9,7 +9,7 @@ import (
 )
 
 type ReposList struct {
-    list map[string]string
+    list map[string]RepoStruct
 }
 
 func (d *ReposList)Set(value string) error {
@@ -25,16 +25,18 @@ func (d *ReposList)Set(value string) error {
 }
 
 func (d *ReposList)Add(value string) error {
-    t, _ := regexp.Compile(`([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*))?`)
+    t, _ := regexp.Compile(`([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*))?(:([a-z0-9_-]*))?`)
     res := t.FindStringSubmatch(value)
     if res == nil {
-        return fmt.Errorf("%s is an invalid application driver. REPO must be formated as '<RepoName>[:<FlowName>]' all lower case. if no Flow is set, it will use the default one (--default-flow) or 'none'", value)
+        return fmt.Errorf("%s is an invalid Repository. REPO must be formated as '<RepoName>[:<FlowName>]' all lower case. if no Flow is set, it will use the default one (--default-flow) or 'none'", value)
     }
 
     if d.list == nil {
-        d.list = make(map[string]string)
+        d.list = make(map[string]RepoStruct)
     }
-    d.list[res[1]] = res[3]
+    d.list[res[1]] = RepoStruct{
+        Flow: res[3],
+    }
     gotrace.Trace("Driver added %s", value)
     return nil
 }
