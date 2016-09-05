@@ -50,9 +50,9 @@ func (a *Forj) ensure_local_repo_initialized(repo_name string) error {
 // Ensure local repo exist with at least 1 commit.
 // If non existent, or no commit, it will create it all.
 //
-// It will take care of several scenarios
-// - no remote defined                         : Create if needed.
-// - nothing exists locally and remotely       : Create and push
+// It will take care of several scenarios related to commits on local and remote git cache.
+// - no remote defined                         : Create 1st commit if needed.
+// - nothing exists locally and remotely       : Create 1st commit and push
 // - nothing exists locally but remotely       : clone
 // - something exist locally, but not remotely : push
 // - both locally and remotely repo exist.     : Just test remote connection.

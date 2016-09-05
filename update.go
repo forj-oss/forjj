@@ -29,6 +29,9 @@ func (a *Forj)Update() error {
 
     // Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
+    // TODO: flow_start to execute instructions before updating source code for existing apps in appropriate branch. Possible if a flow is already implemented otherwise git must stay in master branch
+    // flow_start()
+
     if err := a.MoveToFixBranch(*a.Actions["update"].argsv["branch"]) ; err != nil {
         return fmt.Errorf("Unable to move to your feature branch. %s", err)
     }
@@ -43,15 +46,21 @@ func (a *Forj)Update() error {
 
         defer a.driver_cleanup(instance) // Ensure all instances will be shutted down when done.
 
-        if err, aborted := a.do_driver_create(instance) ; err != nil {
+        if err, aborted := a.do_driver_task("update", instance) ; err != nil {
             if !aborted {
-                return fmt.Errorf("Failed to create '%s' source files. %s", instance, err)
+                return fmt.Errorf("Failed to update '%s' source files. %s", instance, err)
             }
             log.Printf("Warning. %s", err)
         }
     }
 
     a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
+
+    // Start working on repositories, writing repos source code.
+    a.RepoCodeBuild()
+
+    // TODO: Implement flow_close() to close the create task
+    // flow_close()
 
     log.Print("FORJJ - update ", a.w.Organization, " DONE")
 

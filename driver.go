@@ -5,6 +5,9 @@ import (
     "time"
     "log"
     "fmt"
+    "os"
+    "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "strings"
 )
 
 const (
@@ -12,6 +15,140 @@ const (
     default_socket_baseurl = "http:///anyhost"
     default_mount_path = "/src"
 )
+
+// Execute the driver task, with commit
+func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool) {
+    if err = a.driver_start(instance) ; err != nil {
+        return
+    }
+
+    d := a.CurrentPluginDriver
+
+    // Add ref to this driver in the forjj infra repo
+    a.o.Drivers[instance] = d
+
+    // check flag for create
+    if action == "create" {
+        if err := d.check_flag_before(instance) ; err != nil {
+            return err, true
+        }
+    }
+
+    // Calling upstream driver - To create plugin source files for the current upstream infra repository
+    // When the plugin inform that resource already exist, it returns an error with aborted = true
+    if err, aborted = d.driver_do(a, instance, action) ; err != nil && ! aborted  {
+        return
+    }
+
+    // The driver has created or aborted his task.
+
+    if a.InfraPluginDriver == d { // Infra upstream instance case
+        if v, found := a.InfraPluginDriver.plugin.Result.Data.Repos[a.w.Infra.Name] ; found {
+            // Saving infra repository information to the workspace
+            a.w.Infra = v
+        } else {
+            if a.w.Infra.Name != "none" {
+                return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance), false
+            }
+        }
+    }
+
+    // Save Managed repository to forjj options
+    if d.DriverType == "upstream" {
+        a.SaveManagedRepos(instance)
+    }
+
+    if aborted {
+        // Do not do any normal GIT tasks as everything already exists
+        // Do not test the flag file as nothing done by the driver. If aborted, we assume the flag file already exists in the existing upstream repo
+        return
+    }
+
+    // Check the flag file
+    if err = d.check_flag_after() ; err != nil {
+        return
+    }
+
+    // Commiting source code.
+    err = a.do_driver_commit(d)
+
+    return
+}
+
+// Check if the flag exist to avoid creating the resource a second time. It must use update instead.
+func (d *Driver)check_flag_before(instance string) error {
+    flag_file := path.Join("apps", d.DriverType , d.FlagFile)
+
+    if d.ForjjFlagFile {
+        if _, err := os.Stat(flag_file) ; err == nil {
+            return fmt.Errorf("The driver instance '%s' has already created the resources. Use 'Update' to update it, and maintain to instanciate it as soon as your infra repo flow is completed.", instance)
+        }
+    }
+    return nil
+}
+
+func (d *Driver)check_flag_after() error {
+    flag_file := path.Join("apps", d.DriverType , d.FlagFile)
+
+    // Check the flag file
+    if _, err := os.Stat(flag_file) ; err == nil {
+        return err
+    }
+
+    log.Printf("Warning! Driver '%s' has not created the expected flag file (%s). Probably a driver bug. Contact the plugin maintainer to fix it.", d.Name, flag_file)
+
+    // Create a forjj flag file instead.
+    if err := touch(flag_file) ; err != nil {
+        return err
+    }
+
+    var found bool
+    for _, f := range d.plugin.Result.Data.Files {
+        if f == d.FlagFile {
+            found = true
+        }
+    }
+    if ! found && ! d.ForjjFlagFile {
+        if ! d.ForjjFlagFile {
+            log.Printf("Warning! Driver '%s' has identified '%s' as controlled by itself. Probably a driver bug. Contact the plugin maintainer to fix it.", d.Name, d.FlagFile)
+        }
+        d.plugin.Result.Data.Files = append(d.plugin.Result.Data.Files, d.FlagFile)
+    }
+    return nil
+}
+
+// do driver commit
+func (a *Forj) do_driver_commit(d *Driver) error {
+    gotrace.Trace("----- Do GIT tasks in the INFRA repository.")
+
+    // Ensure initial commit exists and upstream are set for the infra repository
+    if err := a.ensure_local_repo_synced(a.w.Infra.Name, a.w.Infra.Remotes["origin"], a.infra_readme) ; err != nil {
+        return fmt.Errorf("infra repository '%s' issue. %s", err)
+    }
+
+    // Add source files
+    if err := d.gitAddPluginFiles() ; err != nil {
+        return fmt.Errorf("Issue to add driver '%s' generated files. %s", a.CurrentPluginDriver.Name, err)
+    }
+
+    // Check about uncontrolled files. Existing if one uncontrolled file is found
+    if status := git_status() ; status.err != nil {
+        return fmt.Errorf("Issue to check git status. %s", status.err)
+    } else {
+        if len(status.Untracked) > 0 {
+            log.Print("Following files created by the plugin are not controlled by the plugin. You must fix it manually and contact the plugin maintainer to fix this issue.")
+            log.Printf("files: %s", strings.Join(status.Untracked, ", "))
+            return fmt.Errorf("Unable to commit. Uncontrolled files found.")
+        }
+    }
+
+    // Commit files and drivers options
+    if err := d.gitCommit() ; err != nil {
+        return fmt.Errorf("git commit issue. %s", err)
+    }
+    return nil
+}
+
 
 // Define starting on this driver
 // Forj.CurrentPluginDriver set

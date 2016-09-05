@@ -18,6 +18,16 @@ type RepoStruct struct {
     Flow          string              // Flow applied to the Repo
 }
 
+// Stored Repositories managed by the plugin in the list of repos (forjj-options)
+func (a *Forj)SaveManagedRepos(instance string) {
+    for repo, _ := range a.o.Repos {
+        if _, found := a.InfraPluginDriver.plugin.Result.Data.Repos[repo] ; found  {
+            // Saving infra repository information to the workspace
+            a.o.Repos[repo] = instance
+        }
+    }
+}
+
 /*func (r *RepoStruct)UpdateFrom(plugin *goforjj.PluginData) {
     if d, found := plugin.Repos[r.Name] ; found {
         r.Remotes = d.Remotes
