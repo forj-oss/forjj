@@ -48,6 +48,15 @@ func (a *Forj) Create() error {
     // TODO: flow_start to execute instructions before creating source code for new apps in appropriate branch. Possible if a flow is already implemented otherwise git must stay in master branch
     // flow_start()
 
+    defer func() {
+        a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
+        if a.w.Infra.Exist {
+            git("push")
+        } else {
+            gotrace.Trace("No final push: infra is marked as inexistent.")
+        }
+    }()
+
     // Loop on drivers requested like jenkins classified as ci type.
     for instance, d := range a.drivers {
         if instance == a.w.Instance || ! d.app_request {
@@ -61,8 +70,10 @@ func (a *Forj) Create() error {
                 return fmt.Errorf("Failed to create '%s' source files. %s", instance, err)
             }
             log.Printf("Warning. %s", err)
+            a.o.Drivers[instance] = d // Keep driver info in the forjj options
             continue
         }
+        a.o.Drivers[instance] = d // Keep driver info in the forjj options
 
         // TODO: Except if --no-maintain is set, we could just create files and do maintain later.
         // Do push before maintaining it. So the code updated gets published before we instantiate it.
@@ -80,8 +91,6 @@ func (a *Forj) Create() error {
     // TODO: Implement the flow requested
     // flow_create() # Implement the flow on running tools for the infra-repo
 
-    a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
-
     // Start working on repositories, writing repos source code.
     a.RepoCodeBuild("create")
 
@@ -97,7 +106,7 @@ func (a *Forj) Create() error {
     // TODO: Implement all repositories (maintain)
     // a.RepoMaintain() # This will implement the flow for the infra-repo as well.
 
-    log.Print("FORJJ - create ", a.w.Organization, " DONE")
+    defer log.Print("FORJJ - create ", a.w.Organization, " DONE")
     return nil
 }
 

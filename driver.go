@@ -55,7 +55,7 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 
     // Save Managed repository to forjj options
     if d.DriverType == "upstream" {
-        a.SaveManagedRepos(instance)
+        a.SaveManagedRepos(d, instance)
     }
 
     if aborted {

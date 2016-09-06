@@ -59,6 +59,23 @@ func (a *Forj) do_driver_maintain(instance string) error {
         if err := a.ensure_local_repo_synced(name, "master", "origin", repo.Remotes["origin"], fmt.Sprintf("Repository %s created by Forjj.", name)) ; err != nil {
             return err
         }
+
+        if a.InfraPluginDriver == d { // Infra upstream instance case
+            if v, found := d.plugin.Result.Data.Repos[a.w.Infra.Name] ; found {
+                // Saving infra repository information to the workspace
+                a.w.Infra = v
+            } else {
+                if a.w.Infra.Name != "none" {
+                    return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance)
+                }
+            }
+        }
+
+        // Save Managed repository to forjj options
+        if d.DriverType == "upstream" {
+            a.SaveManagedRepos(d, instance)
+        }
+
     }
 
     // loop on other plugins to maintain themselves

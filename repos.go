@@ -23,9 +23,9 @@ type RepoStruct struct {
 }
 
 // Stored Repositories managed by the plugin in the list of repos (forjj-repos.yaml)
-func (a *Forj)SaveManagedRepos(instance string) {
+func (a *Forj)SaveManagedRepos(d *Driver, instance string) {
     for name, repo := range a.r.Repos {
-        if _, found := a.InfraPluginDriver.plugin.Result.Data.Repos[name] ; found  {
+        if _, found := d.plugin.Result.Data.Repos[name] ; found  {
             // Saving infra repository information to the workspace
             repo.Instance = instance
         }
