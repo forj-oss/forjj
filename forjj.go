@@ -18,18 +18,21 @@ func main() {
  forj_app.InitializeDriversFlag()
  switch kingpin.MustParse(parse, err) {
    case "create":
-     if err := forj_app.Create() ; err != nil {
-         log.Fatalf("Forjj create issue. %s", err)
-     }
+        if err := forj_app.Create() ; err != nil {
+            log.Fatalf("Forjj create issue. %s", err)
+        }
+        println("FORJJ - create ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
 
    case "update":
         if err := forj_app.Update() ; err != nil {
             log.Fatalf("Forjj update issue. %s", err)
         }
+        println("FORJJ - update ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
 
    case "maintain":
         if err := forj_app.Maintain() ; err != nil {
             log.Fatalf("Forjj maintain issue. %s", err)
         }
+        println("FORJJ - maintain ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
    }
 }

@@ -13,12 +13,12 @@ type ReposList struct {
 }
 
 // Syntax supported:
-// --add-repo <RepoName>[:<Flow>[:<RepoTemplate>[:<RepoTitle>]]][,...]
-// --repo <RepoName>[:<Flow>[:<RepoTemplate>[:<RepoTitle>]]][,...]
+// --add-repo [<instance>/]<RepoName>[:<Flow>[:<RepoTemplate>[:<RepoTitle>]]][,...]
+// --repo [<instance>/]<RepoName>[:<Flow>[:<RepoTemplate>[:<RepoTitle>]]][,...]
 
 func (d *ReposList)Set(value string) error {
-    if found, _ := regexp.MatchString(`[a-z0-9_:-]+(,[a-z0-9_:-]+)*`, value) ; !found {
-        return fmt.Errorf("%s is an invalid list of Repository string. REPOS must be formated as '<REPO>[,<REPO>[...]] where REPO is formated as '<RepoName>[:<FlowName>[:<RepoTemplate>[:<RepoTitle>]]]' all lower case. if no Flow is set, it will use the default one (--default-flow) or 'none'", value)
+    if found, _ := regexp.MatchString(`[a-z0-9_:/-]+(,[a-z0-9_:/-]+)*`, value) ; !found {
+        return fmt.Errorf("%s is an invalid list of Repository string. REPOS must be formated as '<REPO>[,<REPO>[...]] where REPO is formated as '[<instance>/]<RepoName>[:<FlowName>[:<RepoTemplate>[:<RepoTitle>]]]' all lower case. if no Flow is set, it will use the default one (--default-flow) or 'none'", value)
     }
     for _, v := range strings.Split(value, ",") {
         if err := d.Add(v) ; err != nil {
@@ -29,26 +29,27 @@ func (d *ReposList)Set(value string) error {
 }
 
 func (d *ReposList)Add(value string) error {
-    t, _ := regexp.Compile(`([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*))?)?)?`)
+    t, _ := regexp.Compile(`(([a-z]+[a-z0-9_-]*)/)?([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*))?)?)?`)
     res := t.FindStringSubmatch(value)
     if res == nil {
-        return fmt.Errorf("%s is an invalid Repository. REPO must be formated as '<RepoName>[:<FlowName>]' all lower case. if no Flow is set, it will use the default one (--default-flow) or 'none'", value)
+        return fmt.Errorf("%s is an invalid Repository. REPO must be formated as '[<instance>/]<RepoName>[:<FlowName>[:<RepoTemplate>[:<RepoTitle>]]]' all lower case. if no Flow is set, it will use the default one (--default-flow) or 'none'", value)
     }
 
     if d.Repos == nil {
         d.Repos = make(map[string]*RepoStruct)
     }
     r := &RepoStruct{
-        Flow: res[3],
+        Flow: res[5],
         Title: res[7],
         Templates:  make([]string,0,1),
         Groups : make(map[string]string),
         Users : make(map[string]string),
+        Instance : res[1],
     }
-    if res[7] != "" {
+    if res[9] != "" {
         r.Templates = append(r.Templates, res[7])
     }
-    d.Repos[res[1]] = r
+    d.Repos[res[3]] = r
     gotrace.Trace("Repo added %s", value)
     return nil
 }

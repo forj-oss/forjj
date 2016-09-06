@@ -41,6 +41,7 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps.
   update_ssh_dir_help    = "PATH to a git ssh keys directory. It will be mounted as local path '/home/devops/.ssh' in the container."
   update_ci_driver_help  = "Defines the Continous Integration system to implement"
   update_us_driver_help  = "Defines the GIT upstream to implement. To get the list of a driver parameter, set this flag in conjonction with --help."
+  flow_help              = "Define the default flow to apply to new repositories."
 
   maintain_action_help   = "Used by your CI to update the infra from the 'infra' repository.\n"
   maintain_orga_help     = "organization workspace used to store repositories locally or in docker volume."

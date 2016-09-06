@@ -34,13 +34,24 @@ func (a *Forj)SaveManagedRepos(d *Driver, instance string) {
 
 // Update a Repolist from another list.
 // If new, added. If both exist, update from source.
-func (r *ReposList)UpdateFromList(source *ReposList) {
+func (r *ReposList)UpdateFromList(source *ReposList, defaults *DefaultsStruct) {
     for name, repo := range source.Repos {
         if d, found := r.Repos[name] ; found {
+            repo.SetDefaults(defaults)
             d.UpdateFrom(repo)
         } else {
+            repo.SetDefaults(defaults)
             r.Repos[name] = repo
         }
+    }
+}
+
+func (r *RepoStruct)SetDefaults(defaults *DefaultsStruct) {
+    if r.Flow == "" {
+        r.Flow = defaults.Flow
+    }
+    if r.Instance == "" {
+        r.Instance = defaults.Instance
     }
 }
 
@@ -65,7 +76,7 @@ func (r *RepoStruct)UpdateFrom(source *RepoStruct) {
 // Function to create source files in the infra repository
 // NOTE: a repo can be only created. Never updated or deleted. A repo has his own lifecycle not managed by forjj.
 func (a *Forj)RepoCodeBuild(action string) (err error) {
-    a.r.UpdateFromList(a.Actions[action].repoList)
+    a.r.UpdateFromList(a.Actions[action].repoList, &a.o.Defaults)
 
     if yd, err := yaml.Marshal(a.r) ; err == nil {
         if err := ioutil.WriteFile(forjj_repo_file, yd, 0644) ; err != nil {

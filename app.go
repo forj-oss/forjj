@@ -156,6 +156,7 @@ func (a *Forj) init() {
     a.SetCmdFlag("create", "repotemplates-repo", repotemplates_repo_help, repotemplates_repo)
     a.SetCmdFlag("create", "infra-upstream", create_infra_upstream, no_opts)
     a.SetCmdFlag("create", "docker-exe-path", docker_exe_path_help, no_opts)
+    a.SetCmdFlag("create", "flow", flow_help, no_opts)
 
     // DriversList is loaded from the cli context to adapt the list of supported flags.
     a.c_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("create", "apps", driver_help, no_set_value_opts))
@@ -174,6 +175,7 @@ func (a *Forj) init() {
     a.SetCmdFlag("update", "repotemplates-repo", repotemplates_repo_help, repotemplates_repo)
     a.SetCmdFlag("update", "infra_upstream", update_infra_upstream, no_opts)
     a.SetCmdFlag("update", "docker-exe-path", docker_exe_path_help, no_opts)
+    a.SetCmdFlag("update", "flow", flow_help, no_opts)
     // Additional options will be loaded from the selected driver itself.
 
     // DriversList is loaded from the cli context to adapt the list of supported flags.

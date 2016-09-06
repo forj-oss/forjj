@@ -62,8 +62,6 @@ func (a *Forj)Update() error {
     // TODO: Implement flow_close() to close the create task
     // flow_close()
 
-    log.Print("FORJJ - update ", a.w.Organization, " DONE")
-
     log.Printf("As soon as you are happy with your fixes, do a git push to submit your collection of fixes related to '%s' to your team.", a.Branch)
     return nil
 }

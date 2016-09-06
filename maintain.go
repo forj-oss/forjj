@@ -20,16 +20,12 @@ func (a *Forj) Maintain() error {
     }
 
     // Loop on instances to maintain them
-    for instance, _ := range a.drivers {
+    for instance, _ := range a.o.Drivers {
         if err := a.do_driver_maintain(instance) ; err != nil {
             return fmt.Errorf("Unable to maintain requested resources of %s. %s", instance, err)
         }
     }
-
-    // Loop on each drivers to ask them to maintain the infra, it controls.
-
-    println("FORJJ - maintain ", a.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
-        return nil
+    return nil
 }
 
 func (a *Forj) do_driver_maintain(instance string) error {
@@ -48,6 +44,9 @@ func (a *Forj) do_driver_maintain(instance string) error {
         return fmt.Errorf("Driver issue. %s.", err)
     }
 
+    if d.DriverType != "upstream" {
+        return nil
+    }
     log.Printf("%d Repositories to manage.\n", len(a.drivers[instance].plugin.Result.Data.Repos))
     // Loop on upstream repositories to ensure it exists with at least a README.md file.
     for name, repo := range a.drivers[instance].plugin.Result.Data.Repos {
@@ -70,14 +69,6 @@ func (a *Forj) do_driver_maintain(instance string) error {
                 }
             }
         }
-
-        // Save Managed repository to forjj options
-        if d.DriverType == "upstream" {
-            a.SaveManagedRepos(d, instance)
-        }
-
     }
-
-    // loop on other plugins to maintain themselves
     return nil
 }

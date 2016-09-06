@@ -16,8 +16,13 @@ const (
 
 // This data structure is going to be saved in the infra repository anytime a global update is done.
 type ForjjOptions struct {
-    Flow string
+    Defaults DefaultsStruct
     Drivers map[string]*Driver
+}
+
+type DefaultsStruct struct {
+    Flow string
+    Instance string `yaml:"upstream-instance"`
 }
 
 // Initialize Forjj options

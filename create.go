@@ -57,8 +57,17 @@ func (a *Forj) Create() error {
         }
     }()
 
+    var one_us_driver *string
     // Loop on drivers requested like jenkins classified as ci type.
     for instance, d := range a.drivers {
+        if d.DriverType == "upstream" {
+            switch {
+            case one_us_driver == nil:
+                one_us_driver = &instance
+            case *one_us_driver != "":
+                one_us_driver = new(string)
+            }
+        }
         if instance == a.w.Instance || ! d.app_request {
             continue // Do not try to create infra-upstream twice or create from a non requested app (--apps)
         }
@@ -82,10 +91,20 @@ func (a *Forj) Create() error {
                 return err
             }
         }
-        // TODO: Move maintain to a second create phase. But before flow_create.
-        if err := a.do_driver_maintain(instance) ; err != nil { // This will create/configure the upstream service
-            return err
-        }
+    }
+
+    // Set Defaults for repositories.
+    if v, found := a.Actions["create"].flagsv["flow"]; found && v != nil && *v != "" {
+        a.o.Defaults.Flow = *v
+    }
+    switch {
+    case one_us_driver == nil:
+        gotrace.Trace("No upstream instance set as default.")
+    case *one_us_driver == "":
+        gotrace.Trace("Too many upstream instances found. So, no upstream is set as default.")
+    default:
+        a.o.Defaults.Instance = *one_us_driver
+        gotrace.Trace("One upstream instance found and set as default.")
     }
 
     // TODO: Implement the flow requested
@@ -104,9 +123,8 @@ func (a *Forj) Create() error {
     // flow_close()
 
     // TODO: Implement all repositories (maintain)
-    // a.RepoMaintain() # This will implement the flow for the infra-repo as well.
+    a.Maintain() // This will implement the flow for the infra-repo as well.
 
-    defer log.Print("FORJJ - create ", a.w.Organization, " DONE")
     return nil
 }
 
