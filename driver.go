@@ -149,7 +149,6 @@ func (a *Forj) do_driver_commit(d *Driver) error {
     return nil
 }
 
-
 // Define starting on this driver
 // Forj.CurrentPluginDriver set
 func (a *Forj) driver_start(instance string) (error) {
@@ -191,6 +190,9 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
     a.GetDriversActionsParameters(plugin_args, action)
 
     d.plugin.Result, err = d.plugin.PluginRunAction(action, plugin_args)
+    if d.plugin.Result == nil {
+        return fmt.Errorf("An error occured in '%s' plugin. No data has been returned. Please check plugin logs.", instance_name), false
+    }
     if err != nil {
         if d.plugin.Result.State_code == 419 { // The plugin won't do the task because of requirement not met. This is not an error which requires Forjj to exit.
             aborted = true // So, when a plugin return 419, the plugin task is considered as aborted. So forjj can continue if it is possible. (create/update action case)
