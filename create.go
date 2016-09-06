@@ -12,10 +12,13 @@ import (
 // I would expect to have this go tool to have a do_create to replace the shell script.
 // But this would be a next version and needs to be validated before this decision is made.
 func (a *Forj) Create() error {
-    // Initialize Repos with at least the infra-repo.
-    // TODO: Add list of repos requested from the cli in this list.
-    a.o.Init(a.w.Instance, a.w.Infra.Name)
+    // Initialize forjj-options structure
+    a.o.Init()
 
+    // Read Repos list from infra-repo/forjj-repos.yaml
+    if err := a.RepoCodeLoad() ; err != nil {
+        return err
+    }
     // Parent function has loaded context. ie Forj.w and Forj.o are loaded.
 
     if err := a.define_infra_upstream("create") ; err != nil {
@@ -34,10 +37,10 @@ func (a *Forj) Create() error {
             return fmt.Errorf("Failed to ensure infra exists. %s", err)
         }
         log.Printf("Warning. %s", err)
-    }
-
-    if err := a.do_driver_maintain(a.w.Instance) ; err != nil { // This will create/configure the upstream service
-        return err
+    } else {
+        if err := a.do_driver_maintain(a.w.Instance) ; err != nil { // This will create/configure the upstream service
+            return err
+        }
     }
 
     // Now, we are in the infra repo root directory and at least, the 1st commit exist and connected to an upstream.
@@ -58,6 +61,7 @@ func (a *Forj) Create() error {
                 return fmt.Errorf("Failed to create '%s' source files. %s", instance, err)
             }
             log.Printf("Warning. %s", err)
+            continue
         }
 
         // TODO: Except if --no-maintain is set, we could just create files and do maintain later.
@@ -79,7 +83,7 @@ func (a *Forj) Create() error {
     a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
 
     // Start working on repositories, writing repos source code.
-    a.RepoCodeBuild()
+    a.RepoCodeBuild("create")
 
     // TODO: If maintain is not sequenced, we could avoid pushing to upstream as well.
     if a.w.Infra.Remotes["origin"] != "" {
@@ -100,7 +104,7 @@ func (a *Forj) Create() error {
 // This function will ensure minimal git repo exists to store resources plugins data files.
 // It will take care of several GIT scenarios. See ensure_local_repo_synced for details
 // Used by create/update actions only.
-// In case of create, a git push is executed.
+// In case of create a commit must be created but the push will be possible only when the upstream will be created through maintain step.
 func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
 
     if err := a.ensure_local_repo_initialized(a.w.Infra.Name) ; err != nil {
@@ -110,7 +114,9 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
     // Now, we are in the infra repo root directory. But at least is completely empty.
 
     // Set the Initial README.md content for the infra repository.
-    a.infra_readme = fmt.Sprintf("Infrastructure Repository for the organization %s", a.Orga_name)
+    a.infra_readme = fmt.Sprintf("Infrastructure Repository for the organization %s", *a.Orga_name)
+
+    var remote_exist, remote_connected bool
 
     if a.InfraPluginDriver == nil { // NO infra upstream driver loaded and defined.
         // But should be ok if the git remote is already set.
@@ -119,8 +125,6 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
         if *a.Actions[action].flagsv["infra-upstream"] == "" {
             hint = "\nIf you are ok with this configuration, use '--infra-upstream none' to confirm. Otherwise, please define the --apps with the upstream driver and needed flags."
         }
-
-        var remote_exist, remote_connected bool
 
         remote_exist, remote_connected, err = git_remote_exist("master", "origin", a.w.Infra.Remotes["origin"])
         if err != nil {
@@ -139,7 +143,7 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
                 return
             case a.w.Instance == "none" : // The infra is set with no upstream instance
                 // Will create the 1st commit and nothing more.
-                if err := a.ensure_local_repo_synced(a.w.Infra.Name, "", a.infra_readme) ; err != nil {
+                if err := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "", "", a.infra_readme) ; err != nil {
                     return err, false
                 }
                 return
@@ -151,20 +155,41 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
 
     // Upstream defined
 
-    err, aborted = a.do_driver_task("create", a.w.Instance)
-    if aborted {
-        // the upstream driver was not able to create the resources because already exist.
-        // So the upstream resource may already exist and must be used to restore the local repo content from this resource.
-        log.Printf("Plugin instance %s(%s) informed service already exists. Nothing created.", a.w.Instance, a.w.Driver)
-        if e := a.restore_infra_repo() ; e != nil {
-            err = fmt.Errorf("%s\n%s", err, e)
+    err, aborted = a.do_driver_task(action, a.w.Instance)
+
+    if err != nil && ! aborted { // An error occured, so, we need to exit.
+        return
+    }
+
+    // Save the instance supporting the infra.
+    if v, found := a.r.Repos[a.w.Infra.Name]; found {
+        v.Instance = a.w.Instance
+    } else {
+        a.r.Repos[a.w.Infra.Name] = &RepoStruct {
+            Instance: a.w.Instance,
         }
     }
-    a.o.Repos[a.w.Infra.Name] = a.w.Instance // Save the instance supporting the infra.
 
-    if a.w.Infra.Remotes["origin"] != "" && action == "create" {
-        if err := gitPush() ; err != nil {
-            return err, false
+    // Ok Do we have an upstream on the server side?
+    if ! a.w.Infra.Exist { // No. So, nothing else now to do. We need maintain to do the needed work to create the expected resources.
+        return nil, false
+    }
+
+    if action == "create" {
+        log.Printf("Plugin instance %s(%s) informed service already exists. Nothing created.", a.w.Instance, a.w.Driver)
+    }
+
+    remote_exist, remote_connected, err = git_remote_exist("master", "origin", a.w.Infra.Remotes["origin"])
+    if err != nil {
+        return err, false
+    }
+
+    if ! remote_connected {
+        // the upstream driver has detected that resources already exists.
+        // As the remote one seems different, we  must be restore the local repo content from this resource.
+
+        if e := a.restore_infra_repo() ; e != nil {
+            err = fmt.Errorf("%s\n%s", err, e)
         }
     }
 
@@ -245,22 +270,13 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
 
 // Restore the workspace infra repo from the upstream.
 func (a *Forj) restore_infra_repo() error {
-    if a.InfraPluginDriver.plugin.Result == nil {
-        return fmt.Errorf("Internal Error: The infra plugin did not return a valid result. Forj.InfraPluginDriver.plugin.Result = nil.")
-    }
-    v, found := a.InfraPluginDriver.plugin.Result.Data.Repos[a.w.Infra.Name]
-
-    if  !found {
-        return fmt.Errorf("Unable to rebuild your workspace from the upstream '%s'. Not found.", a.w.Infra)
-    }
-
-    if ! v.Exist {
+    if ! a.w.Infra.Exist {
         return fmt.Errorf("Unable to rebuild your workspace from the upstream '%s'. Inexistent.", a.w.Infra)
     }
 
     // Restoring the workspace.
     log.Printf("Updating your workspace from '%s(%s)'.", a.w.Infra.Name, a.w.Infra.Remotes["origin"])
-    if err := a.ensure_local_repo_synced(a.w.Infra.Name, a.w.Infra.Remotes["origin"], a.infra_readme) ; err != nil {
+    if err := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "origin", a.w.Infra.Remotes["origin"], a.infra_readme) ; err != nil {
         return fmt.Errorf("infra repository '%s' issue. %s", a.w.Infra)
     }
     log.Printf("As the upstream service already exists (not created as requested), forjj has only rebuilt or updated your workspace infra repository from '%s'.", a.w.Infra.Remotes["origin"])

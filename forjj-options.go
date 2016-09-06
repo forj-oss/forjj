@@ -18,20 +18,13 @@ const (
 type ForjjOptions struct {
     Flow string
     Drivers map[string]*Driver
-    Repos map[string]string // List of repositories, with instance implementing it.
 }
 
 // Initialize Forjj options
 // At least, the infra repo must exists.
-func (o *ForjjOptions)Init(instance, infra_repo string) {
-    if o.Repos == nil {
-        o.Repos = make(map[string]string)
-    }
+func (o *ForjjOptions)Init() {
     if o.Drivers == nil {
         o.Drivers = make(map[string]*Driver)
-    }
-    if _, found := o.Repos[infra_repo] ; ! found {
-        o.Repos[infra_repo] = instance
     }
 }
 

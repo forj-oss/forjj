@@ -122,8 +122,14 @@ func (a *Forj) do_driver_commit(d *Driver) error {
     gotrace.Trace("----- Do GIT tasks in the INFRA repository.")
 
     // Ensure initial commit exists and upstream are set for the infra repository
-    if err := a.ensure_local_repo_synced(a.w.Infra.Name, a.w.Infra.Remotes["origin"], a.infra_readme) ; err != nil {
-        return fmt.Errorf("infra repository '%s' issue. %s", err)
+    if a.w.Infra.Exist { // Upstream that we can ensure it to be connected.
+        if err := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "origin", a.w.Infra.Remotes["origin"], a.infra_readme) ; err != nil {
+            return fmt.Errorf("infra repository '%s' issue. %s", a.w.Infra.Name, err)
+        }
+    } else { // No upstream to ensure connected.
+        if err := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "", "", a.infra_readme) ; err != nil {
+            return fmt.Errorf("infra repository '%s' issue. %s", a.w.Infra.Name, err)
+        }
     }
 
     // Add source files

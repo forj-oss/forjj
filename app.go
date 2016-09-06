@@ -8,9 +8,7 @@ import (
     "github.hpe.com/christophe-larsonneur/goforjj"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
     "net/url"
-    "path"
     "regexp"
-    "log"
 )
 
 // TODO: Support multiple contrib sources.
@@ -23,6 +21,7 @@ type ActionOpts struct {
     flagsv map[string]*string             // list of additional flags value loaded.
     args   map[string]*kingpin.ArgClause  // List of Arguments by name
     argsv  map[string]*string             // List of Arguments value by name
+    repoList *ReposList                   // List of values for --(add-)?repos flag.
     Cmd    *kingpin.CmdClause             // Command object
 }
 
@@ -77,14 +76,13 @@ type Forj struct {
     c_repos_list_f   *kingpin.FlagClause  // Cumulative repos flag for create
     u_repos_list_f   *kingpin.FlagClause  // Cumulative Repos flag for update
     drivers_list     DriversList          // List of drivers passed to the command line argument from --app.
-    Actions        map[string]ActionOpts  // map of Commands with their arguments/flags
+    Actions        map[string]*ActionOpts  // map of Commands with their arguments/flags
 
     flags_loaded map[string]string        // key/values for flags laoded. Used when doing a create AND maintain at the same time (create case)
 
     drivers map[string]*Driver            // List of drivers data/flags/... per instance name (key)
     drivers_options DriversOptions        // forjj-maintain.yml See infra-maintain.go
 
-    repos map[string]RepoStruct           // Repository management. See repos.go
 
     // Flags values
     CurrentCommand *ActionOpts            // Loaded CurrentCommand reference.
@@ -112,6 +110,7 @@ type Forj struct {
 
     w Workspace    // Data structure to stored in the workspace. See workspace.go
     o ForjjOptions // Data structured stored in the root of the infra repo. See forjj-options.go
+    r ReposList    // Collection of Repositories managed. Data structured stored in the root of the infra repo. See repos.go
 }
 
 const ssh_dir_flag_name = "ssh-dir"
@@ -138,7 +137,7 @@ func (a *Forj) init() {
     a.FlowRepo_uri = u
 
     a.drivers = make(map[string]*Driver)
-    a.Actions = make(map[string]ActionOpts)
+    a.Actions = make(map[string]*ActionOpts)
     a.o.Drivers = make(map[string]*Driver)
 
     no_opts := map[string]interface{}{}
@@ -158,8 +157,9 @@ func (a *Forj) init() {
     a.SetCmdFlag("create", "infra-upstream", create_infra_upstream, no_opts)
     a.SetCmdFlag("create", "docker-exe-path", docker_exe_path_help, no_opts)
 
+    // DriversList is loaded from the cli context to adapt the list of supported flags.
     a.c_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("create", "apps", driver_help, no_set_value_opts))
-    a.c_repos_list_f = SetReposListFlag(a.SetCmdFlag("create", "repos", repos_help, no_set_value_opts))
+    a.c_repos_list_f = SetReposListFlag(a.Actions["create"], a.SetCmdFlag("create", "repos", repos_help, no_set_value_opts))
 
     /********** UPDATE Action ************
       Update is not as clear as Create except that update should update the infra repository.
@@ -176,8 +176,9 @@ func (a *Forj) init() {
     a.SetCmdFlag("update", "docker-exe-path", docker_exe_path_help, no_opts)
     // Additional options will be loaded from the selected driver itself.
 
+    // DriversList is loaded from the cli context to adapt the list of supported flags.
     a.u_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("update", "apps", driver_help, no_set_value_opts))
-    a.u_repos_list_f = SetReposListFlag(a.SetCmdFlag("update", "repos", repos_help, no_set_value_opts))
+    a.u_repos_list_f = SetReposListFlag(a.Actions["update"], a.SetCmdFlag("update", "add-repos", repos_help, no_set_value_opts))
 
     /****** MAINTAIN Action ************
       Maintain is the real infra creation/update
@@ -210,7 +211,7 @@ func (a *Forj) GetActionOptsFromCli(cmd *kingpin.CmdClause) *ActionOpts {
 // Get the ActionsOpts of a command string (ie create/update or maintain)
 func (a *Forj) GetActionOptsFromString(cmd string) *ActionOpts {
     if v, found := a.Actions[cmd]; found {
-        return &v
+        return v
     }
     kingpin.Fatalf("FORJJ Internal error. No matching '%s' in declared commands", cmd)
     return nil
@@ -309,221 +310,3 @@ func (a *Forj) GetDriversActionsParameters(cmd_args map[string]string, cmd strin
     }
 }
 
-// Load cli context to adapt the list of options/flags from the driver definition.
-//
-// It will
-// - detect the debug mode
-// - detect the organization name/path (to stored in app)
-//   It will set the default Infra name.
-// - detect the driver list source.
-// - detect ci/us drivers name (to stored in app)
-//
-func (a *Forj) LoadContext(args []string) {
-    context, err := a.app.ParseContext(args)
-    if context == nil {
-        kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?")
-    }
-
-    cmd := context.SelectedCommand
-    if cmd == nil {
-        return
-    }
-
-    opts := a.GetActionOptsFromCli(cmd)
-
-    a.CurrentCommand = opts
-
-    if debug_mode, found := a.flagValue(context, a.debug_f); found {
-        // global debug defined in trace.go
-        log.Printf("Debug set to '%s'.\n", debug_mode)
-        if debug_mode == "true" {
-            gotrace.SetDebug()
-        }
-    }
-
-    // The value is not set in argsv. But is in the parser context.
-    if orga, found := a.argValue(context, opts.args["workspace"]); found {
-        // TODO: Test the path given.
-        a.Workspace = path.Base(orga)
-        a.Workspace_path = path.Dir(orga)
-    }
-
-    // Load Workspace information
-    a.w.Load(a)
-
-    // Load Global Forjj options from infra repo, if found.
-    a.LoadForjjOptions()
-
-    // Set organization name to use.
-    // Can be set only the first time
-    if a.w.Organization == "" {
-        if orga, found := a.flagValue(context, a.Orga_name_f); !found {
-            a.Orga_name_f = a.Orga_name_f.Default(a.Workspace)
-            a.w.Organization = a.Workspace
-        } else {
-            a.w.Organization = orga
-        }
-    } else {
-        if orga, found := a.flagValue(context, a.Orga_name_f); found && orga != a.w.Organization {
-            fmt.Printf("Warning!!! You cannot update the organization name in an existing workspace.\n")
-        }
-    }
-
-    if a.w.Organization != "" {
-        log.Printf("Organization : '%s'", a.w.Organization)
-        // Set the 'infra' default flag value
-        a.infra_rep_f = a.infra_rep_f.Default(fmt.Sprintf("%s-infra", a.w.Organization))
-    }
-
-    // Set the infra repo name to use
-    // Can be set only the first time
-    if a.w.Infra.Name == "" {
-        if infra, found := a.flagValue(context, a.infra_rep_f); found {
-            // Get infra name from the flag
-            a.w.Infra.Name = infra
-        } else { // Or use the default setting.
-            a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
-        }
-    } else {
-        if infra, found := a.flagValue(context, a.infra_rep_f); found && infra != a.w.Infra.Name {
-            fmt.Printf("Warning!!! You cannot update the Infra repository name in an existing workspace.\n")
-        }
-    }
-
-    gotrace.Trace("Infrastructure repository defined : %s", a.w.Infra.Name)
-
-    // Identifying appropriate Contribution Repository.
-    // The value is not set in flagsv. But is in the parser context.
-    opts.set_from_urlflag(a, context, "contribs-repo", a.ContribRepo_uri, &a.contrib_repo_path)
-    opts.set_from_urlflag(a, context, "flows-repo", a.FlowRepo_uri, &a.flow_repo_path)
-    opts.set_from_urlflag(a, context, "repotemplates-repo", a.RepotemplateRepo_uri, &a.repotemplate_repo_path)
-
-    // Getting list of drivers (--apps)
-    a.drivers_list.list = make(map[string]DriverDef)
-    a.drivers_list.GetDriversFromContext(context, a.c_drivers_list_f)
-    a.drivers_list.GetDriversFromContext(context, a.u_drivers_list_f)
-
-    // Getting list of Repos to create (--repos)
-    //
-
-    // Retrieving additional extra parameters to store in the workspace.
-    opts.set_from_flag(a, context, "docker-exe-path", &a.w.DockerBinPath, nil)
-}
-
-type validateHdlr func(string) error
-
-// Set a string variable pointer with value found in cli context.
-func (o *ActionOpts)set_from_flag(a *Forj, context *kingpin.ParseContext, flag string, store *string, val_fcnt validateHdlr) error {
-    if d, found := a.flagValue(context, o.flags[flag]) ; found {
-        if val_fcnt != nil {
-            if err := val_fcnt(d) ; err != nil {
-                return err
-            }
-        }
-        *store = d
-    }
-    return nil
-}
-
-func (o *ActionOpts)set_from_urlflag(a *Forj, context *kingpin.ParseContext, flag string, theurl *url.URL, store *string) error {
-    value := ""
-    if d, found := a.flagValue(context, o.flags[flag]) ; found {
-        value = d
-    } else {
-        if o.flags[flag].HasEnvarValue() {
-            gotrace.Trace("Getting value from env for flag '%s'", flag)
-            value = o.flags[flag].GetEnvarValue()
-        }
-    }
-    if u, err := url.Parse(value); err != nil {
-        println(err)
-    } else {
-        *theurl = *u
-        if u.Scheme == "" {
-            *store = value
-        }
-    }
-    return nil
-}
-
-func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool) {
-    for _, element := range context.Elements {
-        if flag, ok := element.Clause.(*kingpin.ArgClause); ok && flag == f {
-            value = *element.Value
-            found = true
-            return
-        }
-    }
-    return
-}
-
-func (*Forj) flagValue(context *kingpin.ParseContext, f *kingpin.FlagClause) (value string, found bool) {
-    for _, element := range context.Elements {
-        if flag, ok := element.Clause.(*kingpin.FlagClause); ok && flag == f {
-            value = *element.Value
-            found = true
-            return
-        }
-    }
-    return
-}
-
-// Set an application command
-func (a *Forj) SetCommand(name, help string) {
-    a.Actions[name] = ActionOpts{
-        name:   name,
-        Cmd:    a.app.Command(name, help),
-        flags:  make(map[string]*kingpin.FlagClause),
-        flagsv: make(map[string]*string),
-        args:   make(map[string]*kingpin.ArgClause),
-        argsv:  make(map[string]*string),
-    }
-}
-
-// Set a command argument
-func (a *Forj) SetCmdArg(cmd, name, help string, options map[string]interface{}) {
-    arg := a.Actions[cmd].Cmd.Arg(name, help)
-
-    if v, ok := options["required"]; ok && to_bool(v) {
-        arg.Required()
-    }
-    if v, ok := options["default"]; ok {
-        arg.Default(to_string(v))
-    }
-
-    a.Actions[cmd].argsv[name] = arg.String()
-    a.Actions[cmd].args[name] = arg
-}
-
-// Set a Command flag.
-func (a *Forj) SetCmdFlag(cmd, name, help string, options map[string]interface{}) (arg *kingpin.FlagClause) {
-    arg = a.Actions[cmd].Cmd.Flag(name, help)
-
-    if v, ok := options["required"]; ok && to_bool(v) {
-        arg.Required()
-    }
-    if v, ok := options["default"]; ok {
-        arg.Default(to_string(v))
-    }
-    if v, ok := options["hidden"]; ok && to_bool(v) {
-        arg.Hidden()
-    }
-
-    if v, ok := options["envar"]; ok {
-        arg.Envar(to_string(v))
-    }
-
-    if v, ok := options["set_value"]; ok && to_bool(v) {
-        if to_bool(v) {
-            a.Actions[cmd].flagsv[name] = arg.String()
-        } else {
-            a.Actions[cmd].flagsv[name] = nil
-        }
-    } else {
-        a.Actions[cmd].flagsv[name] = arg.String()
-    }
-
-    a.Actions[cmd].flags[name] = arg
-
-    return
-}

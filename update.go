@@ -57,7 +57,7 @@ func (a *Forj)Update() error {
     a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
 
     // Start working on repositories, writing repos source code.
-    a.RepoCodeBuild()
+    a.RepoCodeBuild("update")
 
     // TODO: Implement flow_close() to close the create task
     // flow_close()

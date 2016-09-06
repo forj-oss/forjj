@@ -49,15 +49,24 @@ func (a *Forj) ensure_local_repo_initialized(repo_name string) error {
 
 // Ensure local repo exist with at least 1 commit.
 // If non existent, or no commit, it will create it all.
+// If upstream or remote is empty, upstream won't be tested and configured.
 //
 // It will take care of several scenarios related to commits on local and remote git cache.
 // - no remote defined                         : Create 1st commit if needed.
 // - nothing exists locally and remotely       : Create 1st commit and push
-// - nothing exists locally but remotely       : clone
+// - nothing exists locally but remotely       : clone/pull
 // - something exist locally, but not remotely : push
 // - both locally and remotely repo exist.     : Just test remote connection.
-func (a *Forj) ensure_local_repo_synced(repo_name, upstream, README_content string) error {
+func (a *Forj) ensure_local_repo_synced(repo_name, branch, remote, upstream, README_content string) error {
     repo := path.Clean(path.Join(a.Workspace_path, a.Workspace, repo_name))
+
+    if repo_name == "" {
+        return fmt.Errorf("Invalid Repo name. Repository name is empty.")
+    }
+
+    if branch == "" {
+        branch = "master" // Default branch name.
+    }
 
     if found, err := git_get("config", "--local", "-l"); err != nil {
         return fmt.Errorf("'%s' is not a valid GIT repository. Please fix it first. %s\n", repo, err)
@@ -65,15 +74,16 @@ func (a *Forj) ensure_local_repo_synced(repo_name, upstream, README_content stri
         gotrace.Trace("Valid local git config found: \n%s", found)
     }
 
-    // Ensure we are on local master branch
-    if str, _ := git_get("symbolic-ref", "--short", "HEAD"); strings.Trim(str, "\n") != "master" {
-        if git("checkout", "-b", "master") >0 {
-            git("checkout", "master")
+    // Ensure we are on local <branch>
+    if str, _ := git_get("symbolic-ref", "--short", "HEAD"); strings.Trim(str, "\n") != branch {
+        // TODO: Replace this by a test on branch existence to avoid confusable red messages.
+        if git("checkout", "-b", branch) >0 {
+            git("checkout", branch)
         }
     }
 
     // Upstream to configure ???
-    if upstream == "" { // No upstream to configure
+    if upstream == "" || remote == "" { // No upstream to configure
         // Create initial commit
         if _, err := git_get("log", "-1", "--oneline"); err != nil {
             git_1st_commit(repo, README_content)
@@ -85,19 +95,19 @@ func (a *Forj) ensure_local_repo_synced(repo_name, upstream, README_content stri
 
     // Configuring upstream and use it to pull or push.
 
-    if err := ensure_git_remote(upstream, "origin") ; err != nil {
+    if err := ensure_git_remote(upstream, remote) ; err != nil {
         return err
     }
 
-    remote_exist := git_1st_commit_exist("origin/master")
-    local_exist := git_1st_commit_exist("master")
+    remote_exist := git_1st_commit_exist(remote + "/" + branch)
+    local_exist := git_1st_commit_exist(branch)
 
-    // ensure local master branch is connected to origin/master
+    // ensure local <branch> branch is connected to <remote>/<branch>
     switch {
     case local_exist :
         // TODO: Replace following git sequences to avoid unwanted errors that end user will likely need to ignore.
-        if git("branch", "master", "--set-upstream-to", "origin/master")>0 {
-            if git("push", "-u", "origin", "master") != 0 {
+        if git("branch", branch, "--set-upstream-to", remote + "/" + branch)>0 {
+            if git("push", "-u", remote, branch) != 0 {
                 return fmt.Errorf("Unable to push to '%s'.", upstream)
             }
         } else {
@@ -106,15 +116,15 @@ func (a *Forj) ensure_local_repo_synced(repo_name, upstream, README_content stri
             }
         }
     case remote_exist && !local_exist :
-        if git("pull", "origin", "master") != 0 {
+        if git("pull", remote, branch) != 0 {
                 return fmt.Errorf("Unable to pull from '%s'. Please fix the issue and retry.", upstream)
             }
-        if git("branch", "master", "--set-upstream-to", "origin/master")>0 {
+        if git("branch", branch, "--set-upstream-to", remote + "/" + branch)>0 {
             return fmt.Errorf("Unable to set git branch upstream to '%s'", upstream)
         }
     case !remote_exist && !local_exist :
         git_1st_commit(repo, README_content)
-        if git("push", "-u", "origin", "master") != 0 {
+        if git("push", "-u", remote, branch) != 0 {
             return fmt.Errorf("Unable to push to '%s'.", upstream)
         }
     }

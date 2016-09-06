@@ -9,14 +9,15 @@ import (
 // This container do the real stuff (git/call drivers)
 // I would expect to have this go tool to have a do_create to replace the shell script.
 // But this would be a next version and needs to be validated before this decision is made.
+// Workspace information already loaded by the cli context.
 func (a *Forj) Maintain() error {
-    // Load Workspace information
-    if err := a.w.Load(a) ; err != nil {
-        return fmt.Errorf("Unable to maintain requested resources. %s", err)
-    }
-
     // Read forjj infra file and the options file given, defined by create/update driver flags settings saved or not
     a.LoadForjjPluginsOptions()
+
+    // Read Repos list from infra-repo/forjj-repos.yaml
+    if err := a.RepoCodeLoad() ; err != nil {
+        return err
+    }
 
     // Loop on instances to maintain them
     for instance, _ := range a.drivers {
@@ -55,7 +56,7 @@ func (a *Forj) do_driver_maintain(instance string) error {
         }
 
         // TODO: Generate README.md text from template.
-        if err := a.ensure_local_repo_synced(name, repo.Remotes["origin"], fmt.Sprintf("Repository %s created by Forjj.", name)) ; err != nil {
+        if err := a.ensure_local_repo_synced(name, "master", "origin", repo.Remotes["origin"], fmt.Sprintf("Repository %s created by Forjj.", name)) ; err != nil {
             return err
         }
     }
