@@ -212,6 +212,12 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
     if d.plugin.Result == nil {
         return fmt.Errorf("An error occured in '%s' plugin. No data has been returned. Please check plugin logs.", instance_name), false
     }
+
+    termBrown, termReset := DefColor(33)
+    for _, line := range strings.Split(d.plugin.Result.Data.Status, "\n") {
+        log.Printf("%s%s%s", termBrown, line, termReset)
+    }
+
     if err != nil {
         if d.plugin.Result.State_code == 419 { // The plugin won't do the task because of requirement not met. This is not an error which requires Forjj to exit.
             aborted = true // So, when a plugin return 419, the plugin task is considered as aborted. So forjj can continue if it is possible. (create/update action case)

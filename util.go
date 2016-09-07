@@ -73,14 +73,17 @@ func gitPush() error {
     return nil
 }
 
+func DefColor(colorNum int) (color, reset string) {
+    if strings.HasPrefix(os.Getenv("TERM"), "xterm") {
+        color = fmt.Sprintf("\x1b[%dm", colorNum)
+        reset = "\x1b[0m"
+    }
+    return
+}
+
 // Call git command with arguments. All print out displayed. It returns git Return code.
 func git(opts ...string) int {
-    colorCyan := ""
-    colorReset := ""
-    if strings.HasPrefix(os.Getenv("TERM"), "xterm") {
-        colorCyan = "\x1b[36m"
-        colorReset = "\x1b[0m"
-    }
+    colorCyan, colorReset := DefColor(36)
     log.Printf("%sgit %s%s\n",colorCyan , strings.Join(opts, " "), colorReset)
     return run_cmd("git", opts...)
 }
