@@ -8,6 +8,7 @@ import (
     "os"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
     "strings"
+    "github.hpe.com/christophe-larsonneur/goforjj"
 )
 
 const (
@@ -33,6 +34,10 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
             return err, true
         }
     }
+
+    // Provide Repo data for upstream repos creation/update.
+
+
 
     // Calling upstream driver - To create plugin source files for the current upstream infra repository
     // When the plugin inform that resource already exist, it returns an error with aborted = true
@@ -190,12 +195,20 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
         return err, false
     }
 
-    plugin_args := make(map[string]string)
-    a.drivers_options.GetDriversMaintainParameters(plugin_args, action)
-    a.GetDriversActionsParameters(plugin_args, "common")
-    a.GetDriversActionsParameters(plugin_args, action)
+    plugin_payload := goforjj.PluginReqData {
+        Args: make(map[string]string),
+    }
+    a.drivers_options.GetDriversMaintainParameters(plugin_payload.Args, action)
+    a.GetDriversActionsParameters(plugin_payload.Args, "common")
+    a.GetDriversActionsParameters(plugin_payload.Args, action)
 
-    d.plugin.Result, err = d.plugin.PluginRunAction(action, plugin_args)
+    // For upstream plugins, provide ReposData map structure from forjj internals.
+    if d.DriverType == "upstream" {
+        plugin_payload.ReposData = make(map[string]goforjj.PluginRepoData)
+        // TODO: Get ReposData map structure from forjj internals...
+    }
+
+    d.plugin.Result, err = d.plugin.PluginRunAction(action, plugin_payload)
     if d.plugin.Result == nil {
         return fmt.Errorf("An error occured in '%s' plugin. No data has been returned. Please check plugin logs.", instance_name), false
     }

@@ -16,13 +16,8 @@ const (
 
 // This data structure is going to be saved in the infra repository anytime a global update is done.
 type ForjjOptions struct {
-    Defaults DefaultsStruct
+    Defaults map[string]string
     Drivers map[string]*Driver
-}
-
-type DefaultsStruct struct {
-    Flow string
-    Instance string `yaml:"upstream-instance"`
 }
 
 // Initialize Forjj options
@@ -30,6 +25,10 @@ type DefaultsStruct struct {
 func (o *ForjjOptions)Init() {
     if o.Drivers == nil {
         o.Drivers = make(map[string]*Driver)
+    }
+
+    if o.Defaults == nil {
+        o.Defaults = make(map[string]string)
     }
 }
 

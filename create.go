@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "github.hpe.com/christophe-larsonneur/goforjj"
     "log"
 )
 
@@ -95,7 +96,7 @@ func (a *Forj) Create() error {
 
     // Set Defaults for repositories.
     if v, found := a.Actions["create"].flagsv["flow"]; found && v != nil && *v != "" {
-        a.o.Defaults.Flow = *v
+        a.o.Defaults["flow"] = *v
     }
     switch {
     case one_us_driver == nil:
@@ -103,7 +104,7 @@ func (a *Forj) Create() error {
     case *one_us_driver == "":
         gotrace.Trace("Too many upstream instances found. So, no upstream is set as default.")
     default:
-        a.o.Defaults.Instance = *one_us_driver
+        a.o.Defaults["instance"] = *one_us_driver
         gotrace.Trace("One upstream instance found and set as default.")
     }
 
@@ -189,7 +190,7 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
     if v, found := a.r.Repos[a.w.Infra.Name]; found {
         v.Instance = a.w.Instance
     } else {
-        a.r.Repos[a.w.Infra.Name] = &RepoStruct {
+        a.r.Repos[a.w.Infra.Name] = &goforjj.PluginRepoData {
             Instance: a.w.Instance,
         }
     }

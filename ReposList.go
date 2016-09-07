@@ -6,10 +6,11 @@ import (
     "fmt"
     "strings"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "github.hpe.com/christophe-larsonneur/goforjj"
 )
 
 type ReposList struct {
-    Repos map[string]*RepoStruct
+    Repos map[string]*goforjj.PluginRepoData
 }
 
 // Syntax supported:
@@ -17,7 +18,7 @@ type ReposList struct {
 // --repo [<instance>/]<RepoName>[:<Flow>[:<RepoTemplate>[:<RepoTitle>]]][,...]
 
 func (d *ReposList)Set(value string) error {
-    if found, _ := regexp.MatchString(`[a-z0-9_:/-]+(,[a-z0-9_:/-]+)*`, value) ; !found {
+    if found, _ := regexp.MatchString(`[a-z0-9_:/-]+(,[a-zA-Z0-9_:/-]+)*`, value) ; !found {
         return fmt.Errorf("%s is an invalid list of Repository string. REPOS must be formated as '<REPO>[,<REPO>[...]] where REPO is formated as '[<instance>/]<RepoName>[:<FlowName>[:<RepoTemplate>[:<RepoTitle>]]]' all lower case. if no Flow is set, it will use the default one (--default-flow) or 'none'", value)
     }
     for _, v := range strings.Split(value, ",") {
@@ -29,28 +30,28 @@ func (d *ReposList)Set(value string) error {
 }
 
 func (d *ReposList)Add(value string) error {
-    t, _ := regexp.Compile(`(([a-z]+[a-z0-9_-]*)/)?([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*))?)?)?`)
+    t, _ := regexp.Compile(`(([a-z]+[a-z0-9_-]*)/)?([a-z]+[a-z0-9_-]*)(:([a-z]+[a-z0-9_-]*)?(:([a-z]+[a-z0-9_-]*)?(:([A-Za-z0-9_ !:/-]+))?)?)?`)
     res := t.FindStringSubmatch(value)
     if res == nil {
         return fmt.Errorf("%s is an invalid Repository. REPO must be formated as '[<instance>/]<RepoName>[:<FlowName>[:<RepoTemplate>[:<RepoTitle>]]]' all lower case. if no Flow is set, it will use the default one (--default-flow) or 'none'", value)
     }
 
     if d.Repos == nil {
-        d.Repos = make(map[string]*RepoStruct)
+        d.Repos = make(map[string]*goforjj.PluginRepoData)
     }
-    r := &RepoStruct{
+    r := &goforjj.PluginRepoData {
         Flow: res[5],
-        Title: res[7],
+        Title: res[9],
         Templates:  make([]string,0,1),
         Groups : make(map[string]string),
         Users : make(map[string]string),
         Instance : res[1],
     }
-    if res[9] != "" {
+    if res[7] != "" {
         r.Templates = append(r.Templates, res[7])
     }
     d.Repos[res[3]] = r
-    gotrace.Trace("Repo added %s", value)
+    gotrace.Trace("Repo added %s(I:'%s' F:'%s' T:'%s')", res[3], res[1], res[5], res[9])
     return nil
 }
 

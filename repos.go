@@ -1,7 +1,7 @@
 package main
 
 import (
-    //"github.hpe.com/christophe-larsonneur/goforjj"
+    "github.hpe.com/christophe-larsonneur/goforjj"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
     "log"
     "os"
@@ -12,15 +12,6 @@ import (
 
 const forjj_repo_file = "forjj-repos.yaml"
 
-type RepoStruct struct {
-    //goforjj.PluginRepo                // Plugin Repo data
-    Templates     RepoTemplatesStruct // RepoTemplates to apply
-    Title         string              // Repo Description
-    Users         map[string]string   // Users and rights given
-    Groups        map[string]string   // Groups and rights given
-    Flow          string              // Flow applied to the Repo
-    Instance      string              // Instance managing the upstream repo.
-}
 
 // Stored Repositories managed by the plugin in the list of repos (forjj-repos.yaml)
 func (a *Forj)SaveManagedRepos(d *Driver, instance string) {
@@ -34,7 +25,7 @@ func (a *Forj)SaveManagedRepos(d *Driver, instance string) {
 
 // Update a Repolist from another list.
 // If new, added. If both exist, update from source.
-func (r *ReposList)UpdateFromList(source *ReposList, defaults *DefaultsStruct) {
+func (r *ReposList)UpdateFromList(source *ReposList, defaults map[string]string) {
     for name, repo := range source.Repos {
         if d, found := r.Repos[name] ; found {
             repo.SetDefaults(defaults)
@@ -46,37 +37,10 @@ func (r *ReposList)UpdateFromList(source *ReposList, defaults *DefaultsStruct) {
     }
 }
 
-func (r *RepoStruct)SetDefaults(defaults *DefaultsStruct) {
-    if r.Flow == "" {
-        r.Flow = defaults.Flow
-    }
-    if r.Instance == "" {
-        r.Instance = defaults.Instance
-    }
-}
-
-func (r *RepoStruct)UpdateFrom(source *RepoStruct) {
-    if source.Title != "" {
-        r.Title = source.Title
-    }
-    if source.Users != nil && len(source.Users) >0 {
-        r.Users = source.Users
-    }
-    if source.Flow != "" {
-        r.Flow = source.Flow
-    }
-    if source.Groups != nil && len(source.Groups) >0 {
-        r.Groups = source.Groups
-    }
-    if source.Instance != "" {
-        r.Instance = source.Instance
-    }
-}
-
 // Function to create source files in the infra repository
 // NOTE: a repo can be only created. Never updated or deleted. A repo has his own lifecycle not managed by forjj.
 func (a *Forj)RepoCodeBuild(action string) (err error) {
-    a.r.UpdateFromList(a.Actions[action].repoList, &a.o.Defaults)
+    a.r.UpdateFromList(a.Actions[action].repoList, a.o.Defaults)
 
     if yd, err := yaml.Marshal(a.r) ; err == nil {
         if err := ioutil.WriteFile(forjj_repo_file, yd, 0644) ; err != nil {
@@ -92,7 +56,7 @@ func (a *Forj)RepoCodeBuild(action string) (err error) {
 
 // Read the collection of repositories managed by forjj.
 func (a *Forj)RepoCodeLoad() (error) {
-    a.r.Repos = make(map[string]*RepoStruct)
+    a.r.Repos = make(map[string]*goforjj.PluginRepoData)
 
     if _, err := os.Stat(forjj_repo_file) ; err != nil {
         return nil
