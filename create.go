@@ -141,10 +141,10 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
     // Set the Initial README.md content for the infra repository.
     a.infra_readme = fmt.Sprintf("Infrastructure Repository for the organization %s", *a.Orga_name)
 
-    var remote_exist, remote_connected bool
-
     if a.InfraPluginDriver == nil { // NO infra upstream driver loaded and defined.
         // But should be ok if the git remote is already set.
+
+        var remote_exist, remote_connected bool
 
         var hint string
         if *a.Actions[action].flagsv["infra-upstream"] == "" {
@@ -204,20 +204,21 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
         log.Printf("Plugin instance %s(%s) informed service already exists. Nothing created.", a.w.Instance, a.w.Driver)
     }
 
-    remote_exist, remote_connected, err = git_remote_exist("master", "origin", a.w.Infra.Remotes["origin"])
-    if err != nil {
+    if _, remote_connected, giterr := git_remote_exist("master", "origin", a.w.Infra.Remotes["origin"]) ; giterr != nil {
+        if err != nil {
+            err = fmt.Errorf("%s. %s.", err, giterr)
+        }
         return err, false
-    }
+    } else {
+        if ! remote_connected {
+            // the upstream driver has detected that resources already exists.
+            // As the remote one seems different, we  must be restore the local repo content from this resource.
 
-    if ! remote_connected {
-        // the upstream driver has detected that resources already exists.
-        // As the remote one seems different, we  must be restore the local repo content from this resource.
-
-        if e := a.restore_infra_repo() ; e != nil {
-            err = fmt.Errorf("%s\n%s", err, e)
+            if e := a.restore_infra_repo() ; e != nil {
+                err = fmt.Errorf("%s\n%s", err, e)
+            }
         }
     }
-
     return
 }
 
