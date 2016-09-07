@@ -13,6 +13,19 @@ import (
 const forjj_repo_file = "forjj-repos.yaml"
 
 
+// Function providing a PluginRepoData content for the instance given.
+func (a *Forj)GetReposData(instance string) (ret map[string]goforjj.PluginRepoData) {
+    ret = make(map[string]goforjj.PluginRepoData)
+    for n, d := range a.r.Repos {
+        if d.Instance != instance {
+            continue
+        }
+        ret[n] = *d
+    }
+    return
+}
+
+
 // Stored Repositories managed by the plugin in the list of repos (forjj-repos.yaml)
 func (a *Forj)SaveManagedRepos(d *Driver, instance string) {
     for name, repo := range a.r.Repos {
