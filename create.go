@@ -122,9 +122,6 @@ func (a *Forj) Create() error {
     // TODO: Implement flow_close() to close the create task
     // flow_close()
 
-    // TODO: Implement all repositories (maintain)
-    a.Maintain() // This will implement the flow for the infra-repo as well.
-
     return nil
 }
 

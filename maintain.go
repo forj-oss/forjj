@@ -11,9 +11,14 @@ import (
 // But this would be a next version and needs to be validated before this decision is made.
 // Workspace information already loaded by the cli context.
 func (a *Forj) Maintain() error {
-    // Read forjj infra file and the options file given, defined by create/update driver flags settings saved or not
+    // Read forjj infra file and the options --file given, defined by create/update driver flags settings saved or not
+    // This load Maintain context required by plugins. Maintain has limited flags to provide at runtime. Everything, except credentials should be stored in the infra-repo and workspace. Credentials is given with the --file option in yaml format.
     a.LoadForjjPluginsOptions()
 
+    return a.do_maintain()
+}
+
+func (a *Forj) do_maintain() error {
     // Read Repos list from infra-repo/forjj-repos.yaml
     if err := a.RepoCodeLoad() ; err != nil {
         return err

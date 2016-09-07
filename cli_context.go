@@ -94,9 +94,9 @@ func (a *Forj) LoadContext(args []string) {
 
     // Identifying appropriate Contribution Repository.
     // The value is not set in flagsv. But is in the parser context.
-    opts.set_from_urlflag(a, context, "contribs-repo", a.ContribRepo_uri, &a.contrib_repo_path)
-    opts.set_from_urlflag(a, context, "flows-repo", a.FlowRepo_uri, &a.flow_repo_path)
-    opts.set_from_urlflag(a, context, "repotemplates-repo", a.RepotemplateRepo_uri, &a.repotemplate_repo_path)
+    opts.set_from_urlflag(a, context, "contribs-repo", a.ContribRepo_uri, &a.w.Contrib_repo_path)
+    opts.set_from_urlflag(a, context, "flows-repo", a.FlowRepo_uri, &a.w.Flow_repo_path)
+    opts.set_from_urlflag(a, context, "repotemplates-repo", a.RepotemplateRepo_uri, &a.w.Repotemplate_repo_path)
 
     // Getting list of drivers (--apps)
     a.drivers_list.list = make(map[string]DriverDef)
@@ -125,25 +125,31 @@ func (o *ActionOpts)set_from_flag(a *Forj, context *kingpin.ParseContext, flag s
     return nil
 }
 
-func (o *ActionOpts)set_from_urlflag(a *Forj, context *kingpin.ParseContext, flag string, theurl *url.URL, store *string) error {
+func (o *ActionOpts)set_from_urlflag(a *Forj, context *kingpin.ParseContext, flag string, theurl *url.URL, store *string)  {
     value := ""
-    if d, found := a.flagValue(context, o.flags[flag]) ; found {
-        value = d
+
+    if _, found := o.flags[flag] ; ! found {
+        gotrace.Trace("No '%s' flag found in cli context. Used stored value '%s'", flag, *store)
+        value = *store
     } else {
-        if o.flags[flag].HasEnvarValue() {
-            gotrace.Trace("Getting value from env for flag '%s'", flag)
-            value = o.flags[flag].GetEnvarValue()
+        if d, found := a.flagValue(context, o.flags[flag]) ; found {
+            value = d
+        } else {
+            if o.flags[flag].HasEnvarValue() {
+                gotrace.Trace("Getting value from env for flag '%s'", flag)
+                value = o.flags[flag].GetEnvarValue()
+            }
         }
     }
+
     if u, err := url.Parse(value); err != nil {
-        println(err)
+        log.Printf("%s", err)
     } else {
         *theurl = *u
         if u.Scheme == "" {
             *store = value
         }
     }
-    return nil
 }
 
 func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool) {
@@ -226,4 +232,8 @@ func (a *Forj) SetCmdFlag(cmd, name, help string, options map[string]interface{}
     a.Actions[cmd].flags[name] = arg
 
     return
+}
+
+func SetBoolFlag(flag *kingpin.FlagClause) *bool {
+    return flag.Bool()
 }

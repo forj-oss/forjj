@@ -101,9 +101,7 @@ type Forj struct {
     ContribRepo_uri        *url.URL // URL to github raw files for plugin files.
     RepotemplateRepo_uri   *url.URL // URL to github raw files for RepoTemplates.
     FlowRepo_uri           *url.URL // URL to github raw files for Flows.
-    contrib_repo_path      string   // Contribution repository Path
-    flow_repo_path         string   // Contribution repository Path
-    repotemplate_repo_path string // Contribution repository Path
+    no_maintain            *bool    // At create time. true to not start maintain task at the end of create.
     // TODO: enhance infra README.md with a template.
 
     infra_readme      string   // Initial infra repo README.md text.
@@ -157,6 +155,7 @@ func (a *Forj) init() {
     a.SetCmdFlag("create", "infra-upstream", create_infra_upstream, no_opts)
     a.SetCmdFlag("create", "docker-exe-path", docker_exe_path_help, no_opts)
     a.SetCmdFlag("create", "flow", flow_help, no_opts)
+    a.no_maintain = SetBoolFlag(a.SetCmdFlag("create", "no-maintain", create_no_maintain_help, no_set_value_opts))
 
     // DriversList is loaded from the cli context to adapt the list of supported flags.
     a.c_drivers_list_f = SetDriversListFlag(a.SetCmdFlag("create", "apps", driver_help, no_set_value_opts))
