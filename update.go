@@ -8,7 +8,15 @@ import (
 )
 
 
+// Context has preloaded:
+// - infra-repo/forjj-options.yml
+// - workspace
 func (a *Forj)Update() error {
+    // Read Repos list from infra-repo/forjj-repos.yml
+    if err := a.RepoCodeLoad() ; err != nil {
+        return err
+    }
+
     if err := a.define_infra_upstream("update") ; err != nil {
         return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
     }
