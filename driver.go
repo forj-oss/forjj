@@ -202,8 +202,8 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
     a.GetDriversActionsParameters(plugin_payload.Args, "common")
     a.GetDriversActionsParameters(plugin_payload.Args, action)
 
-    // For upstream plugins, provide ReposData map structure from forjj internals.
-    if d.DriverType == "upstream" {
+    // For upstream plugins at create/update, provide ReposData map structure from forjj internals.
+    if d.DriverType == "upstream" && action != "maintain" {
         // TODO: Get ReposData map structure from forjj internals...
         plugin_payload.ReposData = a.GetReposData(instance_name)
     }

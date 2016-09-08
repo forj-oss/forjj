@@ -10,6 +10,7 @@ import (
     "regexp"
     "strings"
     "github.com/alecthomas/kingpin"
+    "log"
 )
 
 // ensure local repo git exists and is initialized.
@@ -104,17 +105,13 @@ func (a *Forj) ensure_local_repo_synced(repo_name, branch, remote, upstream, REA
 
     // ensure local <branch> branch is connected to <remote>/<branch>
     switch {
-    case local_exist :
-        // TODO: Replace following git sequences to avoid unwanted errors that end user will likely need to ignore.
-        if git("branch", branch, "--set-upstream-to", remote + "/" + branch)>0 {
-            if git("push", "-u", remote, branch) != 0 {
-                return fmt.Errorf("Unable to push to '%s'.", upstream)
-            }
-        } else {
-            if git("push") != 0 {
-                return fmt.Errorf("Unable to push to '%s'.", upstream)
-            }
+    case local_exist && !remote_exist:
+        if git("push", "-u", remote, branch) != 0 {
+            return fmt.Errorf("Unable to push to '%s'.", upstream)
         }
+    case local_exist && remote_exist:
+        // Nothing to do. We do not push pending code. We let end user to do it, himself.
+        log.Printf("%s is properly configured. And, no push has been done. You may need to do it yourself to approve commits to be delivered to your DevOps team.", repo)
     case remote_exist && !local_exist :
         if git("pull", remote, branch) != 0 {
                 return fmt.Errorf("Unable to pull from '%s'. Please fix the issue and retry.", upstream)

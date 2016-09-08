@@ -10,11 +10,12 @@ import (
     "io/ioutil"
 )
 
-const forjj_repo_file = "forjj-repos.yaml"
+const forjj_repo_file = "forjj-repos.yml"
 
 
 // Function providing a PluginRepoData content for the instance given.
 func (a *Forj)GetReposData(instance string) (ret map[string]goforjj.PluginRepoData) {
+    gotrace.Trace("Forjj managed %d repositories (forjj-repos.yml)", len(a.r.Repos))
     ret = make(map[string]goforjj.PluginRepoData)
     for n, d := range a.r.Repos {
         if d.Instance != instance {
@@ -22,6 +23,7 @@ func (a *Forj)GetReposData(instance string) (ret map[string]goforjj.PluginRepoDa
         }
         ret[n] = *d
     }
+    gotrace.Trace("%d repositories identified for instance %s", len(ret), instance)
     return
 }
 
@@ -50,11 +52,28 @@ func (r *ReposList)UpdateFromList(source *ReposList, defaults map[string]string)
     }
 }
 
+func NumDisplay(num int, format, elements, element string) string{
+
+    if num > 1 {
+        return fmt.Sprintf(format, num, elements)
+    }
+    return fmt.Sprintf(format, num, element)
+}
+
+func NumReposDisplay(num int) string {
+    return NumDisplay(num, "%d repositor%s", "ies", "y")
+}
+
 // Function to create source files in the infra repository
 // NOTE: a repo can be only created. Never updated or deleted. A repo has his own lifecycle not managed by forjj.
-func (a *Forj)RepoCodeBuild(action string) (err error) {
-    a.r.UpdateFromList(a.Actions[action].repoList, a.o.Defaults)
+func (a *Forj)RepoCodeBuild(action string) {
+    gotrace.Trace("Forjj managed %s.",  NumReposDisplay(len(a.r.Repos)))
 
+    a.r.UpdateFromList(a.Actions[action].repoList, a.o.Defaults)
+    gotrace.Trace("Now, Forjj manages %s. cli added %s.", NumReposDisplay(len(a.r.Repos)), NumReposDisplay(len(a.Actions[action].repoList.Repos)))
+}
+
+func (a *Forj)RepoCodeSave() (err error) {
     if yd, err := yaml.Marshal(a.r) ; err == nil {
         if err := ioutil.WriteFile(forjj_repo_file, yd, 0644) ; err != nil {
             return fmt.Errorf("Unable to write '%s'. %s", forjj_repo_file, err)
@@ -62,6 +81,8 @@ func (a *Forj)RepoCodeBuild(action string) (err error) {
     } else {
         return fmt.Errorf("Unable to encode to yaml '%s'. %s", forjj_repo_file, err)
     }
+
+    gotrace.Trace("%s written with %s.", forjj_repo_file, NumReposDisplay(len(a.r.Repos)))
 
     git("add", forjj_repo_file)
     return nil

@@ -20,6 +20,43 @@ type ForjjOptions struct {
     Drivers map[string]*Driver
 }
 
+
+func (a *Forj)GetUniqDriverName(driverType string) (od string) {
+    var found_one_driver *string
+
+    for instance, d := range a.drivers {
+        if d.DriverType == driverType {
+            switch {
+            case found_one_driver == nil:
+                found_one_driver = &od
+                od = instance
+            case *found_one_driver != "":
+                od = ""
+            }
+        }
+    }
+    switch {
+    case found_one_driver == nil:
+        gotrace.Trace("No %s instance found.", driverType)
+    case *found_one_driver == "":
+        gotrace.Trace("Too many %s instances found.", driverType)
+    default:
+        gotrace.Trace("One upstream instance found: %s", *found_one_driver)
+    }
+    return
+}
+
+func (a *Forj)SetDefault(action string)  {
+    if od := a.GetUniqDriverName("upstream") ; od != "" {
+        a.o.Defaults["instance"] = od
+    }
+
+    // Set Defaults for repositories.
+    if v, found := a.Actions[action].flagsv["flow"]; found && v != nil && *v != "" {
+        a.o.Defaults["flow"] = *v
+    }
+}
+
 // Initialize Forjj options
 // At least, the infra repo must exists.
 func (o *ForjjOptions)Init() {

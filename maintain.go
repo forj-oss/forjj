@@ -52,7 +52,7 @@ func (a *Forj) do_driver_maintain(instance string) error {
     if d.DriverType != "upstream" {
         return nil
     }
-    log.Printf("%d Repositories maintained.\n", len(a.drivers[instance].plugin.Result.Data.Repos))
+    log.Printf("%s maintained by %s.\n", NumReposDisplay(len(a.drivers[instance].plugin.Result.Data.Repos)), instance)
     // Loop on upstream repositories to ensure it exists with at least a README.md file.
     for name, repo := range a.drivers[instance].plugin.Result.Data.Repos {
         if err := a.ensure_local_repo_initialized(name) ; err != nil {

@@ -38,6 +38,11 @@ func (a *Forj)Update() error {
 
     a.o.update_options()
 
+    // Start working on repositories, writing repos source code.
+    a.RepoCodeBuild("update")
+
+    defer a.RepoCodeSave()
+
     // Loop on drivers requested like jenkins classified as ci type.
     for instance, _ := range a.drivers {
         if instance == a.w.Instance {
@@ -55,9 +60,6 @@ func (a *Forj)Update() error {
     }
 
     a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
-
-    // Start working on repositories, writing repos source code.
-    a.RepoCodeBuild("update")
 
     // TODO: Implement flow_close() to close the create task
     // flow_close()
