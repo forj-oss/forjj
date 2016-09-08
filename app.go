@@ -172,7 +172,7 @@ func (a *Forj) init() {
     a.SetCmdFlag("update", "contribs-repo", contribs_repo_help, contribs_repo)
     a.SetCmdFlag("update", "flows-repo", flows_repo_help, flows_repo)
     a.SetCmdFlag("update", "repotemplates-repo", repotemplates_repo_help, repotemplates_repo)
-    a.SetCmdFlag("update", "infra_upstream", update_infra_upstream, no_opts)
+    a.SetCmdFlag("update", "infra-upstream", update_infra_upstream, no_opts)
     a.SetCmdFlag("update", "docker-exe-path", docker_exe_path_help, no_opts)
     a.SetCmdFlag("update", "flow", flow_help, no_opts)
     // Additional options will be loaded from the selected driver itself.
