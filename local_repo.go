@@ -13,11 +13,15 @@ import (
     "log"
 )
 
+func (a *Forj) RepoPath(repo_name string) string {
+    return path.Clean(path.Join(a.Workspace_path, a.Workspace, repo_name))
+}
+
 // ensure local repo git exists and is initialized.
 // - dir exist
 // - repo initialized
 func (a *Forj) ensure_local_repo_initialized(repo_name string) error {
-    repo := path.Clean(path.Join(a.Workspace_path, a.Workspace, repo_name))
+    repo := a.RepoPath(repo_name)
 
     gotrace.Trace("Checking '%s' repository...", repo)
     dir, err := os.Stat(repo)

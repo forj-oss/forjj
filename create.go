@@ -154,7 +154,7 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted bool) {
 
         switch {
             case a.w.Instance == "" : // The infra repo upstream instance has not been defined.
-                msg := fmt.Sprintf("Your workspace contains your infra repository called '%s' but not connected to", a.w.Infra)
+                msg := fmt.Sprintf("Your workspace contains your infra repository called '%s' but not connected to", a.w.Infra.Name)
                 if ! remote_exist {
                     return fmt.Errorf("%s an upstream.%s", msg, hint), false
                 }

@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "log"
+    "os"
 )
 
 // Call docker to create the Solution source code from scratch with validated parameters.
@@ -54,7 +55,12 @@ func (a *Forj) do_driver_maintain(instance string) error {
     }
     log.Printf("%s maintained by %s.\n", NumReposDisplay(len(a.drivers[instance].plugin.Result.Data.Repos)), instance)
     // Loop on upstream repositories to ensure it exists with at least a README.md file.
+
+    // Ensure we are back to the infra repository.
+    defer os.Chdir(a.RepoPath(a.w.Infra.Name))
+
     for name, repo := range a.drivers[instance].plugin.Result.Data.Repos {
+        log.Printf("Maintaining local repo '%s'", name)
         if err := a.ensure_local_repo_initialized(name) ; err != nil {
             return err
         }
@@ -66,14 +72,13 @@ func (a *Forj) do_driver_maintain(instance string) error {
 
         if a.InfraPluginDriver == d { // Infra upstream instance case
             if v, found := d.plugin.Result.Data.Repos[a.w.Infra.Name] ; found {
-                // Saving infra repository information to the workspace
+                // Saving infra repository information returned to the workspace
                 a.w.Infra = v
             } else {
-                if a.w.Infra.Name != "none" {
-                    return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance)
-                }
+                return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance)
             }
         }
     }
+
     return nil
 }
