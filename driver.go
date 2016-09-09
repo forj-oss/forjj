@@ -17,8 +17,18 @@ const (
     default_mount_path = "/src"
 )
 
-// Execute the driver task, with commit
+// Execute the driver task, without commit.
+// Used in create/update case.
+// It uses the driver (or forjj) flag to ensure proper task is executed by the driver.
+// if exist in create, fails and ask to abort
+// If ! exist in update, fails
 func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool) {
+    gotrace.Trace("Entering...")
+    defer gotrace.Trace("Exiting...")
+    if action != "create" && action != "update" {
+        return fmt.Errorf("Internal error: Invalid action '%s'. Supports only 'create' and 'update'.", action), false
+    }
+
     if err = a.driver_start(instance) ; err != nil {
         return
     }
@@ -29,15 +39,9 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
     a.o.Drivers[instance] = d
 
     // check flag for create
-    if action == "create" {
-        if err := d.check_flag_before(instance) ; err != nil {
-            return err, true
-        }
+    if err := d.check_flag_before(instance, action) ; err != nil {
+        return err, (action == "create") // Aborteable if create, because the resource exist and we can use it. So, forjj can continue the task.
     }
-
-    // Provide Repo data for upstream repos creation/update.
-
-
 
     // Calling upstream driver - To create plugin source files for the current upstream infra repository
     // When the plugin inform that resource already exist, it returns an error with aborted = true
@@ -72,19 +76,29 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
         return
     }
 
-    // Commiting source code.
-    err = a.do_driver_commit(d)
-
     return
 }
 
 // Check if the flag exist to avoid creating the resource a second time. It must use update instead.
-func (d *Driver)check_flag_before(instance string) error {
+func (d *Driver)check_flag_before(instance, action string) error {
     flag_file := path.Join("apps", d.DriverType , d.FlagFile)
 
     if d.ForjjFlagFile {
         if _, err := os.Stat(flag_file) ; err == nil {
-            return fmt.Errorf("The driver instance '%s' has already created the resources. Use 'Update' to update it, and maintain to instanciate it as soon as your infra repo flow is completed.", instance)
+            if action == "create" {
+                return fmt.Errorf("The driver instance '%s' has already created the resources. Use 'Update' to update it, and maintain to instanciate it as soon as your infra repo flow is completed.", instance)
+            }
+        } else {
+            gotrace.Trace("Flag file '%s' NOT found.", flag_file)
+        }
+    } else {
+        if _, err := os.Stat(flag_file) ; err != nil {
+            // if an update is requested on the driver host the infra, then we will need to go further to restore the workspace. No error in that case.
+            if action == "update" && ! d.InfraRepo {
+                return fmt.Errorf("The driver instance '%s' do not have the resource requested. Use 'Create' to create it, and maintain to instanciate it as soon as your infra repo flow is completed.", instance)
+            }
+        } else {
+            gotrace.Trace("Flag file '%s' found.", flag_file)
         }
     }
     return nil
@@ -120,20 +134,18 @@ func (d *Driver)check_flag_after() error {
     return nil
 }
 
+// Return True if no file sis registered in the driver response.
+func (d *Driver)HasNoFiles() bool {
+    return (len(d.plugin.Result.Data.Files) == 0)
+}
+
 // do driver commit
 func (a *Forj) do_driver_commit(d *Driver) error {
-    gotrace.Trace("----- Do GIT tasks in the INFRA repository.")
-
-    // Ensure initial commit exists and upstream are set for the infra repository
-    if a.w.Infra.Exist { // Upstream that we can ensure it to be connected.
-        if err := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "origin", a.w.Infra.Remotes["origin"], a.infra_readme) ; err != nil {
-            return fmt.Errorf("infra repository '%s' issue. %s", a.w.Infra.Name, err)
-        }
-    } else { // No upstream to ensure connected.
-        if err := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "", "", a.infra_readme) ; err != nil {
-            return fmt.Errorf("infra repository '%s' issue. %s", a.w.Infra.Name, err)
-        }
+    if len(d.plugin.Result.Data.Files) == 0 {
+        gotrace.Trace("No files to add/commit returned by the driver.")
+        return nil
     }
+    gotrace.Trace("----- Do GIT tasks in the INFRA repository.")
 
     // Add source files
     if err := d.gitAddPluginFiles() ; err != nil {
@@ -173,6 +185,7 @@ func (a *Forj) driver_start(instance string) (error) {
 // Start driver task.
 // Forj.CurrentPluginDriver is set to the current driver
 func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string) (err error, aborted bool) {
+    defer log.Print("-------------------------------------------")
     log.Print("-------------------------------------------")
     log.Printf("Running %s on %s...", action, instance_name)
 

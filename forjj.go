@@ -26,7 +26,7 @@ func main() {
             log.Printf("Source codes are in place. Now, start instantiating your DevOps Environment services...")
             forj_app.do_maintain() // This will implement the flow for the infra-repo as well.
         } else {
-            log.Printf("Source codes are in place. Now, you can start instantiating your DevOps Environment services with 'forjj maintain' ...")
+            log.Printf("Source codes are in place. Now, Please review commits, push and start instantiating your DevOps Environment services with 'forjj maintain' ...")
         }
         println("FORJJ - create ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
 

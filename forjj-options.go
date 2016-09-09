@@ -46,6 +46,9 @@ func (a *Forj)GetUniqDriverName(driverType string) (od string) {
     return
 }
 
+// Forjj-option: Set default
+// - instance
+// - flow
 func (a *Forj)SetDefault(action string)  {
     if od := a.GetUniqDriverName("upstream") ; od != "" {
         a.o.Defaults["instance"] = od
@@ -98,10 +101,12 @@ func (f *ForjjOptions)Save(file string) error {
 
 // This functions loads the forjj options definitions from the LoadContext().
 func (a *Forj)LoadForjjOptions() error {
+    a.o.Init()
     // Read definition file from repo.
     file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, forjj_options_file))
 
     if _, err := os.Stat(file) ; err != nil {
+        gotrace.Trace("No '%s' to load.", file)
         return nil // Nothing to read.
     }
 

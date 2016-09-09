@@ -20,6 +20,7 @@ func (a *Forj) RepoPath(repo_name string) string {
 // ensure local repo git exists and is initialized.
 // - dir exist
 // - repo initialized
+// At the end Current dir is in the Repo.
 func (a *Forj) ensure_local_repo_initialized(repo_name string) error {
     repo := a.RepoPath(repo_name)
 
@@ -61,8 +62,9 @@ func (a *Forj) ensure_local_repo_initialized(repo_name string) error {
 // - nothing exists locally and remotely       : Create 1st commit and push
 // - nothing exists locally but remotely       : clone/pull
 // - something exist locally, but not remotely : push
-// - both locally and remotely repo exist.     : Just test remote connection.
+// - both locally and remotely repo exist.     : Nothing done. No push.
 func (a *Forj) ensure_local_repo_synced(repo_name, branch, remote, upstream, README_content string) error {
+    log.Printf("Updating your workspace with '%s(%s)'.", repo_name, upstream)
     repo := path.Clean(path.Join(a.Workspace_path, a.Workspace, repo_name))
 
     if repo_name == "" {
@@ -174,6 +176,7 @@ func git_remote_exist(branch, remote, upstream string) (exist, found bool, err e
     }
 
     exist, err = regexp.MatchString(`[* ] ` + branch + `.* \[` + remote + "/" + branch + `( .*)?\]`, out)
+    gotrace.Trace("Branches: \n%sFound? %t", out, exist)
     if !exist {
         return
     }
@@ -184,6 +187,7 @@ func git_remote_exist(branch, remote, upstream string) (exist, found bool, err e
     }
 
     found, err = regexp.MatchString(`origin\s*` + upstream, out) // remote + " *" + upstream, out)
+    gotrace.Trace("Remotes: \n%sFound? %t", out, found)
     return
 }
 

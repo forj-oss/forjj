@@ -12,6 +12,22 @@ import (
 
 const forjj_repo_file = "forjj-repos.yml"
 
+// Load defaults, then load repos from source then add from cli.
+func (a *Forj)BuildReposList(action string) error{
+    // Set forjj-options defaults for new repositories.
+    a.SetDefault(action)
+
+    // Read Repos list from infra-repo/forjj-repos.yaml
+    if err := a.RepoCodeLoad() ; err != nil {
+        return err
+    }
+
+    // Add cli repos list.
+    a.AddReposFromCli(action)
+
+    return nil
+}
+
 
 // Function providing a PluginRepoData content for the instance given.
 func (a *Forj)GetReposData(instance string) (ret map[string]goforjj.PluginRepoData) {
@@ -64,15 +80,16 @@ func NumReposDisplay(num int) string {
     return NumDisplay(num, "%d repositor%s", "ies", "y")
 }
 
-// Function to create source files in the infra repository
+// Function to update Forjj Repos list. Use RepodSave to Save it as code ie in forjj-repos.yml.
 // NOTE: a repo can be only created. Never updated or deleted. A repo has his own lifecycle not managed by forjj.
-func (a *Forj)RepoCodeBuild(action string) {
+func (a *Forj)AddReposFromCli(action string) {
     gotrace.Trace("Forjj managed %s.",  NumReposDisplay(len(a.r.Repos)))
 
     a.r.UpdateFromList(a.Actions[action].repoList, a.o.Defaults)
     gotrace.Trace("Now, Forjj manages %s. cli added %s.", NumReposDisplay(len(a.r.Repos)), NumReposDisplay(len(a.Actions[action].repoList.Repos)))
 }
 
+//Function to save forjj list of Repositories.
 func (a *Forj)RepoCodeSave() (err error) {
     if yd, err := yaml.Marshal(a.r) ; err == nil {
         if err := ioutil.WriteFile(forjj_repo_file, yd, 0644) ; err != nil {
@@ -93,6 +110,7 @@ func (a *Forj)RepoCodeLoad() (error) {
     a.r.Repos = make(map[string]*goforjj.PluginRepoData)
 
     if _, err := os.Stat(forjj_repo_file) ; err != nil {
+        gotrace.Trace("%s not found. %s.", forjj_repo_file, err)
         return nil
     }
     if d, err := ioutil.ReadFile(forjj_repo_file) ; err == nil {
@@ -102,6 +120,9 @@ func (a *Forj)RepoCodeLoad() (error) {
     } else {
         return fmt.Errorf("Unable to read '%s'. %s", forjj_repo_file, err)
     }
+
+    gotrace.Trace("%s loaded from forjj-repos.yml", NumReposDisplay(len(a.r.Repos)))
+
     return  nil
 }
 
