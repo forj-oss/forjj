@@ -10,9 +10,12 @@ import (
 )
 
 const (
-    drivers_def_options_file = "forjj-maintain-options.yml"
-    drivers_data_options_file = "forjj-options.yml"
+    drivers_def_options_file = ".forjj-maintain-options.yml"
+    drivers_data_options_file = "forjj-creds.yml"
 )
+
+// FIXME: Def file keep just one driver at a time...
+// FIXME: Fix maintain process from cli.
 
 // This function save in the infra-repo a forjj configuration about
 // plugins options required at maintain phase. forjj-maintain.yml
@@ -29,6 +32,9 @@ type forjjPluginsOptions struct {
     Options map[string]string `,omitempty`
 }
 
+// Save maintain credentials and definition files:
+// - drivers_def_options_file in infra repo
+// - drivers_data_options_file in a.Workspace_path/a.Workspace, drivers_data_options_file
 func (a *Forj)SaveForjjPluginsOptions() error {
     if a.drivers_options.Drivers == nil {
         return nil
@@ -84,18 +90,25 @@ func (a *Forj)LoadForjjPluginsOptions() error {
     // Read definition file from repo.
     var fpdef forjjPlugins // Plugins/<plugin>/Options/<option>=help
 
-    file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, drivers_data_options_file))
+    file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, drivers_def_options_file))
     if err := fpdef.LoadFile(file) ; err != nil {
         return err
     }
+    gotrace.Trace("Plugin data definition file '%s' loaded.", file)
 
     // Load plugins Options data file, given to forjj
     var fpdata forjjPlugins // Plugins/<plugin>/Options/<option>=value
 
-    file = *a.CurrentCommand.flagsv["file"]
+    if v, found := a.CurrentCommand.flagsv["file"] ; found {
+        file = *v
+    } else {
+        file = path.Clean(path.Join(a.Workspace_path, a.Workspace, drivers_data_options_file))
+        gotrace.Trace("Use default credential file '%s'.", file)
+    }
     if err := fpdata.LoadFile(file) ; err != nil {
         return err
     }
+    gotrace.Trace("Plugin credentials file '%s' loaded.", file)
 
     // Load values in Forj.driver_options keys/values pair
     for name, p_opts := range fpdef.Plugins { // each plugin

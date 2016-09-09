@@ -74,6 +74,10 @@ func (a *Forj)Update() error {
         if err := a.RepoCodeSave() ; err != nil {
             log.Printf("%s", err)
         }
+        if err := a.SaveForjjPluginsOptions() ; err != nil {
+            log.Printf("%s", err)
+        }
+
         // Save forjj-options.yml
         a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
         log.Printf("As soon as you are happy with your fixes, do a git push to submit your collection of fixes related to '%s' to your team.", a.Branch)

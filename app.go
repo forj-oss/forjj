@@ -191,8 +191,7 @@ func (a *Forj) init() {
     a.SetCmdArg("maintain", "workspace", maintain_orga_help, required)
     a.SetCmdFlag("maintain", "infra_url", maintain_infra_url_help, no_opts)
     // FUTURE: Difficulty: 2. Provide a way to expose options defined in the maintain option file as CLI maintain flags.
-    // FUTURE: Difficulty: 0. Set default file name from workspace path.
-    a.SetCmdFlag("maintain", "file", maintain_option_file, required)
+    a.SetCmdFlag("maintain", "file", maintain_option_file, no_opts)
 
     a.GetDriversFlags(os.Args[1:])
 

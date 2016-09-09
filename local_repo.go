@@ -199,25 +199,6 @@ func git_1st_commit_exist(branch string) bool {
     return false
 }
 
-// Commit All Plugins generated files and plugin options updates.
-func (a *Forj) gitCommitAll(commit_msg string) error {
-
-    for _, driver := range a.drivers {
-        err := driver.gitAddPluginFiles()
-        if err != nil {
-            return fmt.Errorf("Issue to add driver '%s' generated files. %s.", driver.Name, err)
-        }
-        commit_msg += "\n - " + driver.plugin.Result.Data.CommitMessage
-    }
-
-    if err := a.SaveForjjPluginsOptions() ; err != nil {
-        return err
-    }
-
-    git("commit", "-m", commit_msg)
-    return nil
-}
-
 // Commit a Plugin generated files.
 func (d *Driver) gitCommit() error {
     if git("commit", "-m", d.plugin.Result.Data.CommitMessage) > 0 {
