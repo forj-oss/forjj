@@ -20,14 +20,14 @@ const forjj_workspace_json_file = "forjj.json"
 // But it can store any data that is workspace environment specific.
 // like where is the docker static binary.
 type Workspace struct {
-    Organization           string             // Workspace Organization name
-    Driver                 string             // Infra upstream driver name
-    Instance               string             // Infra upstream instance name
-    Infra                  goforjj.PluginRepo // Infra-repo definition
-    DockerBinPath          string             // Docker static binary path
-    Contrib_repo_path      string             // Contrib Repo path used.
-    Flow_repo_path         string             // Flow repo path used.
-    Repotemplate_repo_path string             // Repotemplate Path used.
+    Organization           string                         // Workspace Organization name
+    Driver                 string                         // Infra upstream driver name
+    Instance               string                         // Infra upstream instance name
+    Infra                  goforjj.PluginRepo             // Infra-repo definition
+    DockerBinPath          string                         // Docker static binary path
+    Contrib_repo_path      string                         // Contrib Repo path used.
+    Flow_repo_path         string                         // Flow repo path used.
+    Repotemplate_repo_path string                         // Repotemplate Path used.
 }
 
 func (w *Workspace)Init() {

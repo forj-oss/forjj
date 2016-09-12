@@ -22,8 +22,6 @@ func (a *Forj)Update() error {
     // save infra repository location in the workspace.
     defer a.w.Save(a)
 
-    defer a.driver_cleanup(a.w.Instance) // Ensure upstream instances will be shutted down when done.
-
     // Ensure infra exist and list of repos sent to the upstream as well.
     // If the upstream do not exist but requested, the driver exit with an error.
     // There is no abort situation. If missing upstream, a create is required first.
@@ -85,11 +83,16 @@ func (a *Forj)Update() error {
 
     // Loop on drivers requested like jenkins classified as ci type.
     for instance, d := range a.drivers {
-        if instance == a.w.Instance || (! d.app_request && a.GetReposRequestedFor(instance, "update") == 0) {
-            continue // Do not try to update infra-upstream twice or update from a non requested app (--apps) or an instance having no requested repo updates.
+
+        if instance == a.w.Instance {
+            continue // Do not try to update infra-upstream twice.
         }
 
-        defer a.driver_cleanup(instance) // Ensure all instances will be shutted down when done.
+        repos_num := a.GetReposRequestedFor(instance, "update")
+        gotrace.Trace("Instance '%s' hosts %s.", instance, NumReposDisplay(repos_num))
+        if ! d.app_request && repos_num == 0 {
+            continue // Do not try to update a non requested app (--apps) or an instance having no requested repo updates.
+        }
 
         if err, aborted := a.do_driver_task("update", instance) ; err != nil {
             if !aborted {

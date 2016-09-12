@@ -99,7 +99,7 @@ func (a *Forj)LoadForjjPluginsOptions() error {
     // Load plugins Options data file, given to forjj
     var fpdata forjjPlugins // Plugins/<plugin>/Options/<option>=value
 
-    if v, found := a.CurrentCommand.flagsv["file"] ; found {
+    if v, found := a.CurrentCommand.flagsv["file"] ; found && *v != "" {
         file = *v
     } else {
         file = path.Clean(path.Join(a.Workspace_path, a.Workspace, drivers_data_options_file))
@@ -150,13 +150,18 @@ func (d *DriversOptions)AddForjjPluginOptions(name string, options map[string]go
     d.Drivers[name] = DriverOptions{ driver_type, options }
 }
 
-func (d *DriversOptions)GetDriversMaintainParameters(plugin_args map[string]string, action string) {
+// Used in Maintain context to add options requested by the driver.
+func (d *DriversOptions)GetDriversMaintainParameters(plugin_args map[string]string, action string) error {
     if action != "maintain" {
-        return
+        return nil
     }
-    for _, v := range d.Drivers {
+    for n, v := range d.Drivers {
         for k, o := range v.Options {
+            if o.Value == "" {
+                return fmt.Errorf("Missing maintain '%s' parameter '%s'", n, k)
+            }
             plugin_args[k] = o.Value
         }
     }
+    return nil
 }

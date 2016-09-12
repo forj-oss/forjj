@@ -41,9 +41,24 @@ func (a *Forj)load_missing_drivers() error {
     for instance, d := range a.o.Drivers {
         if _, found := a.drivers[instance] ; !found {
             a.drivers[instance] = d
-            if err := d.plugin.PluginRuntimeReloadFrom(d.Name, d.Runtime) ; err != nil {
-                log.Printf("Unable to load Runtime information from forjj-options for instance '%s'. Forjj may not work properly. You can fix it with 'forjj update --apps %s:%s;%s'.", instance, d.DriverType, d.Name, d.InstanceName)
+            d.cmds = map[string]DriverCmdOptions{
+                "common":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
+                "create":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
+                "update":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
+                "maintain": DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
             }
+
+            gotrace.Trace("Loading '%s'", instance)
+            if err := a.load_driver_options(instance);err != nil {
+                log.Printf("Unable to load plugin information for instance '%s'. %s", instance, err)
+                continue
+            }
+/*            if err := d.plugin.PluginLoadFrom(instance, d.Runtime) ; err != nil {
+                log.Printf("Unable to load Runtime information from forjj-options for instance '%s'. Forjj may not work properly. You can fix it with 'forjj update --apps %s:%s:%s'. %s", instance, d.DriverType, d.Name, d.InstanceName, err)
+            }*/
+            d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, "apps", d.DriverType))
+            d.plugin.PluginSetWorkspace(path.Join(a.Workspace_path, a.Workspace))
+            d.plugin.PluginSocketPath(path.Join(a.Workspace_path, a.Workspace, "lib"))
         }
     }
     return nil
@@ -152,7 +167,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
                 opts.flagsv[forjj_option_name] = flag.String()
             }
 
-            if params.Required {
+            if params.Required && command != "maintain" {
                 flag.Required()
             }
         }

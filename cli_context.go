@@ -108,7 +108,7 @@ func (a *Forj) LoadContext(args []string) {
     opts.set_from_flag(a, context, "docker-exe-path", &a.w.DockerBinPath, nil)
 
     // Load missing drivers runtime information from forjj-options.yaml
-
+    a.load_missing_drivers()
 }
 
 type validateHdlr func(string) error
