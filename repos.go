@@ -28,6 +28,23 @@ func (a *Forj)BuildReposList(action string) error{
     return nil
 }
 
+// Identify number of repository requested for an instance.
+func (a *Forj)GetReposRequestedFor(instance, action string) (num int) {
+    if instance == "" || action == "" {
+        gotrace.Trace("Internal error: instance and action cannot be empty.")
+        return
+    }
+    if _, found := a.Actions[action] ; ! found {
+        gotrace.Trace("Internal error: action '%s' not found.", action)
+        return
+    }
+    for _, rd := range a.Actions[action].repoList.Repos {
+        if rd.Instance == instance || (rd.Instance == "" && instance == a.o.Defaults["instance"]) {
+            num ++
+        }
+    }
+    return
+}
 
 // Function providing a PluginRepoData content for the instance given.
 func (a *Forj)GetReposData(instance string) (ret map[string]goforjj.PluginRepoData) {

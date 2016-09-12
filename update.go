@@ -85,8 +85,8 @@ func (a *Forj)Update() error {
 
     // Loop on drivers requested like jenkins classified as ci type.
     for instance, d := range a.drivers {
-        if instance == a.w.Instance {
-            continue // Do not try to create infra-upstream twice.
+        if instance == a.w.Instance || (! d.app_request && a.GetReposRequestedFor(instance, "update") == 0) {
+            continue // Do not try to update infra-upstream twice or update from a non requested app (--apps) or an instance having no requested repo updates.
         }
 
         defer a.driver_cleanup(instance) // Ensure all instances will be shutted down when done.

@@ -9,6 +9,7 @@ import (
     "text/template"
     "bytes"
     "path"
+    "log"
 )
 
 // Load driver options to a Command requested.
@@ -32,6 +33,20 @@ func (d *Driver)Model() (m *DriverModel) {
         Name: d.Name,
     }
     return
+}
+
+// TODO: Check if forjj-options, plugins runtime are valid or not.
+
+func (a *Forj)load_missing_drivers() error {
+    for instance, d := range a.o.Drivers {
+        if _, found := a.drivers[instance] ; !found {
+            a.drivers[instance] = d
+            if err := d.plugin.PluginRuntimeReloadFrom(d.Name, d.Runtime) ; err != nil {
+                log.Printf("Unable to load Runtime information from forjj-options for instance '%s'. Forjj may not work properly. You can fix it with 'forjj update --apps %s:%s;%s'.", instance, d.DriverType, d.Name, d.InstanceName)
+            }
+        }
+    }
+    return nil
 }
 
 // Read Driver yaml document
@@ -77,6 +92,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
         t.Execute(&doc, driver.Model())
     }
     driver.FlagFile = doc.String()
+    driver.Runtime = &driver.plugin.Yaml.Runtime
     gotrace.Trace("Created flag file name Set to default for plugin instance '%s' to %s", driver.InstanceName, driver.plugin.Yaml.CreatedFile)
 
     return

@@ -47,6 +47,12 @@ type Driver struct {
     FlagFile           string                         // Path to the predefined plugin or generic forjj plugin flag file.
     ForjjFlagFile      bool                           // true if the flag_file is set by forjj.
     app_request        bool                           // true if the driver is loaded by a apps create/update/maintain task (otherwise requested by Repos or flows request.)
+    Runtime            *goforjj.YamlPluginRuntime     // Reference to the plugin runtime information given by the plugin yaml file.
+    // When a driver is initially loaded, it will be saved here, and used it as ref every where.
+    // So we are sure that :
+    // - any change in plugin is not failing a running environment.
+    // - If no plugin is referenced from cli, we can start it without loading it from the plugin.yaml.
+    // - We can manage plugins versions and update when needed or requested.
 }
 
 // Structure used as template context. The way to get it: Driver.Model()
@@ -116,7 +122,9 @@ const ssh_dir_flag_name = "ssh-dir"
 //
 // Define application cli options
 //
-
+// Defines the list of valid cli options
+// - cli predefined flags/actions/Arguments
+// - Load plugin specific flags. (from the plugin yaml file)
 func (a *Forj) init() {
     a.app = kingpin.New(os.Args[0], app_help).UsageTemplate(DefaultUsageTemplate)
     a.debug_f = a.app.Flag("debug", app_debug_help)

@@ -4,6 +4,8 @@ import (
     "fmt"
     "log"
     "os"
+    "path"
+    "github.hpe.com/christophe-larsonneur/goforjj/trace"
 )
 
 // Call docker to create the Solution source code from scratch with validated parameters.
@@ -15,6 +17,24 @@ func (a *Forj) Maintain() error {
     // Read forjj infra file and the options --file given, defined by create/update driver flags settings saved or not
     // This load Maintain context required by plugins. Maintain has limited flags to provide at runtime. Everything, except credentials should be stored in the infra-repo and workspace. Credentials is given with the --file option in yaml format.
     a.LoadForjjPluginsOptions()
+
+    // Identify where is the infra-repo and move to it.
+    infra_repo := path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name)
+    if s, err := os.Stat(infra_repo) ; err != nil || !s.IsDir() {
+        return fmt.Errorf("Invalid Infra repo. Inexistent or not a directory.")
+    }
+    if _, err := os.Stat(path.Join(infra_repo, ".git", "config")) ; err != nil {
+        return fmt.Errorf("Invalid Infra repo. Seems not to be a git repository. Please check.")
+    }
+
+    gotrace.Trace("Moving to infra-repo '%s'", infra_repo)
+
+    if err := os.Chdir(infra_repo) ; err != nil {
+        return fmt.Errorf("Unable to move to the infra-repo at '%s'. %s", infra_repo, err)
+    }
+
+    // Load drivers from forjj-options.yml
+    // loop from options/Repos and keep them in a.drivers
 
     return a.do_maintain()
 }
@@ -39,6 +59,7 @@ func (a *Forj) do_driver_maintain(instance string) error {
         return nil
     }
 
+    gotrace.Trace("Start maintaining instance '%s'", instance)
     if err := a.driver_start(instance) ; err != nil {
         return err
     }

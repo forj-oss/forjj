@@ -18,6 +18,7 @@ import (
 // - detect the driver list source.
 // - detect ci/us drivers name (to stored in app)
 //
+// - Load missing drivers information from forjj-options.yaml
 func (a *Forj) LoadContext(args []string) {
     context, err := a.app.ParseContext(args)
     if context == nil {
@@ -103,11 +104,11 @@ func (a *Forj) LoadContext(args []string) {
     a.drivers_list.GetDriversFromContext(context, a.c_drivers_list_f)
     a.drivers_list.GetDriversFromContext(context, a.u_drivers_list_f)
 
-    // Getting list of Repos to create (--repos)
-    //
-
     // Retrieving additional extra parameters to store in the workspace.
     opts.set_from_flag(a, context, "docker-exe-path", &a.w.DockerBinPath, nil)
+
+    // Load missing drivers runtime information from forjj-options.yaml
+
 }
 
 type validateHdlr func(string) error
