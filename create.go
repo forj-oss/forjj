@@ -39,6 +39,12 @@ func (a *Forj) Create() error {
             gotrace.Trace("New infra '%s' created. Need to connect it to the upstream.", a.w.Infra.Name)
             // New infra = new commits. Must maintain. Maintain will push because the upstream connection did not exist.
 
+            // TODO: Repotemplates to help creating a the first commit (README.md at least)
+            if e := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "", "", a.infra_readme) ; e != nil {
+                return fmt.Errorf("%s\n%s", err, e)
+            }
+
+
             if d.HasNoFiles() {
                 return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' upstream requires to commit at least one file.", a.w.Instance)
             }
