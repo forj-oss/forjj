@@ -27,8 +27,6 @@ func (a *Forj) Create() error {
     // save infra repository location in the workspace.
     defer a.w.Save(a)
 
-    defer a.driver_cleanup(a.w.Instance) // Ensure upstream instances will be shutted down when done.
-
     if err, aborted, new_infra := a.ensure_infra_exists("create") ; err != nil {
         if !aborted {
             return fmt.Errorf("Failed to ensure infra exists. %s", err)
@@ -92,8 +90,6 @@ func (a *Forj) Create() error {
         if instance == a.w.Instance || ! d.app_request {
             continue // Do not try to create infra-upstream twice or create from a non requested app (--apps)
         }
-
-        defer a.driver_cleanup(instance) // Ensure all instances will be shutted down when done.
 
         if err, aborted := a.do_driver_task("create", instance) ; err != nil {
             if !aborted {

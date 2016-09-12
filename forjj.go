@@ -20,6 +20,7 @@ func main() {
  forj_app.init()
  parse, err := forj_app.app.Parse(os.Args[1:])
  forj_app.InitializeDriversFlag()
+ defer forj_app.driver_cleanup_all()
  switch kingpin.MustParse(parse, err) {
    case "create":
         if err := forj_app.Create() ; err != nil {

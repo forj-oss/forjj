@@ -209,7 +209,9 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
     plugin_payload := goforjj.PluginReqData {
         Args: make(map[string]string),
     }
-    a.drivers_options.GetDriversMaintainParameters(plugin_payload.Args, action)
+    if err = a.drivers_options.GetDriversMaintainParameters(plugin_payload.Args, action) ; err != nil {
+        return
+    }
     a.GetDriversActionsParameters(plugin_payload.Args, "common")
     a.GetDriversActionsParameters(plugin_payload.Args, action)
 
@@ -243,8 +245,10 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
     return
 }
 
-func (a *Forj) driver_cleanup(instance_name string) {
-    if d, ok := a.drivers[instance_name] ; ok {
+func (a *Forj) driver_cleanup_all() {
+    gotrace.Trace("Stopping all running loaded services...")
+    for instance, d := range a.drivers {
+        gotrace.Trace("- %s", instance)
         d.plugin.PluginStopService()
     }
 }
