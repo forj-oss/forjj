@@ -4,7 +4,7 @@ Fork it and submit PR!
 
 # How the project is organized:
 
-Currently forjj is a schell script code. But I believe we should move to GO instead.
+Currently forjj is a GO binary tool.
 
 forjj is divided in 2 pieces:
 
@@ -12,7 +12,7 @@ forjj is divided in 2 pieces:
   Shortly, forjj manage an infra GIT repository and communicate with several plugins to do the real task.
   This code is located in this repository
 - forjj plugins: Application drivers for forjj.
-  This code is located in [https://github.hpe.com/christophe-larsonneur/forjj-contribs](forjj-contribs repository)
+  This code is located in [https://github.hpe.com/forjj/forjj-contribs](forjj-contribs repository)
 
   Shortly, a plugin is a container started by forjj as a service. The plugin implements a REST API used by Forjj to communicate with.
   The plugin itself implements all the logic to control/configure and install the application that forjj will use.
