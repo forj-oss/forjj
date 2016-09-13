@@ -104,9 +104,6 @@ func (a *Forj) LoadContext(args []string) {
     a.drivers_list.GetDriversFromContext(context, a.c_drivers_list_f)
     a.drivers_list.GetDriversFromContext(context, a.u_drivers_list_f)
 
-    // Retrieving additional extra parameters to store in the workspace.
-    opts.set_from_flag(a, context, "docker-exe-path", &a.w.DockerBinPath, nil)
-
     // Load missing drivers runtime information from forjj-options.yaml
     a.load_missing_drivers()
 }
