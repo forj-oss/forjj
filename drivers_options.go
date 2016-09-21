@@ -170,6 +170,10 @@ func (a *Forj) init_driver_flags(instance_name string) {
             if params.Required && command != "maintain" {
                 flag.Required()
             }
+
+            if params.Default != "" {
+                flag.Default(params.Default)
+            }
         }
     }
 
