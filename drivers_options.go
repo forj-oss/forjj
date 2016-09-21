@@ -38,7 +38,10 @@ func (d *Driver)Model() (m *DriverModel) {
 // TODO: Check if forjj-options, plugins runtime are valid or not.
 
 func (a *Forj)load_missing_drivers() error {
+    gotrace.Trace("Number of registered instances %d", len(a.o.Drivers))
+    gotrace.Trace("Number of loaded instances %d", len(a.drivers))
     for instance, d := range a.o.Drivers {
+        gotrace.Trace("Instance %s")
         if _, found := a.drivers[instance] ; !found {
             a.drivers[instance] = d
             d.cmds = map[string]DriverCmdOptions{
@@ -170,6 +173,10 @@ func (a *Forj) init_driver_flags(instance_name string) {
             if params.Required && command != "maintain" {
                 flag.Required()
             }
+
+            if params.Default != "" {
+                flag.Default(params.Default)
+            }
         }
     }
 
@@ -192,7 +199,7 @@ func SetAppropriateflagName(flag_name, instance_name string, search_re *regexp.R
 
 // Load drivers requested (--apps)
 func (a *Forj) GetDriversFlags(args []string) {
-    a.LoadContext(os.Args[1:])
+    a.LoadContext(os.Args[1:]) // Define pre-settings from cli context
 
     // Loop on drivers to pre-initialized drivers flags.
     gotrace.Trace("Number of plugins provided from parameters: %d", len(a.drivers_list.list))
@@ -216,4 +223,7 @@ func (a *Forj) GetDriversFlags(args []string) {
             os.Exit(1)
         }
     }
+
+    // Load missing drivers runtime information from forjj-options.yaml
+    a.load_missing_drivers()
 }
