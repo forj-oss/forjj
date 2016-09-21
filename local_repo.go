@@ -14,7 +14,7 @@ import (
 )
 
 func (a *Forj) RepoPath(repo_name string) string {
-    return path.Clean(path.Join(a.Workspace_path, a.Workspace, repo_name))
+    return path.Clean(path.Join(a.w.Path(), repo_name))
 }
 
 // ensure local repo git exists and is initialized.
@@ -22,6 +22,12 @@ func (a *Forj) RepoPath(repo_name string) string {
 // - repo initialized
 // At the end Current dir is in the Repo.
 func (a *Forj) ensure_local_repo_initialized(repo_name string) error {
+    w_path, err := a.w.Ensure_exist()
+    if  err != nil {
+        return err
+    }
+    os.Chdir(w_path)
+
     repo := a.RepoPath(repo_name)
 
     gotrace.Trace("Checking '%s' repository...", repo)
@@ -65,7 +71,7 @@ func (a *Forj) ensure_local_repo_initialized(repo_name string) error {
 // - both locally and remotely repo exist.     : Nothing done. No push.
 func (a *Forj) ensure_local_repo_synced(repo_name, branch, remote, upstream, README_content string) error {
     log.Printf("Updating your workspace with '%s(%s)'.", repo_name, upstream)
-    repo := path.Clean(path.Join(a.Workspace_path, a.Workspace, repo_name))
+    repo := path.Clean(path.Join(a.w.Path(), repo_name))
 
     if repo_name == "" {
         return fmt.Errorf("Invalid Repo name. Repository name is empty.")

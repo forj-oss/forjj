@@ -42,15 +42,17 @@ func (a *Forj) LoadContext(args []string) {
         }
     }
 
+    Workspace := ""
+    Workspace_path := ""
     // The value is not set in argsv. But is in the parser context.
     if orga, found := a.argValue(context, opts.args["workspace"]); found {
-        // TODO: Test the path given.
-        a.Workspace = path.Base(orga)
-        a.Workspace_path = path.Dir(orga)
+        orga = path.Clean(orga)
+        Workspace = path.Base(orga)
+        Workspace_path = path.Dir(orga)
     }
 
     // Load Workspace information
-    a.w.Load(a)
+    a.w.Load(Workspace_path, Workspace)
 
     // Load Global Forjj options from infra repo, if found.
     a.LoadForjjOptions()
@@ -59,8 +61,8 @@ func (a *Forj) LoadContext(args []string) {
     // Can be set only the first time
     if a.w.Organization == "" {
         if orga, found := a.flagValue(context, a.Orga_name_f); !found {
-            a.Orga_name_f = a.Orga_name_f.Default(a.Workspace)
-            a.w.Organization = a.Workspace
+            a.Orga_name_f = a.Orga_name_f.Default(Workspace)
+            a.w.Organization = Workspace
         } else {
             a.w.Organization = orga
         }

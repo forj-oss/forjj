@@ -34,7 +34,7 @@ type forjjPluginsOptions struct {
 
 // Save maintain credentials and definition files:
 // - drivers_def_options_file in infra repo
-// - drivers_data_options_file in a.Workspace_path/a.Workspace, drivers_data_options_file
+// - drivers_data_options_file in a.w.Path(), drivers_data_options_file
 func (a *Forj)SaveForjjPluginsOptions() error {
     if a.drivers_options.Drivers == nil {
         return nil
@@ -64,7 +64,7 @@ func (a *Forj)SaveForjjPluginsOptions() error {
     }
 
     gotrace.Trace("Plugin options data file content: %#v", def)
-    workspace_file := path.Join(a.Workspace_path, a.Workspace, drivers_data_options_file)
+    workspace_file := path.Join(a.w.Path(), drivers_data_options_file)
     if err := def.Save(workspace_file) ; err != nil {
         return fmt.Errorf("Unable to write '%s'. %s", workspace_file, err)
     }
@@ -90,7 +90,7 @@ func (a *Forj)LoadForjjPluginsOptions() error {
     // Read definition file from repo.
     var fpdef forjjPlugins // Plugins/<plugin>/Options/<option>=help
 
-    file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, drivers_def_options_file))
+    file := path.Clean(path.Join(a.w.Path(), a.w.Infra.Name, drivers_def_options_file))
     if err := fpdef.LoadFile(file) ; err != nil {
         return err
     }
@@ -102,7 +102,7 @@ func (a *Forj)LoadForjjPluginsOptions() error {
     if v, found := a.CurrentCommand.flagsv["file"] ; found && *v != "" {
         file = *v
     } else {
-        file = path.Clean(path.Join(a.Workspace_path, a.Workspace, drivers_data_options_file))
+        file = path.Clean(path.Join(a.w.Path(), drivers_data_options_file))
         gotrace.Trace("Use default credential file '%s'.", file)
     }
     if err := fpdata.LoadFile(file) ; err != nil {

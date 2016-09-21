@@ -102,8 +102,8 @@ type Forj struct {
     Orga_name  *string // Infra repository name flag value
 
     Branch                 string   // Update feature branch name
-    Workspace              string   // Workspace name
-    Workspace_path         string   // Workspace directory path.
+//    Workspace              string   // Workspace name
+//    Workspace_path         string   // Workspace directory path.
     ContribRepo_uri        *url.URL // URL to github raw files for plugin files.
     RepotemplateRepo_uri   *url.URL // URL to github raw files for RepoTemplates.
     FlowRepo_uri           *url.URL // URL to github raw files for Flows.

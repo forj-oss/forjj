@@ -103,7 +103,7 @@ func (f *ForjjOptions)Save(file string) error {
 func (a *Forj)LoadForjjOptions() error {
     a.o.Init()
     // Read definition file from repo.
-    file := path.Clean(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, forjj_options_file))
+    file := path.Clean(path.Join(a.w.Path(), a.w.Infra.Name, forjj_options_file))
 
     if _, err := os.Stat(file) ; err != nil {
         gotrace.Trace("No '%s' to load.", file)

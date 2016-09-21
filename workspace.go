@@ -20,31 +20,59 @@ const forjj_workspace_json_file = "forjj.json"
 // But it can store any data that is workspace environment specific.
 // like where is the docker static binary.
 type Workspace struct {
-    Organization           string                         // Workspace Organization name
-    Driver                 string                         // Infra upstream driver name
-    Instance               string                         // Infra upstream instance name
-    Infra                  goforjj.PluginRepo             // Infra-repo definition
-    DockerBinPath          string                         // Docker static binary path
-    Contrib_repo_path      string                         // Contrib Repo path used.
-    Flow_repo_path         string                         // Flow repo path used.
-    Repotemplate_repo_path string                         // Repotemplate Path used.
+    Organization           string               // Workspace Organization name
+    Driver                 string               // Infra upstream driver name
+    Instance               string               // Infra upstream instance name
+    Infra                  goforjj.PluginRepo   // Infra-repo definition
+    DockerBinPath          string               // Docker static binary path
+    Contrib_repo_path      string               // Contrib Repo path used.
+    Flow_repo_path         string               // Flow repo path used.
+    Repotemplate_repo_path string               // Repotemplate Path used.
+    workspace              string               // Workspace name
+    workspace_path         string               // Workspace directory path.
 }
 
-func (w *Workspace)Init() {
+func (w *Workspace)Init(Workspace_path, Workspace string) {
+    w.workspace_path = Workspace_path
+    w.workspace = Workspace
     if w.Infra.Remotes == nil {
         w.Infra.Remotes = make(map[string]string)
     }
     if w.Infra.BranchConnect == nil {
         w.Infra.BranchConnect = make(map[string]string)
     }
+    gotrace.Trace("Use workspace : %s (%s / %s)",w.Path(), Workspace_path, Workspace)
+}
+
+// Provide the workspace absolute path
+func (w *Workspace)Path() (string) {
+    return path.Clean(path.Join(w.workspace_path, w.workspace))
+}
+
+// Provide the workspace Name
+func (w *Workspace)Name() (string) {
+    return w.workspace
+}
+
+
+// Ensure workspace path exists. So, if missing, it will be created.
+// The current path (pwd) is moved to the existing workspace path.
+func (w *Workspace)Ensure_exist() (string, error){
+    w_path := w.Path()
+    _, err := os.Stat(w_path)
+    if os.IsNotExist(err) {
+        if err := os.MkdirAll(w_path, 0755) ; err != nil {
+            return "", fmt.Errorf("Unable to create initial workspace tree '%s'. %s", w_path, err)
+        }
+    }
+    os.Chdir(w_path)
+    return w_path, nil
 }
 
 func (w *Workspace)Save(app *Forj) {
     var djson []byte
 
-    workspace_path := path.Join(app.Workspace_path, app.Workspace)
-    _, err := os.Stat(workspace_path)
-    if os.IsNotExist(err) { return }
+    workspace_path, err := w.Ensure_exist()
     kingpin.FatalIfError(err, "Issue with '%s'", workspace_path)
 
     fjson := path.Join(workspace_path, forjj_workspace_json_file)
@@ -58,10 +86,12 @@ func (w *Workspace)Save(app *Forj) {
     gotrace.Trace("File '%s' saved with '%s'", fjson, djson)
 }
 
-func (w *Workspace)Load(app *Forj) error {
-    fjson := path.Join(app.Workspace_path, app.Workspace, forjj_workspace_json_file)
+// Load workspace information from the forjj.json
+// Workspace path is get from forjj and set kept in the workspace as reference for whole forjj thanks to a.w.Path()
+func (w *Workspace)Load(wsp, wsn string) error {
+    w.Init(wsp, wsn)
 
-    w.Init()
+    fjson := path.Join(w.Path(), forjj_workspace_json_file)
 
     _, err := os.Stat(fjson)
     if os.IsNotExist(err) { return nil }
