@@ -105,9 +105,6 @@ func (a *Forj) LoadContext(args []string) {
     a.drivers_list.list = make(map[string]DriverDef)
     a.drivers_list.GetDriversFromContext(context, a.c_drivers_list_f)
     a.drivers_list.GetDriversFromContext(context, a.u_drivers_list_f)
-
-    // Load missing drivers runtime information from forjj-options.yaml
-    a.load_missing_drivers()
 }
 
 type validateHdlr func(string) error
