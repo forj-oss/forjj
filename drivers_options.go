@@ -56,9 +56,9 @@ func (a *Forj)load_missing_drivers() error {
 /*            if err := d.plugin.PluginLoadFrom(instance, d.Runtime) ; err != nil {
                 log.Printf("Unable to load Runtime information from forjj-options for instance '%s'. Forjj may not work properly. You can fix it with 'forjj update --apps %s:%s:%s'. %s", instance, d.DriverType, d.Name, d.InstanceName, err)
             }*/
-            d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, "apps", d.DriverType))
-            d.plugin.PluginSetWorkspace(path.Join(a.Workspace_path, a.Workspace))
-            d.plugin.PluginSocketPath(path.Join(a.Workspace_path, a.Workspace, "lib"))
+            d.plugin.PluginSetWorkspace(a.w.Path())
+            d.plugin.PluginSetSource(path.Join(a.w.Path(), a.w.Infra.Name, "apps", d.DriverType))
+            d.plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
         }
     }
     return nil

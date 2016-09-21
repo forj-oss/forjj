@@ -21,7 +21,7 @@ func (a *Forj) Maintain() error {
     }
 
     // Identify where is the infra-repo and move to it.
-    infra_repo := path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name)
+    infra_repo := path.Join(a.w.Path(), a.w.Infra.Name)
     if s, err := os.Stat(infra_repo) ; err != nil || !s.IsDir() {
         return fmt.Errorf("Invalid Infra repo. Inexistent or not a directory.")
     }

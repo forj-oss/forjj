@@ -189,13 +189,13 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
     log.Print("-------------------------------------------")
     log.Printf("Running %s on %s...", action, instance_name)
 
-    if err := d.plugin.PluginInit(a.Workspace) ; err != nil {
+    if err := d.plugin.PluginInit(a.w.Name()) ; err != nil {
         return err, false
     }
 
-    d.plugin.PluginSetSource(path.Join(a.Workspace_path, a.Workspace, a.w.Infra.Name, "apps", d.DriverType))
-    d.plugin.PluginSetWorkspace(path.Join(a.Workspace_path, a.Workspace))
-    d.plugin.PluginSocketPath(path.Join(a.Workspace_path, a.Workspace, "lib"))
+    d.plugin.PluginSetSource(path.Join(a.w.Path(), a.w.Infra.Name, "apps", d.DriverType))
+    d.plugin.PluginSetWorkspace(a.w.Path())
+    d.plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
     if v, found := a.Actions[action].flagsv["docker-exe-path"] ; found && *v != "" {
         a.w.DockerBinPath = *v
     }
