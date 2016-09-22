@@ -203,6 +203,16 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
         return err, false
     }
 
+    // Set default envs from the forjj process environment.
+    if d.plugin.Yaml.Runtime.Docker.Env == nil {
+        d.plugin.Yaml.Runtime.Docker.Env = make(map[string]string)
+    }
+
+    d.plugin.Yaml.Runtime.Docker.Env["LOGNAME"] = "$LOGNAME"
+    d.plugin.Yaml.Runtime.Docker.Env["http_proxy"] = "$http_proxy"
+    d.plugin.Yaml.Runtime.Docker.Env["https_proxy"] = "$https_proxy"
+    d.plugin.Yaml.Runtime.Docker.Env["no_proxy"] = "$no_proxy"
+
     if err := d.plugin.PluginStartService(a.w.Organization + "_" + instance_name) ; err != nil {
         return err, false
     }
@@ -232,6 +242,12 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
         log.Printf("%s%s%s", termBrown, line, termReset)
     }
 
+    if d.plugin.Result.Data.ErrorMessage != "" {
+        termRed, _ := DefColor(31)
+        for _, line := range strings.Split(d.plugin.Result.Data.ErrorMessage, "\n") {
+            log.Printf("%s%s%s", termRed, line, termReset)
+        }
+    }
     if err != nil {
         if d.plugin.Result.State_code == 419 { // The plugin won't do the task because of requirement not met. This is not an error which requires Forjj to exit.
             aborted = true // So, when a plugin return 419, the plugin task is considered as aborted. So forjj can continue if it is possible. (create/update action case)
