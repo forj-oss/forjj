@@ -105,6 +105,14 @@ func (a *Forj) LoadContext(args []string) {
     a.drivers_list.list = make(map[string]DriverDef)
     a.drivers_list.GetDriversFromContext(context, a.c_drivers_list_f)
     a.drivers_list.GetDriversFromContext(context, a.u_drivers_list_f)
+
+    // Read forjj infra file and the options --file given, defined by create/update driver flags settings saved or not
+    // This load Maintain context required by plugins. Maintain has limited flags to provide at runtime. Everything, except credentials should be stored in the infra-repo and workspace. Credentials is given with the --file option in yaml format.
+    file_desc, _ := a.flagValue(context, a.creds_file_f)
+    if err := a.LoadForjjPluginsOptions(file_desc) ; err != nil {
+        gotrace.Trace("Warning! Options files were not loaded. %s", err)
+    }
+
 }
 
 type validateHdlr func(string) error

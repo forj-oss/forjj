@@ -86,29 +86,27 @@ func (f *forjjPlugins)Save(file string) error {
 
 // This functions loads the forjj plugins options definitions in 'Maintain' phase context.
 // 2 files have to be loaded. The definition in forj-repo and the one given at forjj cli.
-func (a *Forj)LoadForjjPluginsOptions() error {
+func (a *Forj)LoadForjjPluginsOptions(creds_file string) error {
     // Read definition file from repo.
     var fpdef forjjPlugins // Plugins/<plugin>/Options/<option>=help
 
-    file := path.Clean(path.Join(a.w.Path(), a.w.Infra.Name, drivers_def_options_file))
-    if err := fpdef.LoadFile(file) ; err != nil {
+    filedef := path.Clean(path.Join(a.w.Path(), a.w.Infra.Name, drivers_def_options_file))
+    if err := fpdef.LoadFile(filedef) ; err != nil {
         return err
     }
-    gotrace.Trace("Plugin data definition file '%s' loaded.", file)
+    gotrace.Trace("Plugin data definition file '%s' loaded.", filedef)
 
     // Load plugins Options data file, given to forjj
     var fpdata forjjPlugins // Plugins/<plugin>/Options/<option>=value
 
-    if v, found := a.CurrentCommand.flagsv["file"] ; found && *v != "" {
-        file = *v
-    } else {
-        file = path.Clean(path.Join(a.w.Path(), drivers_data_options_file))
-        gotrace.Trace("Use default credential file '%s'.", file)
+    if creds_file == "" {
+        creds_file = path.Clean(path.Join(a.w.Path(), drivers_data_options_file))
+        gotrace.Trace("Use default credential file '%s'.", creds_file)
     }
-    if err := fpdata.LoadFile(file) ; err != nil {
+    if err := fpdata.LoadFile(creds_file) ; err != nil {
         return err
     }
-    gotrace.Trace("Plugin credentials file '%s' loaded.", file)
+    gotrace.Trace("Plugin credentials file '%s' loaded.", creds_file)
 
     // Load values in Forj.driver_options keys/values pair
     for name, p_opts := range fpdef.Plugins { // each plugin
@@ -122,7 +120,7 @@ func (a *Forj)LoadForjjPluginsOptions() error {
                 pluginOptions[opt_name] = goforjj.PluginOption{ Value: value }
             } else {
                 return fmt.Errorf("Missing driver '%s' option '%s'. driver_type : '%s'. You must create and set it in '%s'\nBasic help: %s - %s",
-                                  name, opt_name, p_opts.Type, file, opt_name, help)
+                                  name, opt_name, p_opts.Type, creds_file, opt_name, help)
             }
         }
         a.drivers_options.AddForjjPluginOptions(name, pluginOptions, p_opts.Type)
@@ -150,18 +148,17 @@ func (d *DriversOptions)AddForjjPluginOptions(name string, options map[string]go
     d.Drivers[name] = DriverOptions{ driver_type, options }
 }
 
-// Used in Maintain context to add options requested by the driver.
-func (d *DriversOptions)GetDriversMaintainParameters(plugin_args map[string]string, action string) error {
-    if action != "maintain" {
-        return nil
-    }
+// Used by api service or cli driver to add options values requested by the driver from creds & def.
+// Currently this function add all values for all drivers to the args. So, we need to:
+// TODO: Revisit how args are built for drivers, when flow will be introduced.
+// We may need to select which one is required for each driver to implement the flow. TBD
+func (d *DriversOptions)GetDriversMaintainParameters(plugin_args map[string]string, action string) {
     for n, v := range d.Drivers {
         for k, o := range v.Options {
             if o.Value == "" {
-                return fmt.Errorf("Missing maintain '%s' parameter '%s'", n, k)
+                gotrace.Trace("Instance '%s' parameter '%s' has no value.", n, k)
             }
             plugin_args[k] = o.Value
         }
     }
-    return nil
 }
