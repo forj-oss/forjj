@@ -11,6 +11,7 @@ import (
     "bytes"
     "path"
     "log"
+    "sort"
 )
 
 // Load driver options to a Command requested.
@@ -131,8 +132,20 @@ func (a *Forj) init_driver_flags(instance_name string) {
             fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", service_type, command)
         }
 
+        // Sort Flags for readibility:
+        keys := make([]string, 0, len(def.Flags))
+
+        for k, _ := range def.Flags {
+            keys = append(keys, k)
+        }
+
+        sort.Strings(keys)
+
         search_re, _ := regexp.Compile("^(.*[_-])?(" + d.plugin.Yaml.Name +")([_-].*)?$")
-        for option_name, params := range def.Flags {
+        for _, sorted_value := range keys {
+
+            option_name := sorted_value
+            params := def.Flags[option_name]
 
             // drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
             // They are not in the list of possible drivers options from the cli.
