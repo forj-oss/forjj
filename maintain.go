@@ -14,12 +14,6 @@ import (
 // But this would be a next version and needs to be validated before this decision is made.
 // Workspace information already loaded by the cli context.
 func (a *Forj) Maintain() error {
-    // Read forjj infra file and the options --file given, defined by create/update driver flags settings saved or not
-    // This load Maintain context required by plugins. Maintain has limited flags to provide at runtime. Everything, except credentials should be stored in the infra-repo and workspace. Credentials is given with the --file option in yaml format.
-    if err := a.LoadForjjPluginsOptions() ; err != nil {
-        return fmt.Errorf("Unable to load plugins options. %s", err)
-    }
-
     // Identify where is the infra-repo and move to it.
     infra_repo := path.Join(a.w.Path(), a.w.Infra.Name)
     if s, err := os.Stat(infra_repo) ; err != nil || !s.IsDir() {

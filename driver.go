@@ -220,9 +220,8 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
     plugin_payload := goforjj.PluginReqData {
         Args: make(map[string]string),
     }
-    if err = a.drivers_options.GetDriversMaintainParameters(plugin_payload.Args, action) ; err != nil {
-        return
-    }
+    a.drivers_options.GetDriversMaintainParameters(plugin_payload.Args, action)
+
     a.GetDriversActionsParameters(plugin_payload.Args, "common")
     a.GetDriversActionsParameters(plugin_payload.Args, action)
 

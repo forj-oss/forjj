@@ -74,6 +74,7 @@ type DriversOptions struct {
 
 type Forj struct {
     // Collections of fields regarding flags given
+    creds_file_f     *kingpin.FlagClause  // Credential file flag.
     infra_rep_f      *kingpin.FlagClause  // Infra flag kingpin struct.
     Orga_name_f      *kingpin.FlagClause  // Organization flag kingpin struct.
     app              *kingpin.Application // Kingpin Application object
@@ -101,6 +102,7 @@ type Forj struct {
     Infra_repo *string // Infra repository name flag value
     Orga_name  *string // Infra repository name flag value
 
+    creds_file             *string  // Credential file
     Branch                 string   // Update feature branch name
     ContribRepo_uri        *url.URL // URL to github raw files for plugin files.
     RepotemplateRepo_uri   *url.URL // URL to github raw files for RepoTemplates.
@@ -128,6 +130,8 @@ func (a *Forj) init() {
     a.debug_f = a.app.Flag("debug", app_debug_help)
     a.debug_f.Bool()
     a.infra_rep_f = a.app.Flag("infra", app_infra_name_help).Short('I').Default("<organization>-infra")
+    a.creds_file_f = a.app.Flag("credentials-file", app_creds_help).Short('C')
+    a.creds_file = a.creds_file_f.String()
     a.Orga_name_f = a.app.Flag("organization", app_orga_name_help).Short('O')
     a.Orga_name = a.Orga_name_f.String()
     a.Infra_repo = a.infra_rep_f.String()
@@ -300,14 +304,15 @@ func (a *Forj) GetDriversActionsParameters(cmd_args map[string]string, cmd strin
     for _, pluginOpts := range a.drivers {
         for k, v := range pluginOpts.cmds[cmd].flags {
             forjj_vars := forjj_regexp.FindStringSubmatch(k)
-            gotrace.Trace("'%s' candidate as parameters.", k)
             if forjj_vars == nil {
+                gotrace.Trace("'%s' candidate as parameters.", k)
                 if v_saved, ok := a.flags_loaded[k] ; ok {
                     v.value = v_saved
                 }
                 if v.value != "" {
                     cmd_args[v.driver_flag_name] = v.value
                     a.flags_loaded[k] = v.value
+                    gotrace.Trace("Set: '%s' <= '%s'", k, v.value)
                 }
             } else {
                 cmd_args[k] = a.GetInternalData(forjj_vars[1])

@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "github.hpe.com/christophe-larsonneur/goforjj"
     "github.com/alecthomas/kingpin"
     "os"
     "regexp"
@@ -41,8 +42,8 @@ func (a *Forj)load_missing_drivers() error {
     gotrace.Trace("Number of registered instances %d", len(a.o.Drivers))
     gotrace.Trace("Number of loaded instances %d", len(a.drivers))
     for instance, d := range a.o.Drivers {
-        gotrace.Trace("Instance %s")
         if _, found := a.drivers[instance] ; !found {
+            gotrace.Trace("Loading missing instance %s", instance)
             a.drivers[instance] = d
             d.cmds = map[string]DriverCmdOptions{
                 "common":   DriverCmdOptions{make(map[string]DriverCmdOptionFlag)},
@@ -122,6 +123,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
     d := a.drivers[instance_name]
     service_type := d.DriverType
     commands := d.plugin.Yaml.Actions
+    d_opts := a.drivers_options.Drivers[instance_name]
 
     gotrace.Trace("Setting flags from plugin type '%s' (%s)", service_type, d.plugin.Yaml.Name)
     for command, def := range commands {
@@ -140,46 +142,77 @@ func (a *Forj) init_driver_flags(instance_name string) {
             }
 
             forjj_option_name := SetAppropriateflagName(option_name, instance_name, search_re)
-            d.cmds[command].flags[forjj_option_name] = DriverCmdOptionFlag{ driver_flag_name: option_name } // No value by default. Will be set later after complete parse.
 
-            var flag *kingpin.FlagClause
-            // Create flag 'option_name' on kingpin cmd or app
             if command == "common" {
-                if forjj_option_name != option_name {
-                    gotrace.Trace("Set Common flag for '%s(%s)'", forjj_option_name, option_name)
-                } else {
-                    gotrace.Trace("Set Common flag for '%s'", forjj_option_name)
+                // loop on create/update/maintain to create flag on each command
+                gotrace.Trace("Create common flags '%s' to each commands...", forjj_option_name)
+                for _, cmd := range []string {"create", "update", "maintain"} {
+                    flag := d.init_driver_flags_for(a, option_name, cmd, forjj_option_name, params.Help)
+                    d_opts.set_flag_options(flag, option_name, &params)
                 }
-
-                flag = a.app.Flag(forjj_option_name, params.Help)
-                if d.flags == nil {
-                    d.flags = make(map[string]*kingpin.FlagClause)
-                    d.flagsv = make(map[string]*string)
-                }
-                d.flags[forjj_option_name] = flag
-                d.flagsv[forjj_option_name] = flag.String()
             } else {
-                if forjj_option_name != option_name {
-                    gotrace.Trace("Set action '%s' flag for '%s(%s)'", command, forjj_option_name, option_name)
-                } else {
-                    gotrace.Trace("Set action '%s' flag for '%s'", command, forjj_option_name)
-                }
-                opts := a.GetActionOptsFromString(command)
-                flag = opts.Cmd.Flag(forjj_option_name, params.Help)
-                opts.flags[forjj_option_name] = flag
-                opts.flagsv[forjj_option_name] = flag.String()
+                flag := d.init_driver_flags_for(a, option_name, command, forjj_option_name, params.Help)
+                d_opts.set_flag_options(flag, option_name, &params)
             }
+        }
+    }
+}
 
-            if params.Required && command != "maintain" {
-                flag.Required()
-            }
+// Set options on a new flag created.
+//
+// It currently assigns defaults or required.
+//
+func (d *DriverOptions)set_flag_options(flag *kingpin.FlagClause, option_name string, params *goforjj.YamlFlagsOptions) {
+    if params == nil || flag == nil {
+        return
+    }
 
-            if params.Default != "" {
-                flag.Default(params.Default)
+    var preloaded_data bool
+
+    if d != nil {
+        if option_value, found := d.Options[option_name] ; found && option_value.Value != "" {
+            // Do not set flag in any case as required or with default, if a value has been set in the driver loaded options (creds-forjj.yml)
+            preloaded_data = true
+            if params.Secure{
+                // We do not set a secure data as default in kingpin default flags to avoid displaying them from forjj help.
+                gotrace.Trace("Option value found for '%s' : -- set as hidden default value. --", option_name)
+                // The data will be retrieved by
+            } else {
+                gotrace.Trace("Option value found for '%s' : %s -- Default value. --", option_name, option_value.Value)
+                // But here, we can show through kingpin default what was loaded.
+                flag.Default(option_value.Value)
             }
         }
     }
 
+    if ! preloaded_data {
+        // No preloaded data from forjj-creds.yaml (or equivalent files) -- Normal plugin driver set up
+        if params.Required {
+            flag.Required()
+        }
+        if params.Default != "" {
+            flag.Default(params.Default)
+        }
+    }
+}
+
+// Create the flag to a kingpin Command. (create/update/maintain)
+func (d *Driver) init_driver_flags_for(a *Forj, option_name,  command, forjj_option_name, forjj_option_help string) (flag *kingpin.FlagClause) {
+    // No value by default. Will be set later after complete parse.
+    d.cmds[command].flags[forjj_option_name] = DriverCmdOptionFlag{ driver_flag_name: option_name }
+
+    // Create flag 'option_name' on kingpin cmd or app
+    if forjj_option_name != option_name {
+        gotrace.Trace("Set action '%s' flag for '%s(%s)'", command, forjj_option_name, option_name)
+    } else {
+        gotrace.Trace("Set action '%s' flag for '%s'", command, forjj_option_name)
+    }
+    opts := a.GetActionOptsFromString(command)
+    flag = opts.Cmd.Flag(forjj_option_name, forjj_option_help)
+    opts.flags[forjj_option_name] = flag
+    opts.flagsv[forjj_option_name] = flag.String()
+
+    return
 }
 
 // Define the Forjj flag name for the plugin selected.
@@ -224,6 +257,7 @@ func (a *Forj) GetDriversFlags(args []string) {
         }
     }
 
-    // Load missing drivers runtime information from forjj-options.yaml
+    // Automatically load all other drivers not requested by --apps but listed in forjj-options.yaml.
+    // Those drivers are all used by all services that forjj should manage.
     a.load_missing_drivers()
 }
