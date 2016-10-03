@@ -111,3 +111,26 @@ func (w *Workspace)Load(wsp, wsn string) error {
     gotrace.Trace("File '%s' loaded.", fjson)
     return nil
 }
+
+// When this function is called, it will
+// try to identify if we are in an existing workspace
+// It will set the WorkSpace name and path.
+func (w *Workspace)DetectIt() error {
+    var pwd string
+    if v, err := os.Getwd() ; err != nil {
+        return err
+    } else {
+        pwd = v
+    }
+    for {
+        if _, err := os.Stat(path.Join(pwd, forjj_workspace_json_file)) ; err == nil  {
+            w.Init(path.Base(pwd),  path.Dir(pwd))
+            gotrace.Trace("Found workspace at '%s'", pwd)
+            return nil
+        }
+        pwd = path.Dir(pwd)
+        if pwd == "/" {
+            return nil
+        }
+    }
+}

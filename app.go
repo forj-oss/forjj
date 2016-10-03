@@ -152,12 +152,12 @@ func (a *Forj) init() {
     contribs_repo := map[string]interface{}{"envar": "CONTRIBS_REPO"}
     repotemplates_repo := map[string]interface{}{"envar": "REPOTEMPLATES_REPO"}
     flows_repo := map[string]interface{}{"envar": "FLOWS_REPO"}
-    required := map[string]interface{}{"required": true}
+//    required := map[string]interface{}{"required": true}
     ssh_dir_opts := map[string]interface{}{"default": fmt.Sprintf("%s/.ssh", os.Getenv("HOME"))}
     no_set_value_opts := map[string]interface{}{"set_value": false}
 
     a.SetCommand("create", create_action_help)
-    a.SetCmdArg("create", "workspace", create_orga_help, required)
+    a.SetCmdArg("create", "workspace", create_orga_help, no_opts)
     a.SetCmdFlag("create", ssh_dir_flag_name, create_ssh_dir_help, ssh_dir_opts)
     a.SetCmdFlag("create", "contribs-repo", contribs_repo_help, contribs_repo)
     a.SetCmdFlag("create", "flows-repo", flows_repo_help, flows_repo)
@@ -176,8 +176,7 @@ func (a *Forj) init() {
 
       We could probably use this update to add repositories or migrate the solution to a different place.  */
     a.SetCommand("update", update_action_help)
-    a.SetCmdArg("update", "workspace", update_orga_help, required)
-    a.SetCmdArg("update", "branch", update_branch_help, required)
+    a.SetCmdArg("update", "workspace", update_orga_help, no_opts)
     a.SetCmdFlag("update", ssh_dir_flag_name, update_ssh_dir_help, ssh_dir_opts)
     a.SetCmdFlag("update", "contribs-repo", contribs_repo_help, contribs_repo)
     a.SetCmdFlag("update", "flows-repo", flows_repo_help, flows_repo)
@@ -198,7 +197,7 @@ func (a *Forj) init() {
       The technology to ensure (orchestration), could be puppet/ansible combined with docker.
       This is not fully defined.  */
     a.SetCommand("maintain", maintain_action_help)
-    a.SetCmdArg("maintain", "workspace", maintain_orga_help, required)
+    a.SetCmdArg("maintain", "workspace", maintain_orga_help, no_opts)
     a.SetCmdFlag("maintain", "infra_url", maintain_infra_url_help, no_opts)
     // FUTURE: Difficulty: 2. Provide a way to expose options defined in the maintain option file as CLI maintain flags.
     a.SetCmdFlag("maintain", "file", maintain_option_file, no_opts)
