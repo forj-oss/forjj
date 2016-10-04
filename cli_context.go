@@ -49,6 +49,9 @@ func (a *Forj) LoadContext(args []string) {
         orga = path.Clean(orga)
         Workspace = path.Base(orga)
         Workspace_path = path.Dir(orga)
+    } else {
+        err = a.w.DetectIt()
+        kingpin.FatalIfError(err, "Unable to find the workspace from current directory. please define one to create it.")
     }
 
     // Load Workspace information
