@@ -52,7 +52,8 @@ func (a *Forj)Update() error {
     // TODO: flow_start to execute instructions before updating source code for existing apps in appropriate branch. Possible if a flow is already implemented otherwise git must stay in master branch
     // flow_start()
 
-    if err := a.MoveToFixBranch(*a.Actions["update"].argsv["branch"]) ; err != nil {
+    // Disabled as not ready.
+    //if err := a.MoveToFixBranch(*a.Actions["update"].argsv["branch"]) ; err != nil {
         return fmt.Errorf("Unable to move to your feature branch. %s", err)
     }
 
