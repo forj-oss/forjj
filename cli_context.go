@@ -45,7 +45,16 @@ func (a *Forj) LoadContext(args []string) {
     Workspace := ""
     Workspace_path := ""
     // The value is not set in argsv. But is in the parser context.
-    if orga, found := a.argValue(context, opts.args["workspace"]); found {
+    var orga string
+    var found bool
+
+    if opts.name == "create" {
+        orga, found = a.argValue(context, opts.args["workspace"])
+    } else {
+        orga, found = a.flagValue(context, opts.flags["ws"])
+    }
+
+    if found {
         orga = path.Clean(orga)
         Workspace = path.Base(orga)
         Workspace_path = path.Dir(orga)
