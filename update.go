@@ -54,8 +54,8 @@ func (a *Forj)Update() error {
 
     // Disabled as not ready.
     //if err := a.MoveToFixBranch(*a.Actions["update"].argsv["branch"]) ; err != nil {
-        return fmt.Errorf("Unable to move to your feature branch. %s", err)
-    }
+    //    return fmt.Errorf("Unable to move to your feature branch. %s", err)
+    //}
 
     // If the upstream driver has updated his source, we need to get and commit them. If
     // Commiting source code.
