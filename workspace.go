@@ -32,16 +32,17 @@ type Workspace struct {
     workspace_path         string               // Workspace directory path.
 }
 
-func (w *Workspace)Init(Workspace_path, Workspace string) {
-    w.workspace_path = Workspace_path
-    w.workspace = Workspace
+func (w *Workspace)Init(Workspace_path string) {
+    Workspace_path = path.Clean(Workspace_path)
+    w.workspace_path = path.Dir(Workspace_path)
+    w.workspace = path.Base(Workspace_path)
     if w.Infra.Remotes == nil {
         w.Infra.Remotes = make(map[string]string)
     }
     if w.Infra.BranchConnect == nil {
         w.Infra.BranchConnect = make(map[string]string)
     }
-    gotrace.Trace("Use workspace : %s (%s / %s)",w.Path(), Workspace_path, Workspace)
+    gotrace.Trace("Use workspace : %s (%s / %s)",w.Path(), w.workspace_path, w.workspace)
 }
 
 // Provide the workspace absolute path
@@ -88,8 +89,10 @@ func (w *Workspace)Save(app *Forj) {
 
 // Load workspace information from the forjj.json
 // Workspace path is get from forjj and set kept in the workspace as reference for whole forjj thanks to a.w.Path()
-func (w *Workspace)Load(wsp, wsn string) error {
-    w.Init(wsp, wsn)
+func (w *Workspace)Load() error {
+    if w.workspace_path == "" || w.workspace == "" {
+        return fmt.Errorf("Invalid workspace. name or path are empty.")
+    }
 
     fjson := path.Join(w.Path(), forjj_workspace_json_file)
 
@@ -114,23 +117,23 @@ func (w *Workspace)Load(wsp, wsn string) error {
 
 // When this function is called, it will
 // try to identify if we are in an existing workspace
-// It will set the WorkSpace name and path.
-func (w *Workspace)DetectIt() error {
+// It will return the path found.
+// You will need to call Init(path) and later Load()
+func (w *Workspace)DetectIt() (string, error) {
     var pwd string
     if v, err := os.Getwd() ; err != nil {
-        return err
+        return "", err
     } else {
         pwd = v
     }
     for {
         if _, err := os.Stat(path.Join(pwd, forjj_workspace_json_file)) ; err == nil  {
-            w.Init(path.Base(pwd),  path.Dir(pwd))
             gotrace.Trace("Found workspace at '%s'", pwd)
-            return nil
+            return pwd, nil
         }
         pwd = path.Dir(pwd)
         if pwd == "/" {
-            return nil
+            return "", fmt.Errorf("Unable to find a valid workspace from your path.")
         }
     }
 }

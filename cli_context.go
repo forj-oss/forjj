@@ -5,8 +5,8 @@ import (
     "github.com/alecthomas/kingpin"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
     "net/url"
-    "path"
     "log"
+    "os"
 )
 
 // Load cli context to adapt the list of options/flags from the driver definition.
@@ -42,29 +42,11 @@ func (a *Forj) LoadContext(args []string) {
         }
     }
 
-    Workspace := ""
-    Workspace_path := ""
-    // The value is not set in argsv. But is in the parser context.
-    var orga string
-    var found bool
-
-    if opts.name == "create" {
-        orga, found = a.argValue(context, opts.args["workspace"])
-    } else {
-        orga, found = a.flagValue(context, opts.flags["ws"])
-    }
-
-    if found {
-        orga = path.Clean(orga)
-        Workspace = path.Base(orga)
-        Workspace_path = path.Dir(orga)
-    } else {
-        err = a.w.DetectIt()
-        kingpin.FatalIfError(err, "Unable to find the workspace from current directory. please define one to create it.")
-    }
+    // load FORJJ workspace information
+    a.setWorkspace(context , opts)
 
     // Load Workspace information
-    a.w.Load(Workspace_path, Workspace)
+    a.w.Load()
 
     // Load Global Forjj options from infra repo, if found.
     a.LoadForjjOptions()
@@ -73,8 +55,8 @@ func (a *Forj) LoadContext(args []string) {
     // Can be set only the first time
     if a.w.Organization == "" {
         if orga, found := a.flagValue(context, a.Orga_name_f); !found {
-            a.Orga_name_f = a.Orga_name_f.Default(Workspace)
-            a.w.Organization = Workspace
+            a.Orga_name_f = a.Orga_name_f.Default(a.w.workspace)
+            a.w.Organization = a.w.workspace
         } else {
             a.w.Organization = orga
         }
@@ -125,6 +107,34 @@ func (a *Forj) LoadContext(args []string) {
         gotrace.Trace("Warning! Options files were not loaded. %s", err)
     }
 
+}
+
+// Initialize the workspace environment required by Forjj to work.
+func (a *Forj) setWorkspace(context *kingpin.ParseContext, opts *ActionOpts) {
+    // The value is not set in argsv. But is in the parser context.
+    var orga_path string
+    var found bool
+    var err error
+
+    if opts.name == "create" {
+        orga_path, found = a.argValue(context, opts.args["workspace"])
+    } else {
+        orga_path, found = a.flagValue(context, opts.flags["ws"])
+    }
+
+    if !found {
+        if v := os.Getenv("FORJJ_WORKSPACE") ; v != "" {
+            orga_path = v
+            found = true
+        }
+    }
+
+    if ! found {
+        orga_path, err = a.w.DetectIt()
+        kingpin.FatalIfError(err, "Unable to find the workspace from current directory, FORJJ_WORKSPACE or cli. please define one to create it.")
+    }
+
+    a.w.Init(orga_path)
 }
 
 type validateHdlr func(string) error
