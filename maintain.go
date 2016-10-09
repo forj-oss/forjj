@@ -4,7 +4,6 @@ import (
     "fmt"
     "log"
     "os"
-    "path"
     "github.hpe.com/christophe-larsonneur/goforjj/trace"
 )
 
@@ -14,20 +13,17 @@ import (
 // But this would be a next version and needs to be validated before this decision is made.
 // Workspace information already loaded by the cli context.
 func (a *Forj) Maintain() error {
-    // Identify where is the infra-repo and move to it.
-    infra_repo := path.Join(a.w.Path(), a.w.Infra.Name)
-    if s, err := os.Stat(infra_repo) ; err != nil || !s.IsDir() {
-        return fmt.Errorf("Invalid Infra repo. Inexistent or not a directory.")
-    }
-    if _, err := os.Stat(path.Join(infra_repo, ".git", "config")) ; err != nil {
-        return fmt.Errorf("Invalid Infra repo. Seems not to be a git repository. Please check.")
+    if _, err := a.w.check_exist() ; err != nil {
+        return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
     }
 
-    gotrace.Trace("Moving to infra-repo '%s'", infra_repo)
+    gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-    if err := os.Chdir(infra_repo) ; err != nil {
-        return fmt.Errorf("Unable to move to the infra-repo at '%s'. %s", infra_repo, err)
+    if _, err := a.local_repo_exist(a.w.Infra.Name) ; err != nil {
+        return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
     }
+
+    // Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
     // Load drivers from forjj-options.yml
     // loop from options/Repos and keep them in a.drivers

@@ -13,11 +13,21 @@ import (
 // Workspace data has been initialized or loaded.
 // forjj-options has been initialized or loaded
 func (a *Forj)Update() error {
+    if _, err := a.w.check_exist() ; err != nil {
+        return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
+    }
+
     if err := a.define_infra_upstream("update") ; err != nil {
         return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
     }
 
     gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
+
+    if _, err := a.local_repo_exist(a.w.Infra.Name) ; err != nil {
+        return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
+    }
+
+    // Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
     // save infra repository location in the workspace.
     defer a.w.Save(a)
@@ -47,7 +57,6 @@ func (a *Forj)Update() error {
         }
     }
 
-    // Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
     // TODO: flow_start to execute instructions before updating source code for existing apps in appropriate branch. Possible if a flow is already implemented otherwise git must stay in master branch
     // flow_start()

@@ -70,6 +70,17 @@ func (w *Workspace)Ensure_exist() (string, error){
     return w_path, nil
 }
 
+// Check if a workspace exist or not
+func (w *Workspace)check_exist() (bool, error) {
+    w_path := w.Path()
+    _, err := os.Stat(w_path)
+    if os.IsNotExist(err) {
+        return false, fmt.Errorf("Forjj workspace tree '%s' is inexistent. %s", w_path, err)
+    }
+    return true, nil
+
+}
+
 func (w *Workspace)Save(app *Forj) {
     var djson []byte
 
