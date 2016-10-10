@@ -22,38 +22,12 @@ func (a *Forj) RepoPath(repo_name string) string {
 // - repo initialized
 // At the end Current dir is in the Repo.
 func (a *Forj) ensure_local_repo_initialized(repo_name string) error {
-    w_path, err := a.w.Ensure_exist()
-    if  err != nil {
+    if createable, err := a.local_repo_exist(repo_name) ; !createable {
         return err
     }
-    os.Chdir(w_path)
 
-    repo := a.RepoPath(repo_name)
-
-    gotrace.Trace("Checking '%s' repository...", repo)
-    dir, err := os.Stat(repo)
-    if os.IsNotExist(err) {
-        if git("init", repo) > 0 {
-            return fmt.Errorf("Unable to initialize %s\n", repo)
-        }
-        gotrace.Trace("Created '%s' repository...", repo)
-    }
-
-    dir, err = os.Stat(path.Join(repo, ".git"))
-    if os.IsNotExist(err) {
-        gotrace.Trace("Existing directory '%s' will became a git repo", repo)
-        if git("init", repo) > 0 {
-            return fmt.Errorf("Unable to initialize %s\n", repo)
-        }
-        gotrace.Trace("Initialized '%s' directory as git repository...", repo)
-    }
-
-    if os.IsExist(err) && !dir.IsDir() {
-        return fmt.Errorf("'%s' is not a valid GIT repository. Please fix it first. '%s' is not a directory.\n", repo, path.Join(repo, ".git"))
-    }
-
-    if err := os.Chdir(repo) ; err != nil {
-        return fmt.Errorf("Unable to move to '%s' : %s\n", err)
+    if git("init", a.RepoPath(repo_name)) > 0 {
+        return fmt.Errorf("Unable to initialize %s\n", a.RepoPath(repo_name))
     }
 
     return nil
@@ -274,3 +248,38 @@ func git_1st_commit(repo, README_content string) {
     gotrace.Trace("Initial commit created.")
 }
 
+// This function check if the repo exist and state if it is create-able.
+// If the path is a valid repo, create-able will be false and err = nil
+// else err is won't be nil. But create-able is true only if the repo
+// can be initialized.
+
+func (a *Forj)local_repo_exist(repo_name string) (bool, error) {
+    repo := a.RepoPath(repo_name)
+
+    gotrace.Trace("Checking '%s' repository...", repo)
+
+    if dir, err := os.Stat(repo) ; err != nil && os.IsNotExist(err) {
+        return true, fmt.Errorf("%s is inexistent.", repo)
+    } else {
+        if !dir.IsDir() {
+            return false, fmt.Errorf("%s must be a directory.", repo)
+        }
+    }
+
+    if dir, err := os.Stat(path.Join(repo, ".git")) ; err == nil {
+        if ! dir.IsDir() {
+            return false, fmt.Errorf("%s is not a valid repo. You may need to remove %s/.git", repo)
+        }
+    } else {
+        return true, fmt.Errorf("%s is not a valid repo.", repo)
+    }
+
+    if err := os.Chdir(repo) ; err != nil {
+        return false, fmt.Errorf("Unable to move to '%s' : %s\n", err)
+    }
+
+    if run_cmd("git", "rev-parse", "--show-toplevel") > 0 {
+        return false, fmt.Errorf("%s is not a valid git repository work tree.", repo)
+    }
+    return false, nil
+}

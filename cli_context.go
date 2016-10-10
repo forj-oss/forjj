@@ -45,7 +45,7 @@ func (a *Forj) LoadContext(args []string) {
     // load FORJJ workspace information
     a.setWorkspace(context , opts)
 
-    // Load Workspace information
+    // Load Workspace information if found
     a.w.Load()
 
     // Load Global Forjj options from infra repo, if found.
