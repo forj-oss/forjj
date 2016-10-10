@@ -27,7 +27,11 @@ func (a *Forj) ensure_local_repo_initialized(repo_name string) error {
     }
 
     if git("init", a.RepoPath(repo_name)) > 0 {
-        return fmt.Errorf("Unable to initialize %s\n", a.RepoPath(repo_name))
+        return fmt.Errorf("Unable to initialize %s", a.RepoPath(repo_name))
+    }
+
+    if err := os.Chdir(a.RepoPath(repo_name)) ; err != nil {
+        return fmt.Errorf("Unable to move repository at %s. %s", a.RepoPath(repo_name), err)
     }
 
     return nil
