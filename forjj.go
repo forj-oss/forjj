@@ -17,12 +17,20 @@ const Docker_image = "docker.hos.hpecorp.net/devops/forjj"
 
 // ************************** MAIN ******************************
 func main() {
- forj_app.init()
- parse, err := forj_app.app.Parse(os.Args[1:])
- forj_app.InitializeDriversFlag()
- defer forj_app.driver_cleanup_all()
- switch kingpin.MustParse(parse, err) {
-   case "create":
+    forj_app.init()
+    parse, err := forj_app.app.Parse(os.Args[1:])
+
+    // Check initial requirement for forjj create
+    if parse == "create" {
+        if found, _ := forj_app.w.check_exist() ; found {
+            log.Fatalf("Unable to create the workspace '%s'. Already exist.", forj_app.w.Path())
+        }
+    }
+
+    forj_app.InitializeDriversFlag()
+    defer forj_app.driver_cleanup_all()
+    switch kingpin.MustParse(parse, err) {
+    case "create":
         if err := forj_app.Create() ; err != nil {
             log.Fatalf("Forjj create issue. %s", err)
         }
@@ -35,16 +43,16 @@ func main() {
         }
         println("FORJJ - create ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
 
-   case "update":
+    case "update":
         if err := forj_app.Update() ; err != nil {
             log.Fatalf("Forjj update issue. %s", err)
         }
         println("FORJJ - update ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
 
-   case "maintain":
+    case "maintain":
         if err := forj_app.Maintain() ; err != nil {
             log.Fatalf("Forjj maintain issue. %s", err)
         }
         println("FORJJ - maintain ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
-   }
+    }
 }
