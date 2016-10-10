@@ -21,6 +21,9 @@ func (a *Forj) Create() error {
         return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
     }
 
+    if a.w.Instance == "" {
+        return fmt.Errorf("Unable to determine the upstream for your infra repository.\nIf you do not want any upstream, use --infra-upstream none.\nIf you want to connect to an upstream, at least use --apps upstream:<upstream_driver>[:<instance_name>]. If you have several upstreams, you will need to add the --infra-upstream <instance_name>.")
+    }
     gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
     // save infra repository location in the workspace.
@@ -144,7 +147,7 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
             a.w.Driver = d.Name
             gotrace.Trace("Infra Plugin driver identified and referenced.")
         } else {
-            log.Printf("Infra '%s' Plugin driver not found. Use --apps upstream:<DriverName>:%s to create/configure the infra repo upstream.", a.w.Instance, a.w.Instance)
+            gotrace.Trace("Infra '%s' Plugin driver not found.", a.w.Instance, a.w.Instance)
         }
     }()
 
