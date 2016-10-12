@@ -1,3 +1,6 @@
 *.swp
 test_go*
 tasks.json
+/.idea
+forjj.iml
+*.iml

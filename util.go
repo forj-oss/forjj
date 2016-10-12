@@ -4,7 +4,7 @@ import (
     "os"
     "os/exec"
     "strconv"
-    "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "github.com/forj-oss/forjj-modules/trace"
     "strings"
     "syscall"
     "github.com/kvz/logstreamer"

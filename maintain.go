@@ -4,7 +4,7 @@ import (
     "fmt"
     "log"
     "os"
-    "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "github.com/forj-oss/forjj-modules/trace"
 )
 
 // Call docker to create the Solution source code from scratch with validated parameters.

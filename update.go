@@ -1,7 +1,7 @@
 package main
 
 import (
-    "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "github.com/forj-oss/forjj-modules/trace"
     "fmt"
     "log"
     "regexp"

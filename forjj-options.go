@@ -6,7 +6,7 @@ import (
     "io/ioutil"
     "fmt"
     "path"
-    "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "github.com/forj-oss/forjj-modules/trace"
     "os"
 )
 

@@ -5,8 +5,8 @@ import (
     "io/ioutil"
     "fmt"
     "path"
-    "github.hpe.com/christophe-larsonneur/goforjj/trace"
-    "github.hpe.com/christophe-larsonneur/goforjj"
+    "github.com/forj-oss/forjj-modules/trace"
+    "github.com/forj-oss/goforjj"
 )
 
 const (

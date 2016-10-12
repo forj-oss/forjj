@@ -6,9 +6,9 @@ import (
     "log"
     "fmt"
     "os"
-    "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "github.com/forj-oss/forjj-modules/trace"
     "strings"
-    "github.hpe.com/christophe-larsonneur/goforjj"
+    "github.com/forj-oss/goforjj"
 )
 
 const (

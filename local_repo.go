@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "github.hpe.com/christophe-larsonneur/goforjj/trace"
+    "github.com/forj-oss/forjj-modules/trace"
     "os"
     "path"
     "io/ioutil"

@@ -3,9 +3,9 @@ package main
 import (
     "fmt"
     "github.com/alecthomas/kingpin"
-    "github.hpe.com/christophe-larsonneur/goforjj/trace"
-    "net/url"
+    "github.com/forj-oss/forjj-modules/trace"
     "log"
+    "net/url"
     "os"
 )
 
@@ -20,30 +20,31 @@ import (
 //
 // - Load missing drivers information from forjj-options.yaml
 func (a *Forj) LoadContext(args []string) {
-    context, err := a.app.ParseContext(args)
+    context, err := a.cli.App.ParseContext(args)
     if context == nil {
         kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?")
     }
 
-    cmd := context.SelectedCommand
+    cmd := a.cli.SetCmdContext(context)
     if cmd == nil {
         return
     }
 
+    a.cli.LoadValuesFrom(context)
     opts := a.GetActionOptsFromCli(cmd)
 
     a.CurrentCommand = opts
 
-    if debug_mode, found := a.flagValue(context, a.debug_f); found {
-        // global debug defined in trace.go
-        log.Printf("Debug set to '%s'.\n", debug_mode)
-        if debug_mode == "true" {
+    if a.cli.IsAppValueFound(debug_f) {
+        debug := a.cli.GetAppBoolValue(debug_f)
+        log.Printf("Debug set to '%s'.\n", debug)
+        if debug {
             gotrace.SetDebug()
         }
     }
 
     // load FORJJ workspace information
-    a.setWorkspace(context , opts)
+    a.setWorkspace(context, opts)
 
     // Load Workspace information if found
     a.w.Load()
@@ -54,14 +55,15 @@ func (a *Forj) LoadContext(args []string) {
     // Set organization name to use.
     // Can be set only the first time
     if a.w.Organization == "" {
-        if orga, found := a.flagValue(context, a.Orga_name_f); !found {
-            a.Orga_name_f = a.Orga_name_f.Default(a.w.workspace)
+        if a.cli
+        if orga, found := a.flagValue(context, a.cli.Orga_name_f); !found {
+            a.cli.Orga_name_f = a.cli.Orga_name_f.Default(a.w.workspace)
             a.w.Organization = a.w.workspace
         } else {
             a.w.Organization = orga
         }
     } else {
-        if orga, found := a.flagValue(context, a.Orga_name_f); found && orga != a.w.Organization {
+        if orga, found := a.flagValue(context, a.cli.Orga_name_f); found && orga != a.w.Organization {
             fmt.Printf("Warning!!! You cannot update the organization name in an existing workspace.\n")
         }
     }
@@ -69,20 +71,20 @@ func (a *Forj) LoadContext(args []string) {
     if a.w.Organization != "" {
         log.Printf("Organization : '%s'", a.w.Organization)
         // Set the 'infra' default flag value
-        a.infra_rep_f = a.infra_rep_f.Default(fmt.Sprintf("%s-infra", a.w.Organization))
+        a.cli.Infra_rep_f = a.cli.Infra_rep_f.Default(fmt.Sprintf("%s-infra", a.w.Organization))
     }
 
     // Set the infra repo name to use
     // Can be set only the first time
     if a.w.Infra.Name == "" {
-        if infra, found := a.flagValue(context, a.infra_rep_f); found {
+        if infra, found := a.flagValue(context, a.cli.Infra_rep_f); found {
             // Get infra name from the flag
             a.w.Infra.Name = infra
         } else { // Or use the default setting.
             a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
         }
     } else {
-        if infra, found := a.flagValue(context, a.infra_rep_f); found && infra != a.w.Infra.Name {
+        if infra, found := a.flagValue(context, a.cli.Infra_rep_f); found && infra != a.w.Infra.Name {
             fmt.Printf("Warning!!! You cannot update the Infra repository name in an existing workspace.\n")
         }
     }
@@ -95,15 +97,15 @@ func (a *Forj) LoadContext(args []string) {
     opts.set_from_urlflag(a, context, "flows-repo", a.FlowRepo_uri, &a.w.Flow_repo_path)
     opts.set_from_urlflag(a, context, "repotemplates-repo", a.RepotemplateRepo_uri, &a.w.Repotemplate_repo_path)
 
-    // Getting list of drivers (--apps)
-    a.drivers_list.list = make(map[string]DriverDef)
-    a.drivers_list.GetDriversFromContext(context, a.c_drivers_list_f)
-    a.drivers_list.GetDriversFromContext(context, a.u_drivers_list_f)
+    // Getting list of drivers (--apps) - Obsolete
+    /*    a.drivers_list.list = make(map[string]DriverDef)
+        a.drivers_list.GetDriversFromContext(context, a.cli.C_drivers_list_f)
+        a.drivers_list.GetDriversFromContext(context, a.cli.U_drivers_list_f)*/
 
     // Read forjj infra file and the options --file given, defined by create/update driver flags settings saved or not
     // This load Maintain context required by plugins. Maintain has limited flags to provide at runtime. Everything, except credentials should be stored in the infra-repo and workspace. Credentials is given with the --file option in yaml format.
-    file_desc, _ := a.flagValue(context, a.creds_file_f)
-    if err := a.LoadForjjPluginsOptions(file_desc) ; err != nil {
+    file_desc := a.cli.GetAppStringValue(cred_f)
+    if err := a.LoadForjjPluginsOptions(file_desc); err != nil {
         gotrace.Trace("Warning! Options files were not loaded. %s", err)
     }
 
@@ -123,13 +125,13 @@ func (a *Forj) setWorkspace(context *kingpin.ParseContext, opts *ActionOpts) {
     }
 
     if !found {
-        if v := os.Getenv("FORJJ_WORKSPACE") ; v != "" {
+        if v := os.Getenv("FORJJ_WORKSPACE"); v != "" {
             orga_path = v
             found = true
         }
     }
 
-    if ! found {
+    if !found {
         orga_path, err = a.w.DetectIt()
         kingpin.FatalIfError(err, "Unable to find the workspace from current directory, FORJJ_WORKSPACE or cli. please define one to create it.")
     }
@@ -140,10 +142,10 @@ func (a *Forj) setWorkspace(context *kingpin.ParseContext, opts *ActionOpts) {
 type validateHdlr func(string) error
 
 // Set a string variable pointer with value found in cli context.
-func (o *ActionOpts)set_from_flag(a *Forj, context *kingpin.ParseContext, flag string, store *string, val_fcnt validateHdlr) error {
-    if d, found := a.flagValue(context, o.flags[flag]) ; found {
+func (o *ActionOpts) set_from_flag(a *Forj, context *kingpin.ParseContext, flag string, store *string, val_fcnt validateHdlr) error {
+    if d, found := a.flagValue(context, o.flags[flag]); found {
         if val_fcnt != nil {
-            if err := val_fcnt(d) ; err != nil {
+            if err := val_fcnt(d); err != nil {
                 return err
             }
         }
@@ -152,14 +154,14 @@ func (o *ActionOpts)set_from_flag(a *Forj, context *kingpin.ParseContext, flag s
     return nil
 }
 
-func (o *ActionOpts)set_from_urlflag(a *Forj, context *kingpin.ParseContext, flag string, theurl *url.URL, store *string)  {
+func (o *ActionOpts) set_from_urlflag(a *Forj, context *kingpin.ParseContext, flag string, theurl *url.URL, store *string) {
     value := ""
 
-    if _, found := o.flags[flag] ; ! found {
+    if _, found := o.flags[flag]; !found {
         gotrace.Trace("No '%s' flag found in cli context. Used stored value '%s'", flag, *store)
         value = *store
     } else {
-        if d, found := a.flagValue(context, o.flags[flag]) ; found {
+        if d, found := a.flagValue(context, o.flags[flag]); found {
             value = d
         } else {
             if o.flags[flag].HasEnvarValue() {
@@ -205,7 +207,7 @@ func (*Forj) flagValue(context *kingpin.ParseContext, f *kingpin.FlagClause) (va
 func (a *Forj) SetCommand(name, help string) {
     a.Actions[name] = &ActionOpts{
         name:   name,
-        Cmd:    a.app.Command(name, help),
+        Cmd:    a.cli.App.Command(name, help),
         flags:  make(map[string]*kingpin.FlagClause),
         flagsv: make(map[string]*string),
         args:   make(map[string]*kingpin.ArgClause),
