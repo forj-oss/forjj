@@ -176,53 +176,80 @@ func (a *Forj) init() {
 	// ACTIONS ************
 	// Create kingpin actions layer in kingpin.
 	// ex: forjj add
-	a.cli.AddActions(cr_act, create_action_help, "Create %s", true)
-	a.cli.AddActions(add_act, add_action_help, "Add or more %s.", false)
-	a.cli.AddActions(upd_act, update_action_help, "Update one or more %s.", false)
-	a.cli.AddActions(rem_act, remove_action_help, "remove one or more %s.", false)
-	a.cli.AddActions(ren_act, rename_action_help, "Rename %s.", false)
-	a.cli.AddActions(list_act, list_action_help, "List %s.", false)
-	a.cli.AddActions(maint_act, maintain_action_help, "Maintain %s.", true)
-
-	// OBJECTS ************
-	// Create Object layer in kingpin on top of each actions.
-	// ex: forjj add repo
-	a.cli.AddObjectActions(workspace, "forjj workspace", true, upd_act, maint_act)
-	a.cli.AddObjectActions(infra, "your infrastructure", true, cr_act, upd_act)
-	a.cli.AddObjectActions(repo, "GIT repositories", true, add_act, upd_act, rem_act, ren_act, list_act)
-	a.cli.AddObjectActions(app, "application driver", true, add_act, rem_act, list_act)
-	a.cli.AddObjectActions(flow, "Flow over applications", true, add_act, rem_act, list_act)
-
-	// FLAGS **************
-	// Add flags/Args to Action/Object couple
-	//
-	// ex: forjj add workspace --docker-exe-path ...
-	a.cli.AddObjectActionsParam(cli.Flag, cli.String, workspace, "docker-exe-path", docker_exe_path_help, nil, upd_act, rem_act)
-	a.cli.AddObjectActionsParam(cli.Flag, cli.String, workspace, "contribs-repo", contribs_repo_help, opts_contribs_repo, upd_act, rem_act)
-	a.cli.AddObjectActionsParam(cli.Flag, cli.String, workspace, "flows-repo", flows_repo_help, opts_flows_repo, upd_act, rem_act)
-	a.cli.AddObjectActionsParam(cli.Flag, cli.String, workspace, "repotemplates-repo", repotemplates_repo_help, opts_repotmpl, upd_act, rem_act)
-	a.cli.AddObjectActionsParam(cli.Flag, cli.String, workspace, infra_f, forjj_infra_name_help, opts_infra_repo, upd_act, rem_act)
-	a.cli.AddObjectActionsParam(cli.Flag, cli.String, workspace, orga_f, forjj_orga_name_help, opts_orga_name, upd_act, rem_act)
-
-	// infra - Mostly built by plugins or other objects list with update action only.
-
-	a.cli.AddObjectActionsParam(cli.Arg, cli.String, repo, "instance", repo_instance_name_help, nil, add_act)
-	a.cli.AddObjectActionsParam(cli.Arg, cli.String, repo, "name", repo_name_help, opts_required, add_act, upd_act, rem_act, ren_act)
-	a.cli.AddObjectActionsParam(cli.Arg, cli.String, repo, "flow", repo_flow_help, nil, add_act, upd_act)
-	a.cli.AddObjectActionsParam(cli.Arg, cli.String, repo, "repo-template", repo_template_help, nil, add_act, upd_act)
-	a.cli.AddObjectActionsParam(cli.Arg, cli.String, repo, "title", repo_title_help, nil, add_act, upd_act)
-
-	a.cli.AddObjectActionsParam(cli.Arg, cli.String, app, "type", app_type_help, opts_required, add_act, upd_act, rem_act, ren_act)
-	a.cli.AddObjectActionsParam(cli.Arg, cli.String, app, "driver", app_driver_help, opts_required, add_act)
-	a.cli.AddObjectActionsParam(cli.Arg, cli.String, app, "driver", app_driver_help, nil, upd_act, rem_act, ren_act)
-	a.cli.AddObjectActionsParam(cli.Arg, cli.String, app, "name", app_name_help, nil, add_act, upd_act, rem_act, ren_act)
-	a.cli.AddObjectActionsParam(cli.Arg, cli.String, app, "name", app_name_help, opts_required, upd_act, rem_act, ren_act)
-
-	// Flow - Not fully defined.
+	a.cli.NewActions(cr_act, create_action_help, "Create %s", true)
+	a.cli.NewActions(add_act, add_action_help, "Add or more %s.", false)
+	a.cli.NewActions(upd_act, update_action_help, "Update one or more %s.", false)
+	a.cli.NewActions(rem_act, remove_action_help, "remove one or more %s.", false)
+	a.cli.NewActions(ren_act, rename_action_help, "Rename %s.", false)
+	a.cli.NewActions(list_act, list_action_help, "List %s.", false)
+	a.cli.NewActions(maint_act, maintain_action_help, "Maintain %s.", true)
 
 	// Regular Word for lists
 	word := `([a-z]+[a-z0-9_-]*)`
 	free_text := `([A-Za-z0-9_ !:/.-]+)`
+
+	// OBJECTS ************
+	// Create Object layer in kingpin on top of each actions.
+	// ex: forjj add repo
+	a.cli.NewObject(workspace, "forjj workspace", true).
+		AddField(cli.String, "docker-exe-path", docker_exe_path_help).
+		AddField(cli.String, "contribs-repo", contribs_repo_help).
+		AddField(cli.String, "flows-repo", flows_repo_help).
+		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help).
+		AddField(cli.String, infra_f, forjj_infra_name_help).
+		AddField(cli.String, orga_f, forjj_orga_name_help).
+		DefineActions(upd_act, rem_act, maint_act).
+		OnActions(upd_act, rem_act).
+		AddFlag("docker-exe-path", nil).
+		AddFlag("contribs-repo", opts_contribs_repo).
+		AddFlag("flows-repo", opts_flows_repo).
+		AddFlag("repotemplates-repo", opts_repotmpl).
+		AddFlag(infra_f, opts_infra_repo).
+		AddFlag(orga_f, opts_orga_name)
+
+	// infra - Mostly built by plugins or other objects list with update action only.
+	a.cli.NewObject(infra, "your infrastructure", true).
+		DefineActions(cr_act, upd_act)
+
+	repo_list_def := fmt.Sprintf("(%s/)?%s(:%s(:%s(:%s)?)?)?", word, word, word, word, free_text)
+
+	a.cli.NewObject(repo, "GIT repositories", true).
+		AddField("instance", repo_instance_name_help).
+		AddField("name", repo_name_help).
+		AddField("flow", repo_flow_help).
+		AddField("repo-template", repo_template_help).
+		AddField("title", repo_title_help).
+		DefineActions(add_act, upd_act, rem_act, ren_act, list_act).
+		OnActions(add_act).
+		AddFlag("instance", nil).
+		OnActions(add_act, upd_act).
+		AddFlag("flow", nil).
+		AddFlag("repo-template", nil).
+		AddFlag("title", nil).
+		OnActions(add_act, upd_act, rem_act, ren_act).
+		AddFlag("name", opts_required).
+		AddList("to_create", ",", repo_list_def, "name")
+
+	a.cli.NewObject(app, "application driver", true).
+		AddField(cli.String, "type", app_type_help).
+		AddField(cli.String, "driver", app_driver_help).
+		AddField(cli.String, "name", app_name_help).
+		DefineActions(add_act, upd_act, rem_act, list_act).
+		OnActions(add_act).
+		AddArg("type", opts_required).
+		AddArg("driver", opts_required).
+		AddArg("name", nil).
+		OnActions(upd_act, rem_act).
+		AddArg("name", opts_required).
+		OnActions(list_act).
+		AddFlag("type", opts_required).
+		AddFlag("driver", opts_required).
+		AddFlag("name", nil).
+		AddList("to_create", ",", fmt.Sprintf("%s:%s(:%s)?", word, word, word), "name")
+
+	// Flow - Not fully defined.
+	a.cli.NewObject(flow, "Flow over applications", true).
+		DefineActions(add_act, rem_act, list_act)
 
 	// LISTS ************
 
@@ -230,8 +257,7 @@ func (a *Forj) init() {
 	// Ex: forjj add repos "github/myrepo:::My Repo" "other_repo:::Another repo"
 	//     forjj add repos "github/myrepo:::My Repo,other_repo:::Another repo"
 	//     forjj create --repos "github/myrepo:::My Repo,other_repo:::Another repo"
-	repo_list_def := fmt.Sprintf("(%s/)?%s(:%s(:%s(:%s)?)?)?", word, word, word, word, free_text)
-	a.cli.CreateObjectList(repo, "to_create", ",", repo_list_def).
+	a.cli.CreateObjectList(repo, "to_create", ",", repo_list_def, "name").
 		Field(2, "instance").Field(3, "name").Field(5, "flow").Field(7, "repo-template").Field(9, "title").
 		AddActions(add_act)
 	// Add the list to "create" action and "update infra"
@@ -239,7 +265,7 @@ func (a *Forj) init() {
 	a.cli.AddObjectActionsParam(cli.Flag, cli.List, infra, repo+"_to_create", repo_list_help, nil, upd_act)
 
 	// Define App list
-	a.cli.CreateObjectList(app, "to_create", ",", fmt.Sprintf("%s:%s(:%s)?", word, word, word)).
+	a.cli.CreateObjectList(app, "to_create", ",", fmt.Sprintf("%s:%s(:%s)?", word, word, word), "name").
 		Field(1, "type").Field(2, "driver").Field(4, "name").
 		AddActions(add_act)
 	// Add the list to "create" action and "update infra"
@@ -261,11 +287,11 @@ func (a *Forj) init() {
 	a.cli.AddActionsParam(cli.Flag, cli.Bool, "no-maintain", create_no_maintain_help, nil, cr_act)
 
 	// Add Update workspace flags to Create action, not prefixed.
-	a.cli.AddObjectActionParamsToAction(workspace, upd_act, cr_act, false)
+	a.cli.AddObjectActionParamsToAction(workspace, upd_act, cr_act, true, false)
 
 	// Enhance 'update infra':
 	// Add Update workspace flags to Update Infra, not prefixed.
-	a.cli.AddObjectActionParamsToObjectAction(workspace, upd_act, infra, upd_act, false)
+	a.cli.AddObjectActionParamsToObjectAction(workspace, upd_act, infra, upd_act, true, false)
 
 	// Enhance Maintain
 	a.cli.AddActionsParam(cli.Flag, cli.String, "file", maintain_option_file, nil, maint_act)
