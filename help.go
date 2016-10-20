@@ -17,14 +17,15 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps.
 
 	create_action_help = "Create your Software factory.\n"
 
-	create_orga_help    = "organization workspace used to store repositories locally or in docker volume."
-	create_ssh_dir_help = "PATH to a git ssh keys directory. It will be mounted as local path '/home/devops/.ssh' in the container."
+	create_orga_help        = "organization workspace used to store repositories locally or in docker volume."
+	create_ssh_dir_help     = "PATH to a git ssh keys directory. It will be mounted as local path '/home/devops/.ssh' in the container."
+	create_no_maintain_help = "Do not instantiate at create time. (except infra upstream)"
 
+	workspace_path_help     = "Path to your forjj workspace."
 	docker_exe_path_help    = "Path to a static docker binary used when a forjj plugin service container requires DooD (Docker out of Docker) capability."
 	contribs_repo_help      = "Set a local forjj-contribs directory like or a github like url for FORJJ plugins. You can set CONTRIBS_REPO as env."
 	flows_repo_help         = "Set a local forjj-flows directory like or a github like url for FORJJ flows. You can set FLOWS_REPO as env"
 	repotemplates_repo_help = "Set a local forjj-repotemplates directory like or a github like url for FORJJ Repository templates. You can set REPOTEMPLATES_REPO as env."
-	create_no_maintain_help = "Do not start maintain at the end of the create task except the infra repository upstream to create it."
 
 	update_action_help = `Update the infra. Used to create/update/remove projects and infrastructure migration
 (for example from local jenkins to a mesos jenkins solution)
@@ -46,6 +47,8 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps.
 	repo_template_help      = "Repository template to apply."
 	repo_title_help         = "Short description of the repository."
 	repo_list_help          = "List of repositories separated by comma. Syntax : [instance/]repo[:flow[:repotemplate[:title]]]"
+
+	default_flow_help = "Default flow to apply to repositories."
 
 	app_type_help   = "Driver category."
 	app_driver_help = "Driver name."
