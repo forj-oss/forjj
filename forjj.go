@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/alecthomas/kingpin"
+	"github.com/forj-oss/forjj-modules/trace"
 	"log"
 	"os"
 )
@@ -17,6 +18,13 @@ const Docker_image = "docker.hos.hpecorp.net/devops/forjj"
 
 // ************************** MAIN ******************************
 func main() {
+
+	debug := os.Getenv("FORJJ_DEBUG")
+	if debug == "true" {
+		log.Printf("Debug set to '%s'.\n", debug)
+		gotrace.SetDebug()
+	}
+
 	forj_app.init()
 	parse, err := forj_app.cli.App.Parse(os.Args[1:])
 

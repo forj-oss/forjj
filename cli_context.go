@@ -35,14 +35,6 @@ func (a *Forj) LoadContext(args []string) {
 
 	a.CurrentCommand = opts
 
-	if a.cli.IsAppValueFound(debug_f) {
-		debug := a.cli.GetAppBoolValue(debug_f)
-		log.Printf("Debug set to '%s'.\n", debug)
-		if debug {
-			gotrace.SetDebug()
-		}
-	}
-
 	// load FORJJ workspace information
 	a.setWorkspace(context, opts)
 

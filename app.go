@@ -163,7 +163,6 @@ func (a *Forj) init() {
 	a.cli.AddFieldListCapture("w", `([a-z]+[a-z0-9_-]*)`)
 	a.cli.AddFieldListCapture("ft", `([A-Za-z0-9_ !:/.-]+)`)
 
-	a.cli.AddAppFlag(cli.Bool, debug_f, forjj_debug_help, nil)
 	a.cli.AddAppFlag(cli.String, cred_f, forjj_creds_help, opts_creds_file)
 
 	u, _ := url.Parse("https://github.hpe.com/forj/forjj-contribs/raw/master")
