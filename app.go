@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/cli"
+	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 	"github.com/forj-oss/goforjj"
 	"github.com/forj-oss/forjj-modules/trace"
 	"net/url"
@@ -82,6 +83,7 @@ type Forj struct {
 	drivers_options DriversOptions     // forjj-maintain.yml See infra-maintain.go
 
 	cli *cli.ForjCli // ForjCli data
+	app *kingpin.Application
 
 	// Flags values
 	CurrentCommand *ActionOpts // Loaded CurrentCommand reference.
@@ -155,8 +157,10 @@ func (a *Forj) init() {
 	opts_orga_name := cli.Opts().Short('O')
 	opts_workspace := cli.Opts().Required().Envar("FORJJ_WORKSPACE").Short('W')
 
-	a.cli = cli.NewForjCli(kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate))
-	a.cli.App.Version("forjj V0.0.1 (POC)").Author("Christophe Larsonneur <christophe.larsonneur@hpe.com>")
+	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
+	a.app.Version("forjj V0.0.1 (POC)").Author("Christophe Larsonneur <christophe.larsonneur@hpe.com>")
+	// kingpin is driven by cli module.
+	a.cli = cli.NewForjCli(kingpinCli.New(a.app))
 
 	// Regular filter for lists
 	// Used by list capture function parameter

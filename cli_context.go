@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/alecthomas/kingpin"
+	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 	"github.com/forj-oss/forjj-modules/trace"
 	"log"
 	"net/url"
@@ -20,7 +21,7 @@ import (
 //
 // - Load missing drivers information from forjj-options.yaml
 func (a *Forj) LoadContext(args []string) {
-	context, err := a.cli.App.ParseContext(args)
+	context, err := kingpinCli.GetContext(a.cli.App, args)
 	if context == nil {
 		kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?")
 	}
