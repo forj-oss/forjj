@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/cli"
+	"github.com/forj-oss/forjj-modules/cli/interface"
 	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 	"github.com/forj-oss/goforjj"
 	"github.com/forj-oss/forjj-modules/trace"
@@ -85,8 +86,8 @@ type Forj struct {
 	cli *cli.ForjCli // ForjCli data
 	app *kingpin.Application
 
-	// Flags values
-	CurrentCommand *ActionOpts // Loaded CurrentCommand reference.
+	CurrentCommand clier.CmdClauser // Current Command
+	CurrentObject  clier.CmdClauser // Current Object
 
 	CurrentPluginDriver *Driver // Driver executing
 	InfraPluginDriver   *Driver // Driver used by upstream
@@ -318,19 +319,13 @@ func (a *Forj) init() {
 // GetActionOptsFromCli
 //
 // Get the ActionsOpts of the selected Command clause in kingpin (ie create/update or maintain)
-func (a *Forj) GetActionOptsFromCli(cmd *kingpin.CmdClause) *ActionOpts {
-	return a.GetActionOptsFromString(cmd.FullCommand())
-}
-
-// GetActionOptsFromString
-//
-// Get the ActionsOpts of a command string (ie create/update or maintain)
-func (a *Forj) GetActionOptsFromString(cmd string) *ActionOpts {
-	if v, found := a.Actions[cmd]; found {
-		return v
+func (a *Forj) GetActionOptsFromCli(cmd []clier.CmdClauser) {
+	if len(cmd) >= 1 {
+		a.CurrentCommand = cmd[0]
 	}
-	kingpin.Fatalf("FORJJ Internal error. No matching '%s' in declared commands", cmd)
-	return nil
+	if len(cmd) >= 1 {
+		a.CurrentObject = cmd[1]
+	}
 }
 
 // InitializeDriversFlag
@@ -347,17 +342,17 @@ func (a *Forj) InitializeDriversFlag() {
 			continue
 		}
 
-		gotrace.Trace("driver: '%s(%s)', command: '%s'", driverOpts.DriverType, instance_name, a.CurrentCommand.name)
-		for _, command := range []string{"common", a.CurrentCommand.name} {
+		gotrace.Trace("driver: '%s(%s)', command: '%s'", driverOpts.DriverType, instance_name, a.CurrentCommand.FullCommand())
+		for _, command := range []string{"common", a.CurrentCommand.FullCommand()} {
 			gotrace.Trace(" From '%s' flags list", command)
 			for flag_name := range driverOpts.cmds[command].flags {
 				gotrace.Trace("  Flag_name => '%s'", flag_name)
 				forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
 				f, _ := a.drivers[instance_name].cmds[command].flags[flag_name]
 				if forjj_vars == nil {
-					if flag_value, ok := a.CurrentCommand.flagsv[flag_name]; ok && flag_value != nil {
-						f.value = *flag_value
-						gotrace.Trace("   %s := %s", flag_name, *flag_value)
+					if flag_value, ok := a.cli.GetStringValue(flag_name); ok {
+						f.value = flag_value
+						gotrace.Trace("   %s := %s", flag_name, flag_value)
 					}
 				} else {
 					flag_value := a.GetInternalData(forjj_vars[1])

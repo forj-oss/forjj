@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/alecthomas/kingpin"
-	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 	"github.com/forj-oss/forjj-modules/trace"
 	"log"
 	"net/url"
@@ -21,23 +20,17 @@ import (
 //
 // - Load missing drivers information from forjj-options.yaml
 func (a *Forj) LoadContext(args []string) {
-	context, err := kingpinCli.GetContext(a.cli.App, args)
-	if context == nil {
-		kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?")
-	}
+	cmd, err := a.cli.LoadContext(args)
+	kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?")
 
-	cmd := a.cli.SetCmdContext(context)
 	if cmd == nil {
 		return
 	}
 
-	a.cli.LoadValuesFrom(context)
-	opts := a.GetActionOptsFromCli(cmd)
-
-	a.CurrentCommand = opts
+	a.GetActionOptsFromCli(cmd)
 
 	// load FORJJ workspace information
-	a.setWorkspace(context, opts)
+	a.setWorkspace()
 
 	// Load Workspace information if found
 	a.w.Load()
@@ -112,17 +105,14 @@ func (a *Forj) LoadContext(args []string) {
 }
 
 // Initialize the workspace environment required by Forjj to work.
-func (a *Forj) setWorkspace(context *kingpin.ParseContext, opts *ActionOpts) {
+func (a *Forj) setWorkspace() {
 	// The value is not set in argsv. But is in the parser context.
 	var orga_path string
 	var found bool
 	var err error
 
-	if opts.name == "create" {
-		orga_path, found = a.argValue(context, opts.args["workspace"])
-	} else {
-		orga_path, found = a.flagValue(context, opts.flags["ws"])
-	}
+	/* orga_path, found = a.cli.GetValue(workspace) */
+	orga_path, found = a.cli.GetStringValue(workspace)
 
 	if !found {
 		if v := os.Getenv("FORJJ_WORKSPACE"); v != "" {
