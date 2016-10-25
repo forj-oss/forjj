@@ -165,8 +165,8 @@ func (a *Forj) init() {
 
 	// Regular filter for lists
 	// Used by list capture function parameter
-	a.cli.AddFieldListCapture("w", `([a-z]+[a-z0-9_-]*)`)
-	a.cli.AddFieldListCapture("ft", `([A-Za-z0-9_ !:/.-]+)`)
+	a.cli.AddFieldListCapture("w", `[a-z]+[a-z0-9_-]*`)
+	a.cli.AddFieldListCapture("ft", `[A-Za-z0-9_ !:/.-]+`)
 
 	a.cli.AddAppFlag(cli.String, cred_f, forjj_creds_help, opts_creds_file)
 
@@ -275,13 +275,13 @@ func (a *Forj) init() {
 		// ex: forjj create --docker-exe-path ...
 		AddFlagsFromObjectAction(workspace, upd_act).
 		// Ex: forjj update infra --add-repos "github/myrepo:::My Repo,other_repo:::Another repo"...
-		AddFlagFromObjectListActions(repo, "to_create", add_act).
+		AddFlagsFromObjectListActions(repo, "to_create", add_act).
 		// Ex: forjj update infra --remove-repos "myrepo" ... # This will disable the repo only. No real remove.
-		AddFlagFromObjectListActions(repo, "to_remove", rem_act).
+		AddFlagsFromObjectListActions(repo, "to_remove", rem_act).
 		// Ex: forjj update infra --add-apps "upstream:github" --github-...
-		AddFlagFromObjectListActions(app, "to_create", rem_act).
+		AddFlagsFromObjectListActions(app, "to_create", rem_act).
 		// Ex: forjj update infra --remove-apps "github" ...
-		AddFlagFromObjectListActions(app, "to_remove", rem_act)
+		AddFlagsFromObjectListActions(app, "to_remove", rem_act)
 
 	// Flow - Not fully defined.
 	a.cli.NewObject(flow, "Flow over applications", true).
