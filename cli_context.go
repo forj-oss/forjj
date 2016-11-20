@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/cli"
 	"github.com/forj-oss/forjj-modules/trace"
 	"log"
@@ -21,7 +20,9 @@ import (
 // - Load missing drivers information from forjj-options.yaml
 func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	// load FORJJ workspace information
-	a.setWorkspace()
+	if err := a.setWorkspace(); err != nil {
+		return fmt.Errorf("Unable to define workspace from context. %s", err)
+	}
 
 	// Load Workspace information if found
 	a.w.Load()
@@ -32,7 +33,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	w_o := c.GetObject(workspace)
 	// Set organization name to use.
 	// Can be set only the first time
-	if f, found := c.GetStringValue(workspace, "", orga_f); found {
+	if f, found, _ := c.GetStringValue(workspace, "", orga_f); found {
 		if a.w.Organization == "" {
 			w_o.SetParamOptions(orga_f, cli.Opts().Default(a.w.workspace))
 			a.w.Organization = a.w.workspace
@@ -45,7 +46,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 		a.w.Organization = f
 	}
 
-	if f, found := c.GetStringValue(workspace, "", infra_f); found {
+	if f, found, _ := c.GetStringValue(workspace, "", infra_f); found {
 		if a.w.Organization != "" {
 			log.Printf("Organization : '%s'", a.w.Organization)
 			// Set the 'infra' default flag value
@@ -89,14 +90,14 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 }
 
 // Initialize the workspace environment required by Forjj to work.
-func (a *Forj) setWorkspace() {
+func (a *Forj) setWorkspace() error {
 	// The value is not set in argsv. But is in the parser context.
 	var orga_path string
 	var found bool
 	var err error
 
 	/* orga_path, found = a.cli.GetValue(workspace) */
-	orga_path, found = a.cli.GetStringValue(workspace, "", orga_f)
+	orga_path, found, _ = a.cli.GetStringValue(workspace, "", orga_f)
 
 	if !found {
 		if v := os.Getenv("FORJJ_WORKSPACE"); v != "" {
@@ -107,10 +108,13 @@ func (a *Forj) setWorkspace() {
 
 	if !found {
 		orga_path, err = a.w.DetectIt()
-		kingpin.FatalIfError(err, "Unable to find the workspace from current directory, FORJJ_WORKSPACE or cli. please define one to create it.")
+		a.w.error = fmt.Errorf("Unable to find the workspace from current directory, FORJJ_WORKSPACE or cli. "+
+			"please define one to create it. %s", err)
+		return nil
 	}
 
 	a.w.Init(orga_path)
+	return nil
 }
 
 // type validateHdlr func(string) error

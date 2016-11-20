@@ -215,8 +215,8 @@ func (a *Forj) init() {
 		AddFlag(orga_f, opts_orga_name)
 
 	a.cli.NewObject(repo, "GIT repositories", true).
-		AddKey(cli.String, "instance", repo_instance_name_help).
-		AddField(cli.String, "name", repo_name_help).
+		AddKey(cli.String, "name", repo_name_help).
+		AddField(cli.String, "instance", repo_instance_name_help).
 		AddField(cli.String, "flow", repo_flow_help).
 		AddField(cli.String, "repo-template", repo_template_help).
 		AddField(cli.String, "title", repo_title_help).
@@ -272,10 +272,16 @@ func (a *Forj) init() {
 
 	// infra - Mostly built by plugins or other objects list with update action only.
 	a.cli.NewObject(infra, "your infrastructure", true).
+		AddKey(cli.String, "infra-repo", "Infra repository name.").
+		AddField(cli.String, "infra-upstream", "Infra repository upstream instance name.").
+		AddField(cli.String, "flow", default_flow_help).
 		DefineActions(upd_act).
 		OnActions().
+		AddFlag("infra-repo", cli.Opts().Required()).
+		AddFlag("infra-upstream", nil).
+		AddFlag("flow", nil).
 		// Add Update workspace flags to Create action, not prefixed.
-		// ex: forjj create --docker-exe-path ...
+		// ex: forjj update infra --docker-exe-path ...
 		AddFlagsFromObjectAction(workspace, upd_act).
 		// Ex: forjj update infra --add-repos "github/myrepo:::My Repo,other_repo:::Another repo"...
 		AddFlagsFromObjectListActions(repo, "to_create", add_act).
@@ -299,9 +305,11 @@ func (a *Forj) init() {
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, upd_act).
+		// Add Update workspace flags to Create action, not prefixed.
+		// ex: forjj create --infra-repo ...
+		AddActionFlagsFromObjectAction(infra, upd_act).
 		AddArg(cli.String, workspace, workspace_path_help, opts_required).
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil).
-		AddFlag(cli.String, "flow", default_flow_help, nil).
 		AddFlag(cli.Bool, "no-maintain", create_no_maintain_help, nil)
 
 	// Enhance Maintain
