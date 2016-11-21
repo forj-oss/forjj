@@ -7,6 +7,7 @@ import (
 	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 	"github.com/forj-oss/goforjj"
 	"github.com/forj-oss/forjj-modules/trace"
+	"log"
 	"net/url"
 	"os"
 	"os/exec"
@@ -117,6 +118,7 @@ type Forj struct {
 
 const (
 	cr_act    string = "create"
+	chg_act   string = "change"
 	add_act   string = "add"
 	upd_act   string = "update"
 	rem_act   string = "remove"
@@ -156,7 +158,7 @@ func (a *Forj) init() {
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
-	opts_workspace := cli.Opts().Required().Envar("FORJJ_WORKSPACE").Short('W')
+	opts_workspace := cli.Opts().Envar("FORJJ_WORKSPACE").Short('W')
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 	a.app.Version("forjj V0.0.1 (POC)").Author("Christophe Larsonneur <christophe.larsonneur@hpe.com>")
@@ -185,18 +187,19 @@ func (a *Forj) init() {
 	// ACTIONS ************
 	// Create kingpin actions layer in kingpin.
 	// ex: forjj add
-	a.cli.NewActions(cr_act, create_action_help, "Create %s", true)
+	a.cli.NewActions(cr_act, create_action_help, "Create %s.", true)
+	a.cli.NewActions(upd_act, update_action_help, "Update %s.", false)
 	a.cli.NewActions(maint_act, maintain_action_help, "Maintain %s.", true)
-	a.cli.NewActions(add_act, add_action_help, "Add or more %s.", false)
-	a.cli.NewActions(upd_act, update_action_help, "Update one or more %s.", false)
-	a.cli.NewActions(rem_act, remove_action_help, "remove one or more %s.", false)
-	a.cli.NewActions(ren_act, rename_action_help, "Rename %s.", false)
-	a.cli.NewActions(list_act, list_action_help, "List %s.", false)
+	a.cli.NewActions(add_act, add_action_help, "Add %s to your software factory.", false)
+	a.cli.NewActions(chg_act, update_action_help, "Update %s of your software factory.", false)
+	a.cli.NewActions(rem_act, remove_action_help, "Remove %s from your software factory.", false)
+	a.cli.NewActions(ren_act, rename_action_help, "Rename %s of your software factory.", false)
+	a.cli.NewActions(list_act, list_action_help, "List %s of your software factory.", false)
 
 	// OBJECTS ************
 	// Create Object layer in kingpin on top of each actions.
 	// ex: forjj add repo
-	a.cli.NewObject(workspace, "forjj workspace", true).
+	if a.cli.NewObject(workspace, "any forjj workspace parameters", true).
 		AddKey(cli.String, workspace, workspace_path_help).
 		AddField(cli.String, "docker-exe-path", docker_exe_path_help).
 		AddField(cli.String, "contribs-repo", contribs_repo_help).
@@ -204,117 +207,149 @@ func (a *Forj) init() {
 		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help).
 		AddField(cli.String, infra_f, forjj_infra_name_help).
 		AddField(cli.String, orga_f, forjj_orga_name_help).
-		DefineActions(upd_act, rem_act).
-		OnActions(upd_act, rem_act).
+		DefineActions(chg_act, rem_act).
+		OnActions(chg_act, rem_act).
 		AddFlag(workspace, opts_workspace).
 		AddFlag("docker-exe-path", nil).
 		AddFlag("contribs-repo", opts_contribs_repo).
 		AddFlag("flows-repo", opts_flows_repo).
 		AddFlag("repotemplates-repo", opts_repotmpl).
 		AddFlag(infra_f, opts_infra_repo).
-		AddFlag(orga_f, opts_orga_name)
+		AddFlag(orga_f, opts_orga_name) == nil {
+		log.Printf("%s", a.cli.GetObject(workspace).Error())
+	}
 
-	a.cli.NewObject(repo, "GIT repositories", true).
+	if a.cli.NewObject(repo, "a GIT repository", true).
 		AddKey(cli.String, "name", repo_name_help).
 		AddField(cli.String, "instance", repo_instance_name_help).
 		AddField(cli.String, "flow", repo_flow_help).
 		AddField(cli.String, "repo-template", repo_template_help).
 		AddField(cli.String, "title", repo_title_help).
-		DefineActions(add_act, upd_act, rem_act, ren_act, list_act).
+		AddField(cli.String, "new-name", new_repo_name_help).
+		DefineActions(add_act, chg_act, rem_act, ren_act, list_act).
 		OnActions(add_act).
 		AddFlag("instance", nil).
-		OnActions(add_act, upd_act).
+		OnActions(add_act, chg_act).
 		AddFlag("flow", nil).
 		AddFlag("repo-template", nil).
 		AddFlag("title", nil).
-		OnActions(add_act, upd_act, rem_act, ren_act).
-		AddFlag("name", opts_required)
+		OnActions(add_act, chg_act, rem_act, ren_act).
+		AddArg("name", opts_required).
+		OnActions(ren_act).
+		AddArg("new-name", opts_required) == nil {
+		log.Printf("%s", a.cli.GetObject(repo).Error())
+	}
 
 	// Define create repo list
-	a.cli.GetObject(repo).CreateList("to_create", ",", "(#w/)?#w(:#w(:#w(:#ft)?)?)?").
+	if a.cli.GetObject(repo).CreateList("to_create", ",", "(#w/)?#w(:#w(:#w(:#ft)?)?)?", "one or more GIT repositories").
 		Field(2, "instance").Field(3, "name").Field(5, "flow").Field(7, "repo-template").Field(9, "title").
-		// Ex: forjj add repos "github/myrepo:::My Repo" "other_repo:::Another repo"
-		//     forjj add repos "github/myrepo:::My Repo,other_repo:::Another repo"
-		AddActions(add_act)
+		// Ex: forjj add/change repos "github/myrepo:::My Repo" "other_repo:::Another repo"
+		//     forjj add/change repos "github/myrepo:::My Repo,other_repo:::Another repo"
+		AddActions(add_act, chg_act) == nil {
+		log.Printf("%s", a.cli.GetObject(repo).Error())
+	}
 
 	// Define remove repo list
-	a.cli.GetObject(repo).CreateList("to_remove", ",", "#w").
+	if a.cli.GetObject(repo).CreateList("to_remove", ",", "#w", "one or more GIT repositories").
 		Field(1, "name").
-		AddActions(rem_act)
+		AddActions(rem_act) == nil {
+		log.Printf("%s", a.cli.GetObject(repo).Error())
+	}
 
-	a.cli.NewObject(app, "application driver", true).
+	if a.cli.NewObject(app, "an application driver", true).
 		AddKey(cli.String, "name", app_name_help).
 		AddField(cli.String, "type", app_type_help).
 		AddField(cli.String, "driver", app_driver_help).
-		DefineActions(add_act, upd_act, rem_act, list_act).
+		DefineActions(add_act, chg_act, rem_act, list_act).
 		OnActions(add_act).
 		AddArg("type", opts_required).
 		AddArg("driver", opts_required).
 		AddArg("name", nil).
-		OnActions(upd_act, rem_act).
+		OnActions(chg_act, rem_act).
 		AddArg("name", opts_required).
 		OnActions(list_act).
-		AddFlag("type", opts_required).
-		AddFlag("driver", opts_required).
+		AddFlag("type", nil).
+		AddFlag("driver", nil).
 		AddFlag("name", nil).
-		ParseHook(a.GetDriversFlags)
+		ParseHook(a.GetDriversFlags) == nil {
+		log.Printf("%s", a.cli.GetObject(app).Error())
+	}
 
 	// Define app list
-	a.cli.GetObject(app).CreateList("to_create", ",", "#w:#w(:#w)?").
+	if a.cli.GetObject(app).CreateList("to_create", ",", "#w:#w(:#w)?", "one or more application drivers").
 		Field(1, "type").Field(2, "driver").Field(4, "name").
-		// Ex: forjj add apps <type>:<driver>[:<instance>] ...
-		AddActions(add_act)
+		// Ex: forjj add/change apps <type>:<driver>[:<instance>] ...
+		AddActions(add_act, chg_act) == nil {
+		log.Printf("%s", a.cli.GetObject(app).Error())
+	}
 
-	a.cli.GetObject(app).CreateList("to_remove", ",", "#w").
+	if a.cli.GetObject(app).CreateList("to_remove", ",", "#w", "one or more application drivers").
 		Field(1, "name").
 		// Ex: forjj remove apps <instance> ...
-		AddActions(rem_act)
+		AddActions(rem_act) == nil {
+		log.Printf("%s", a.cli.GetObject(app).Error())
+	}
 
 	// infra - Mostly built by plugins or other objects list with update action only.
-	a.cli.NewObject(infra, "your infrastructure", true).
+	if a.cli.NewObject(infra, "the global settings", true).
 		AddKey(cli.String, "infra-repo", "Infra repository name.").
 		AddField(cli.String, "infra-upstream", "Infra repository upstream instance name.").
 		AddField(cli.String, "flow", default_flow_help).
-		DefineActions(upd_act).
+		DefineActions(chg_act).
 		OnActions().
 		AddFlag("infra-repo", cli.Opts().Required()).
 		AddFlag("infra-upstream", nil).
-		AddFlag("flow", nil).
-		// Add Update workspace flags to Create action, not prefixed.
-		// ex: forjj update infra --docker-exe-path ...
-		AddFlagsFromObjectAction(workspace, upd_act).
-		// Ex: forjj update infra --add-repos "github/myrepo:::My Repo,other_repo:::Another repo"...
-		AddFlagsFromObjectListActions(repo, "to_create", add_act).
-		// Ex: forjj update infra --remove-repos "myrepo" ... # This will disable the repo only. No real remove.
-		AddFlagsFromObjectListActions(repo, "to_remove", rem_act).
-		// Ex: forjj update infra --add-apps "upstream:github" --github-...
-		AddFlagsFromObjectListActions(app, "to_create", rem_act).
-		// Ex: forjj update infra --remove-apps "github" ...
-		AddFlagsFromObjectListActions(app, "to_remove", rem_act)
+		AddFlag("flow", nil) == nil {
+		log.Printf("%s", a.cli.GetObject(infra).Error())
+	}
 
 	// Flow - Not fully defined.
-	a.cli.NewObject(flow, "Flow over applications", true).
-		DefineActions(add_act, rem_act, list_act)
+	if a.cli.NewObject(flow, "flow over applications", true).NoFields().
+		DefineActions(add_act, rem_act, list_act) == nil {
+		log.Printf("%s", a.cli.GetObject(flow).Error())
+	}
 
 	// Enhance create action
-	a.cli.OnActions(cr_act).
+	if a.cli.OnActions(cr_act).
 		// Ex: forjj create --repos "github/myrepo:::My Repo,other_repo:::Another repo"
 		AddActionFlagFromObjectListAction(cr_act, repo, "to_create", add_act).
 		// Ex: forjj create --apps "upstream:github"
 		AddActionFlagFromObjectListAction(cr_act, app, "to_create", add_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --docker-exe-path ...
-		AddActionFlagsFromObjectAction(workspace, upd_act).
+		AddActionFlagsFromObjectAction(workspace, chg_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --infra-repo ...
-		AddActionFlagsFromObjectAction(infra, upd_act).
-		AddArg(cli.String, workspace, workspace_path_help, opts_required).
+		AddActionFlagsFromObjectAction(infra, chg_act).
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil).
-		AddFlag(cli.Bool, "no-maintain", create_no_maintain_help, nil)
+		AddFlag(cli.Bool, "no-maintain", create_no_maintain_help, nil) == nil {
+		log.Printf("%s", a.cli.Error())
+	}
+
+	// Enhance Update
+	if a.cli.OnActions(upd_act).
+		// Ex: forjj update infra --add-repos "github/myrepo:::My Repo,other_repo:::Another repo"...
+		AddActionFlagsFromObjectListActions(repo, "to_create", add_act).
+		// Ex: forjj update infra --remove-repos "myrepo" ... # This will disable the repo only. No real remove.
+		AddActionFlagsFromObjectListActions(repo, "to_remove", rem_act).
+		// Ex: forjj update infra --add-apps "upstream:github" --github-...
+		AddActionFlagsFromObjectListActions(app, "to_create", add_act).
+		// Ex: forjj update infra --remove-apps "github" ...
+		AddActionFlagsFromObjectListActions(app, "to_remove", rem_act).
+		// Add Update workspace flags to Create action, not prefixed.
+		// ex: forjj update --docker-exe-path ...
+		AddActionFlagsFromObjectAction(workspace, chg_act).
+		// Add Update workspace flags to Create action, not prefixed.
+		// ex: forjj update --infra-repo ...
+		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil) == nil {
+		log.Printf("%s", a.cli.Error())
+	}
 
 	// Enhance Maintain
-	a.cli.OnActions(maint_act).
-		AddFlag(cli.String, "file", maintain_option_file, nil)
+	if a.cli.OnActions(maint_act).
+		AddFlag(cli.String, "file", maintain_option_file, nil) == nil {
+		log.Printf("%s", a.cli.Error())
+	}
 
 	// Next to revisit
 	//a.GetDriversFlags(os.Args[1:])

@@ -43,6 +43,7 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps.
 
 	repo_instance_name_help = "Instance of the repository."
 	repo_name_help          = "Name of the repository."
+	new_repo_name_help      = "New name of the repository."
 	repo_flow_help          = "Flow to apply to a repository."
 	repo_template_help      = "Repository template to apply."
 	repo_title_help         = "Short description of the repository."
