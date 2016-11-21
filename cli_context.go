@@ -71,9 +71,21 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 
 	// Identifying appropriate Contribution Repository.
 	// The value is not set in flagsv. But is in the parser context.
-	a.ContribRepo_uri = a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path)
-	a.FlowRepo_uri = a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path)
-	a.RepotemplateRepo_uri = a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path)
+	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err != nil {
+		gotrace.Trace("%s", err)
+	} else {
+		a.ContribRepo_uri = v
+	}
+	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err != nil {
+		gotrace.Trace("%s", err)
+	} else {
+		a.FlowRepo_uri = v
+	}
+	if v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err != nil {
+		gotrace.Trace("%s", err)
+	} else {
+		a.RepotemplateRepo_uri = v
+	}
 
 	// Getting list of drivers (--apps) - Obsolete
 	/*    a.drivers_list.list = make(map[string]DriverDef)
@@ -82,9 +94,10 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 
 	// Read forjj infra file and the options --file given, defined by create/update driver flags settings saved or not
 	// This load Maintain context required by plugins. Maintain has limited flags to provide at runtime. Everything, except credentials should be stored in the infra-repo and workspace. Credentials is given with the --file option in yaml format.
-	file_desc := a.cli.GetAppStringValue(cred_f)
-	if err := a.LoadForjjPluginsOptions(file_desc); err != nil {
-		gotrace.Trace("Warning! Options files were not loaded. %s", err)
+	if file_desc, err := a.cli.GetAppStringValue(cred_f); err == nil {
+		if err := a.LoadForjjPluginsOptions(file_desc); err != nil {
+			gotrace.Trace("Warning! Options files were not loaded. %s", err)
+		}
 	}
 	return nil
 }
@@ -138,18 +151,20 @@ func (a *Forj) setWorkspace() error {
 // flag : Application flag value (from cli module)
 //
 // store : string address where this flag will stored
-func (a *Forj) set_from_urlflag(flag string, store *string) *url.URL {
-	value := a.cli.GetAppStringValue(flag)
+func (a *Forj) set_from_urlflag(flag string, store *string) (*url.URL, error) {
+	value, err := a.cli.GetAppStringValue(flag)
+	if err != nil {
+		return nil, err
+	}
 
 	if u, err := url.Parse(value); err != nil {
-		log.Printf("%s", err)
+		return nil, err
 	} else {
 		if u.Scheme == "" {
 			*store = value
 		}
-		return u
+		return u, nil
 	}
-	return nil
 }
 
 /*func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool) {
