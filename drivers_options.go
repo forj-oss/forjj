@@ -46,7 +46,7 @@ func (a *Forj) load_missing_drivers() error {
 		if _, found := a.drivers[instance]; !found {
 			gotrace.Trace("Loading missing instance %s", instance)
 			a.drivers[instance] = d
-			d.cmds = map[string]DriverCmdOptions{
+			d.cmds = map[string]DriverCmdOptions{ // List of Driver actions supported.
 				"common":   {make(map[string]DriverCmdOptionFlag)},
 				"create":   {make(map[string]DriverCmdOptionFlag)},
 				"update":   {make(map[string]DriverCmdOptionFlag)},
@@ -132,7 +132,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", service_type, command)
 		}
 
-		// Sort Flags for readibility:
+		// Sort Flags for readability:
 		keys := make([]string, 0, len(def.Flags))
 
 		for k := range def.Flags {
@@ -142,10 +142,8 @@ func (a *Forj) init_driver_flags(instance_name string) {
 		sort.Strings(keys)
 
 		search_re, _ := regexp.Compile("^(.*[_-])?(" + d.plugin.Yaml.Name + ")([_-].*)?$")
-		for _, sorted_value := range keys {
-
-			option_name := sorted_value
-			params := def.Flags[option_name]
+		for _, option_name := range keys {
+			flag_options := def.Flags[option_name]
 
 			// drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
 			// They are not in the list of possible drivers options from the cli.
@@ -155,15 +153,15 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			}
 
 			forjj_option_name := SetAppropriateflagName(option_name, instance_name, search_re)
-			flag_opts := d_opts.set_flag_options(option_name, &params)
+			flag_opts := d_opts.set_flag_options(option_name, &flag_options)
 			if command == "common" {
 				// loop on create/update/maintain to create flag on each command
 				gotrace.Trace("Create common flags '%s' to each commands...", forjj_option_name)
 				for _, cmd := range []string{"create", "update", "maintain"} {
-					d.init_driver_flags_for(a, option_name, cmd, forjj_option_name, params.Help, flag_opts)
+					d.init_driver_flags_for(a, option_name, cmd, forjj_option_name, flag_options.Help, flag_opts)
 				}
 			} else {
-				d.init_driver_flags_for(a, option_name, command, forjj_option_name, params.Help, flag_opts)
+				d.init_driver_flags_for(a, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
 			}
 		}
 	}
@@ -220,7 +218,7 @@ func (d *Driver) init_driver_flags_for(a *Forj, option_name, command, forjj_opti
 	} else {
 		gotrace.Trace("Set action '%s' flag for '%s'", command, forjj_option_name)
 	}
-	a.cli.AddFlag(cli.String, forjj_option_name, forjj_option_help, opts)
+	a.cli.OnActions(command).AddFlag(cli.String, forjj_option_name, forjj_option_help, opts)
 	return
 }
 
@@ -242,26 +240,29 @@ func SetAppropriateflagName(flag_name, instance_name string, search_re *regexp.R
 // GetDriversFlags - cli App context hook. Load drivers requested (app object)
 // This function is provided as cli app object Parse hook
 func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, d interface{}) error {
-	//    a.LoadContext(os.Args[1:]) // Define pre-settings from cli context
-
+	list := a.cli.GetObjectValues(o.Name())
 	// Loop on drivers to pre-initialized drivers flags.
-	gotrace.Trace("Number of plugins provided from parameters: %d", len(a.drivers_list.list))
-	for _, d := range a.drivers_list.list {
-		a.drivers[d.Instance] = &Driver{
-			Name:         d.Name,
-			DriverType:   d.Type,
-			InstanceName: d.Instance,
+	gotrace.Trace("Number of plugins provided from parameters: %d", len(list))
+	for _, d := range list {
+		driver := d.GetString("driver")
+		driver_type := d.GetString("driver_type")
+		instance := d.GetString("instance")
+
+		a.drivers[instance] = &Driver{
+			Name:         driver,
+			DriverType:   driver_type,
+			InstanceName: instance,
 			app_request:  true,
-			cmds: map[string]DriverCmdOptions{
+			cmds: map[string]DriverCmdOptions{ // List of Driver actions supported.
 				"common":   {make(map[string]DriverCmdOptionFlag)},
 				"create":   {make(map[string]DriverCmdOptionFlag)},
 				"update":   {make(map[string]DriverCmdOptionFlag)},
 				"maintain": {make(map[string]DriverCmdOptionFlag)},
 			},
 		}
-		gotrace.Trace("Selected '%s' app driver: %s\n", d.Type, d.Name)
+		gotrace.Trace("Selected '%s' app driver: %s\n", driver_type, driver)
 
-		if err := a.load_driver_options(d.Instance); err != nil {
+		if err := a.load_driver_options(instance); err != nil {
 			fmt.Printf("Error: %#v\n", err)
 			os.Exit(1)
 		}

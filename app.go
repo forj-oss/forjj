@@ -39,18 +39,16 @@ type DriverCmdOptionFlag struct {
 }
 
 type Driver struct {
-	DriverType   string                      // driver type name
-	InstanceName string                      // Instance name.
-	Name         string                      // Name of driver to load Yaml.Name is the real internal driver name.
-	cmds         map[string]DriverCmdOptions // List of flags per commands
-	//flags         map[string]*kingpin.FlagClause // list of additional flags loaded at app level.
-	//flagsv        map[string]*string             // list of additional flags value loaded at app level.
-	plugin        goforjj.PluginDef          // Plugin Data
-	InfraRepo     bool                       // True if this driver instance is the one hosting the infra repository.
-	FlagFile      string                     // Path to the predefined plugin or generic forjj plugin flag file.
-	ForjjFlagFile bool                       // true if the flag_file is set by forjj.
-	app_request   bool                       // true if the driver is loaded by a apps create/update/maintain task (otherwise requested by Repos or flows request.)
-	Runtime       *goforjj.YamlPluginRuntime // Reference to the plugin runtime information given by the plugin yaml file.
+	DriverType    string                      // driver type name
+	InstanceName  string                      // Instance name.
+	Name          string                      // Name of driver to load Yaml.Name is the real internal driver name.
+	cmds          map[string]DriverCmdOptions // List of flags per commands
+	plugin        goforjj.PluginDef           // Plugin Data
+	InfraRepo     bool                        // True if this driver instance is the one hosting the infra repository.
+	FlagFile      string                      // Path to the predefined plugin or generic forjj plugin flag file.
+	ForjjFlagFile bool                        // true if the flag_file is set by forjj.
+	app_request   bool                        // true if the driver is loaded by a apps create/update/maintain task (otherwise requested by Repos or flows request.)
+	Runtime       *goforjj.YamlPluginRuntime  // Reference to the plugin runtime information given by the plugin yaml file.
 	// When a driver is initially loaded, it will be saved here, and used it as ref every where.
 	// So we are sure that :
 	// - any change in plugin is not failing a running environment.
@@ -350,9 +348,6 @@ func (a *Forj) init() {
 		AddFlag(cli.String, "file", maintain_option_file, nil) == nil {
 		log.Printf("%s", a.cli.Error())
 	}
-
-	// Next to revisit
-	//a.GetDriversFlags(os.Args[1:])
 
 	_, err := exec.LookPath("git")
 	kingpin.FatalIfError(err, "Unable to find 'git' command. Ensure it available in your PATH and retry.\n")
