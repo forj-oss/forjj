@@ -240,18 +240,13 @@ func SetAppropriateflagName(flag_name, instance_name string, search_re *regexp.R
 // GetDriversFlags - cli App context hook. Load drivers requested (app object)
 // This function is provided as cli app object Parse hook
 func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, d interface{}) error {
-	//gotrace.Trace("c: %s", c)
-
 	list := a.cli.GetObjectValues(o.Name())
 	// Loop on drivers to pre-initialized drivers flags.
 	gotrace.Trace("Number of plugins provided from parameters: %d", len(list))
 	for _, d := range list {
 		driver := d.GetString("driver")
-		driver_type := d.GetString("driver_type")
-		instance := d.GetString("instance")
-		if instance == "" {
-			instance = driver
-		}
+		driver_type := d.GetString("type")
+		instance := d.GetString("name")
 		if driver == "" || driver_type == "" {
 			gotrace.Trace("Invalid plugin definition. driver:%s, driver_type:%s", driver, driver_type)
 			continue
