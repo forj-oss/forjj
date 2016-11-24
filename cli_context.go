@@ -20,9 +20,7 @@ import (
 // - Load missing drivers information from forjj-options.yaml
 func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	// load FORJJ workspace information
-	if err := a.setWorkspace(); err != nil {
-		return fmt.Errorf("Unable to define workspace from context. %s", err)
-	}
+	a.setWorkspace() // failure test exit is made after parse time.
 
 	// Load Workspace information if found
 	a.w.Load()
@@ -33,17 +31,22 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	w_o := c.GetObject(workspace)
 	// Set organization name to use.
 	// Can be set only the first time
-	if f, found, _ := c.GetStringValue(workspace, "", orga_f); found {
+	if f, found, _ := c.GetStringValue(workspace, "", orga_f); !found {
 		if a.w.Organization == "" {
 			w_o.SetParamOptions(orga_f, cli.Opts().Default(a.w.workspace))
 			a.w.Organization = a.w.workspace
+		}
+	} else {
+		if f == "" {
+			f = a.w.workspace
+		}
+		if a.w.Organization == "" {
+			a.w.Organization = f
 		} else {
 			if f != a.w.Organization {
 				fmt.Print("Warning!!! You cannot update the organization name in an existing workspace.\n")
 			}
 		}
-	} else {
-		a.w.Organization = f
 	}
 
 	if f, found, _ := c.GetStringValue(workspace, "", infra_f); found {
@@ -67,22 +70,22 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 		a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
 	}
 
-	gotrace.Trace("Infrastructure repository defined : %s", a.w.Infra.Name)
+	gotrace.Trace("Infrastructure repository defined : %s (organization: %s)", a.w.Infra.Name, a.w.Organization)
 
 	// Identifying appropriate Contribution Repository.
 	// The value is not set in flagsv. But is in the parser context.
 	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err != nil {
-		gotrace.Trace("%s", err)
+		return err
 	} else {
 		a.ContribRepo_uri = v
 	}
 	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err != nil {
-		gotrace.Trace("%s", err)
+		return err
 	} else {
 		a.FlowRepo_uri = v
 	}
 	if v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err != nil {
-		gotrace.Trace("%s", err)
+		return err
 	} else {
 		a.RepotemplateRepo_uri = v
 	}
@@ -103,7 +106,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 }
 
 // Initialize the workspace environment required by Forjj to work.
-func (a *Forj) setWorkspace() error {
+func (a *Forj) setWorkspace() {
 	// The value is not set in argsv. But is in the parser context.
 	var orga_path string
 	var found bool
@@ -123,11 +126,10 @@ func (a *Forj) setWorkspace() error {
 		orga_path, err = a.w.DetectIt()
 		a.w.error = fmt.Errorf("Unable to find the workspace from current directory, FORJJ_WORKSPACE or cli. "+
 			"please define one to create it. %s", err)
-		return nil
+		return
 	}
 
 	a.w.Init(orga_path)
-	return nil
 }
 
 // type validateHdlr func(string) error
@@ -152,7 +154,7 @@ func (a *Forj) setWorkspace() error {
 //
 // store : string address where this flag will stored
 func (a *Forj) set_from_urlflag(flag string, store *string) (*url.URL, error) {
-	value, err := a.cli.GetAppStringValue(flag)
+	value, _, err := a.cli.GetStringValue(workspace, "", flag)
 	if err != nil {
 		return nil, err
 	}
