@@ -274,8 +274,17 @@ func (a *Forj) init() {
 	}
 
 	// Define app list
-	if a.cli.GetObject(app).CreateList("to_create", ",", "#w:#w(:#w)?", "one or more application drivers").
+	if a.cli.GetObject(app).CreateList("to_create", ",", "#w:#w(:#w)?", "one or more application drivers. "+
+		"Syntax is '<driver_type>:<driver_name>[:<instance_name>]'. By default instance name is set to the driver name.").
 		Field(1, "type").Field(2, "driver").Field(4, "name").
+		AddValidateHandler(func(l *cli.ForjListData) error {
+		if l.Data["name"] == "" {
+			driver := l.Data["driver"]
+			gotrace.Trace("Set default instance name to '%s'.", driver)
+			l.Data["name"] = driver
+		}
+		return nil
+	}).
 		// Ex: forjj add/change apps <type>:<driver>[:<instance>] ...
 		AddActions(add_act, chg_act) == nil {
 		log.Printf("%s", a.cli.GetObject(app).Error())
