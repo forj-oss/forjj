@@ -186,7 +186,7 @@ func (a *Forj) init() {
 	// Create kingpin actions layer in kingpin.
 	// ex: forjj add
 	a.cli.NewActions(cr_act, create_action_help, "Create %s.", true)
-	a.cli.NewActions(upd_act, update_action_help, "Update %s.", false)
+	a.cli.NewActions(upd_act, update_action_help, "Update %s.", true)
 	a.cli.NewActions(maint_act, maintain_action_help, "Maintain %s.", true)
 	a.cli.NewActions(add_act, add_action_help, "Add %s to your software factory.", false)
 	a.cli.NewActions(chg_act, update_action_help, "Update %s of your software factory.", false)
@@ -205,8 +205,7 @@ func (a *Forj) init() {
 		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help).
 		AddField(cli.String, infra_f, forjj_infra_name_help).
 		AddField(cli.String, orga_f, forjj_orga_name_help).
-		DefineActions(chg_act, rem_act).
-		OnActions(chg_act, rem_act).
+		DefineActions(chg_act, rem_act).OnActions().
 		AddFlag(workspace, opts_workspace).
 		AddFlag("docker-exe-path", nil).
 		AddFlag("contribs-repo", opts_contribs_repo).
