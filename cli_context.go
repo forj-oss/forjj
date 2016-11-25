@@ -33,9 +33,9 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	// Can be set only the first time
 	if f, found, _ := c.GetStringValue(workspace, "", orga_f); !found {
 		if a.w.Organization == "" {
-			w_o.SetParamOptions(orga_f, cli.Opts().Default(a.w.workspace))
 			a.w.Organization = a.w.workspace
 		}
+		w_o.SetParamOptions(orga_f, cli.Opts().Default(a.w.Organization))
 	} else {
 		if f == "" {
 			f = a.w.workspace
@@ -112,7 +112,6 @@ func (a *Forj) setWorkspace() {
 	var found bool
 	var err error
 
-	/* orga_path, found = a.cli.GetValue(workspace) */
 	orga_path, found, _ = a.cli.GetStringValue(workspace, "", orga_f)
 
 	if !found {
