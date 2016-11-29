@@ -198,13 +198,13 @@ func (a *Forj) init() {
 	// Create Object layer in kingpin on top of each actions.
 	// ex: forjj add repo
 	if a.cli.NewObject(workspace, "any forjj workspace parameters", true).
-		AddKey(cli.String, workspace, workspace_path_help).
-		AddField(cli.String, "docker-exe-path", docker_exe_path_help).
-		AddField(cli.String, "contribs-repo", contribs_repo_help).
-		AddField(cli.String, "flows-repo", flows_repo_help).
-		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help).
-		AddField(cli.String, infra_f, forjj_infra_name_help).
-		AddField(cli.String, orga_f, forjj_orga_name_help).
+		AddKey(cli.String, workspace, workspace_path_help, "#w").
+		AddField(cli.String, "docker-exe-path", docker_exe_path_help, "#w").
+		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w").
+		AddField(cli.String, "flows-repo", flows_repo_help, "#w").
+		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w").
+		AddField(cli.String, infra_f, forjj_infra_name_help, "#w").
+		AddField(cli.String, orga_f, forjj_orga_name_help, "#w").
 		DefineActions(chg_act, rem_act).OnActions().
 		AddFlag(workspace, opts_workspace).
 		AddFlag("docker-exe-path", nil).
@@ -213,50 +213,50 @@ func (a *Forj) init() {
 		AddFlag("repotemplates-repo", opts_repotmpl).
 		AddFlag(infra_f, opts_infra_repo).
 		AddFlag(orga_f, opts_orga_name) == nil {
-		log.Printf("%s", a.cli.GetObject(workspace).Error())
+		log.Printf("Workspace : %s", a.cli.GetObject(workspace).Error())
 	}
 
 	if a.cli.NewObject(repo, "a GIT repository", true).
-		AddKey(cli.String, "name", repo_name_help).
-		AddField(cli.String, "instance", repo_instance_name_help).
-		AddField(cli.String, "flow", repo_flow_help).
-		AddField(cli.String, "repo-template", repo_template_help).
-		AddField(cli.String, "title", repo_title_help).
-		AddField(cli.String, "new-name", new_repo_name_help).
+		AddKey(cli.String, "name", repo_name_help, "#w").
+		AddField(cli.String, "instance", repo_instance_name_help, "#w").
+		AddField(cli.String, "flow", repo_flow_help, "#w").
+		AddField(cli.String, "repo_template", repo_template_help, "#w").
+		AddField(cli.String, "title", repo_title_help, "#ft").
+		AddField(cli.String, "new_name", new_repo_name_help, "#w").
 		DefineActions(add_act, chg_act, rem_act, ren_act, list_act).
 		OnActions(add_act).
 		AddFlag("instance", nil).
 		OnActions(add_act, chg_act).
 		AddFlag("flow", nil).
-		AddFlag("repo-template", nil).
+		AddFlag("repo_template", nil).
 		AddFlag("title", nil).
 		OnActions(add_act, chg_act, rem_act, ren_act).
 		AddArg("name", opts_required).
 		OnActions(ren_act).
-		AddArg("new-name", opts_required) == nil {
-		log.Printf("%s", a.cli.GetObject(repo).Error())
+		AddArg("new_name", opts_required) == nil {
+		log.Printf("Repo: %s", a.cli.GetObject(repo).Error())
 	}
 
 	// Define create repo list
-	if a.cli.GetObject(repo).CreateList("to_create", ",", "(#w/)?#w(:#w(:#w(:#ft)?)?)?", "one or more GIT repositories").
-		Field(2, "instance").Field(3, "name").Field(5, "flow").Field(7, "repo-template").Field(9, "title").
+	if a.cli.GetObject(repo).CreateList("to_create", ",",
+		"[instance/]name[:flow[:repo_template[:title]]]",
+		"one or more GIT repositories").
 		// Ex: forjj add/change repos "github/myrepo:::My Repo" "other_repo:::Another repo"
 		//     forjj add/change repos "github/myrepo:::My Repo,other_repo:::Another repo"
 		AddActions(add_act, chg_act) == nil {
-		log.Printf("%s", a.cli.GetObject(repo).Error())
+		log.Printf("repo: to_create list: %s", a.cli.GetObject(repo).Error())
 	}
 
 	// Define remove repo list
-	if a.cli.GetObject(repo).CreateList("to_remove", ",", "#w", "one or more GIT repositories").
-		Field(1, "name").
+	if a.cli.GetObject(repo).CreateList("to_remove", ",", "name", "one or more GIT repositories").
 		AddActions(rem_act) == nil {
-		log.Printf("%s", a.cli.GetObject(repo).Error())
+		log.Printf("repo: to_remove list: %s", a.cli.GetObject(repo).Error())
 	}
 
 	if a.cli.NewObject(app, "an application driver", true).
-		AddKey(cli.String, "name", app_name_help).
-		AddField(cli.String, "type", app_type_help).
-		AddField(cli.String, "driver", app_driver_help).
+		AddKey(cli.String, "name", app_name_help, "#w").
+		AddField(cli.String, "type", app_type_help, "#w").
+		AddField(cli.String, "driver", app_driver_help, "#w").
 		DefineActions(add_act, chg_act, rem_act, list_act).
 		OnActions(add_act).
 		AddArg("type", opts_required).
@@ -269,13 +269,12 @@ func (a *Forj) init() {
 		AddFlag("driver", nil).
 		AddFlag("name", nil).
 		ParseHook(a.GetDriversFlags) == nil {
-		log.Printf("%s", a.cli.GetObject(app).Error())
+		log.Printf("app: %s", a.cli.GetObject(app).Error())
 	}
 
 	// Define app list
-	if a.cli.GetObject(app).CreateList("to_create", ",", "#w:#w(:#w)?", "one or more application drivers. "+
+	if a.cli.GetObject(app).CreateList("to_create", ",", "type:driver[:name]", "one or more application drivers. "+
 		"Syntax is '<driver_type>:<driver_name>[:<instance_name>]'. By default instance name is set to the driver name.").
-		Field(1, "type").Field(2, "driver").Field(4, "name").
 		AddValidateHandler(func(l *cli.ForjListData) error {
 		if l.Data["name"] == "" {
 			driver := l.Data["driver"]
@@ -286,11 +285,10 @@ func (a *Forj) init() {
 	}).
 		// Ex: forjj add/change apps <type>:<driver>[:<instance>] ...
 		AddActions(add_act, chg_act) == nil {
-		log.Printf("%s", a.cli.GetObject(app).Error())
+		log.Printf("app: to_create: %s", a.cli.GetObject(app).Error())
 	}
 
-	if a.cli.GetObject(app).CreateList("to_remove", ",", "#w", "one or more application drivers").
-		Field(1, "name").
+	if a.cli.GetObject(app).CreateList("to_remove", ",", "name", "one or more application drivers").
 		// Ex: forjj remove apps <instance> ...
 		AddActions(rem_act) == nil {
 		log.Printf("%s", a.cli.GetObject(app).Error())
@@ -298,21 +296,21 @@ func (a *Forj) init() {
 
 	// infra - Mostly built by plugins or other objects list with update action only.
 	if a.cli.NewObject(infra, "the global settings", true).
-		AddKey(cli.String, "infra-repo", "Infra repository name.").
-		AddField(cli.String, "infra-upstream", "Infra repository upstream instance name.").
-		AddField(cli.String, "flow", default_flow_help).
+		AddKey(cli.String, "infra-repo", "Infra repository name.", "#w").
+		AddField(cli.String, "infra-upstream", "Infra repository upstream instance name.", "#w").
+		AddField(cli.String, "flow", default_flow_help, "#w").
 		DefineActions(chg_act).
 		OnActions().
 		AddFlag("infra-repo", cli.Opts().Required()).
 		AddFlag("infra-upstream", nil).
 		AddFlag("flow", nil) == nil {
-		log.Printf("%s", a.cli.GetObject(infra).Error())
+		log.Printf("infra: %s", a.cli.GetObject(infra).Error())
 	}
 
 	// Flow - Not fully defined.
 	if a.cli.NewObject(flow, "flow over applications", true).NoFields().
 		DefineActions(add_act, rem_act, list_act) == nil {
-		log.Printf("%s", a.cli.GetObject(flow).Error())
+		log.Printf("infra: %s", a.cli.GetObject(flow).Error())
 	}
 
 	// Enhance create action
@@ -329,7 +327,7 @@ func (a *Forj) init() {
 		AddActionFlagsFromObjectAction(infra, chg_act).
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil).
 		AddFlag(cli.Bool, "no-maintain", create_no_maintain_help, nil) == nil {
-		log.Printf("%s", a.cli.Error())
+		log.Printf("action create: %s", a.cli.Error())
 	}
 
 	// Enhance Update
@@ -348,13 +346,13 @@ func (a *Forj) init() {
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj update --infra-repo ...
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil) == nil {
-		log.Printf("%s", a.cli.Error())
+		log.Printf("action update: %s", a.cli.Error())
 	}
 
 	// Enhance Maintain
 	if a.cli.OnActions(maint_act).
 		AddFlag(cli.String, "file", maintain_option_file, nil) == nil {
-		log.Printf("%s", a.cli.Error())
+		log.Printf("action maintain: %s", a.cli.Error())
 	}
 
 	_, err := exec.LookPath("git")
