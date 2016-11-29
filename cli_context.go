@@ -30,7 +30,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	w_o := c.GetObject(workspace)
 	// Set organization name to use.
 	// Can be set only the first time
-	if f, found, _ := c.GetStringValue(workspace, "", orga_f); !found {
+	if f, found, _, _ := c.GetStringValue(workspace, "", orga_f); !found {
 		if a.w.Organization == "" {
 			a.w.Organization = a.w.workspace
 		}
@@ -48,25 +48,38 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 		}
 	}
 
-	if f, found, _ := c.GetStringValue(workspace, "", infra_f); found {
-		if a.w.Organization != "" {
-			log.Printf("Organization : '%s'", a.w.Organization)
-			// Set the 'infra' default flag value
-			w_o.SetParamOptions(infra_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
+	if a.w.Organization != "" {
+		log.Printf("Organization : '%s'", a.w.Organization)
+	} else {
+		if a.w.error == nil {
+			a.w.error = fmt.Errorf("No organization defined.")
 		}
+	}
+
+	if f, found, isDefault, _ := c.GetStringValue(workspace, "", infra_f); found {
+		if isDefault {
+			if a.w.Organization != "" {
+				// Set the 'infra' default flag value
+				w_o.SetParamOptions(infra_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
+			}
+			f, _, _, _ = c.GetStringValue(workspace, "", infra_f)
+		}
+
 		// Set the infra repo name to use
 		// Can be set only the first time
 		if a.w.Infra.Name == "" {
 			// Get infra name from the flag
 			a.w.Infra.Name = f
 		} else {
-			if f != a.w.Infra.Name {
+			if f != a.w.Infra.Name && !isDefault {
 				fmt.Print("Warning!!! You cannot update the Infra repository name in an existing workspace.\n")
 			}
 		}
 	} else {
-		// Use the default setting.
-		a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
+		if a.w.Organization != "" {
+			// Use the default setting.
+			a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
+		}
 	}
 
 	gotrace.Trace("Infrastructure repository defined : %s (organization: %s)", a.w.Infra.Name, a.w.Organization)
@@ -111,7 +124,7 @@ func (a *Forj) setWorkspace() {
 	var found bool
 	var err error
 
-	orga_path, found, _ = a.cli.GetStringValue(workspace, "", workspace)
+	orga_path, found, _, _ = a.cli.GetStringValue(workspace, "", workspace)
 
 	if !found {
 		orga_path, err = a.w.DetectIt()
@@ -130,7 +143,7 @@ func (a *Forj) setWorkspace() {
 //
 // store : string address where this flag will stored
 func (a *Forj) set_from_urlflag(flag string, store *string) (*url.URL, error) {
-	value, _, err := a.cli.GetStringValue(workspace, "", flag)
+	value, _, _, err := a.cli.GetStringValue(workspace, "", flag)
 	if err != nil {
 		return nil, err
 	}

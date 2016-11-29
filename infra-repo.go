@@ -54,7 +54,7 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 		var remote_exist, remote_connected bool
 
 		var hint string
-		if v, _, _ := a.cli.GetStringValue(infra, "", "infra-upstream"); v == "" {
+		if v, _, _, _ := a.cli.GetStringValue(infra, "", "infra-upstream"); v == "" {
 			hint = "\nIf you are ok with this configuration, use '--infra-upstream none' to confirm. Otherwise, please define the --apps with the upstream driver and needed flags."
 		}
 

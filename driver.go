@@ -196,7 +196,7 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
 	d.plugin.PluginSetSource(path.Join(a.w.Path(), a.w.Infra.Name, "apps", d.DriverType))
 	d.plugin.PluginSetWorkspace(a.w.Path())
 	d.plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
-	if v, found, _ := a.cli.GetStringValue(workspace, "", "docker-exe-path"); found && v != "" {
+	if v, found, _, _ := a.cli.GetStringValue(workspace, "", "docker-exe-path"); found && v != "" {
 		a.w.DockerBinPath = v
 	}
 	if err := d.plugin.PluginDockerBin(a.w.DockerBinPath); err != nil {

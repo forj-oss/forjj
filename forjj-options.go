@@ -53,7 +53,7 @@ func (a *Forj) SetDefault(action string) {
 	}
 
 	// Set Defaults for repositories.
-	if v, found, _ := a.cli.GetStringValue(infra, "", flow); found && v != "" {
+	if v, found, _, _ := a.cli.GetStringValue(infra, "", flow); found && v != "" {
 		a.o.Defaults[flow] = v
 	}
 }
