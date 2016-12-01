@@ -31,10 +31,12 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	// Set organization name to use.
 	// Can be set only the first time
 	if f, found, _, _ := c.GetStringValue(workspace, "", orga_f); !found {
-		if a.w.Organization == "" {
+		if a.w.Organization == "" && a.w.workspace != "" {
 			a.w.Organization = a.w.workspace
 		}
-		w_o.SetParamOptions(orga_f, cli.Opts().Default(a.w.Organization))
+		if a.w.Organization != "" {
+			w_o.SetParamOptions(orga_f, cli.Opts().Default(a.w.Organization))
+		}
 	} else {
 		if f == "" {
 			f = a.w.workspace
@@ -61,8 +63,8 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 			if a.w.Organization != "" {
 				// Set the 'infra' default flag value
 				w_o.SetParamOptions(infra_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
+				f, _, _, _ = c.GetStringValue(workspace, "", infra_f)
 			}
-			f, _, _, _ = c.GetStringValue(workspace, "", infra_f)
 		}
 
 		// Set the infra repo name to use
@@ -86,26 +88,15 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 
 	// Identifying appropriate Contribution Repository.
 	// The value is not set in flagsv. But is in the parser context.
-	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err != nil {
-		return err
-	} else {
+	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
 		a.ContribRepo_uri = v
 	}
-	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err != nil {
-		return err
-	} else {
+	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
 		a.FlowRepo_uri = v
 	}
-	if v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err != nil {
-		return err
-	} else {
+	if v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err == nil {
 		a.RepotemplateRepo_uri = v
 	}
-
-	// Getting list of drivers (--apps) - Obsolete
-	/*    a.drivers_list.list = make(map[string]DriverDef)
-	      a.drivers_list.GetDriversFromContext(context, a.cli.C_drivers_list_f)
-	      a.drivers_list.GetDriversFromContext(context, a.cli.U_drivers_list_f)*/
 
 	// Read forjj infra file and the options --file given, defined by create/update driver flags settings saved or not
 	// This load Maintain context required by plugins. Maintain has limited flags to provide at runtime. Everything, except credentials should be stored in the infra-repo and workspace. Credentials is given with the --file option in yaml format.
@@ -124,8 +115,11 @@ func (a *Forj) setWorkspace() {
 	var found bool
 	var err error
 
-	orga_path, found, _, _ = a.cli.GetStringValue(workspace, "", workspace)
+	orga_path, found, _, err = a.cli.GetStringValue(workspace, "", workspace)
 
+	if err != nil {
+		gotrace.Trace("Unable to find '%s' value. %s Trying to detect it.", workspace, err)
+	}
 	if !found {
 		orga_path, err = a.w.DetectIt()
 		a.w.error = fmt.Errorf("Unable to find the workspace from current directory, FORJJ_WORKSPACE or cli. "+
@@ -145,6 +139,7 @@ func (a *Forj) setWorkspace() {
 func (a *Forj) set_from_urlflag(flag string, store *string) (*url.URL, error) {
 	value, _, _, err := a.cli.GetStringValue(workspace, "", flag)
 	if err != nil {
+		gotrace.Trace("%s", err)
 		return nil, err
 	}
 
