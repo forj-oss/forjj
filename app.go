@@ -386,19 +386,24 @@ func (a *Forj) init() {
 // InitializeDriversAPI
 //
 // Function initializing driver flags with values.
-// From values found in the commandline, extract them
+// From values found in the commandline (cli), extract them
 // From forjj-* values, get it from Forjj internal data.
-func (a *Forj) InitializeDriversAPI() {
+/*func (a *Forj) InitializeDriversAPI() {
 	// TODO: Use cli : To re-apply
 	// We will need to apply value to the Driver REST API and do call to each object requested to transmit the
 	// object action. Common are systematically given. And maintain is a different use case.
-	/*	forjj_regexp, _ := regexp.Compile("forjj-(.*)")
+		forjj_regexp, _ := regexp.Compile("forjj-(.*)")
 
 		for instance_name, driverOpts := range a.drivers {
 			if driverOpts.plugin.Yaml.Name == "" {
 				continue
 			}
 
+			if v := a.cli.GetCurrentCommand(); v == nil {
+				return
+			} else {
+				if len(v) >= 1 {}
+			}
 			cur_cmd := a.cli.GetCurrentCommand()
 			gotrace.Trace("driver: '%s(%s)', command: '%s'", driverOpts.DriverType, instance_name, cur_cmd)
 			for _, command := range []string{"common", cur_cmd} { // a.CurrentCommand.FullCommand()} {
@@ -420,8 +425,8 @@ func (a *Forj) InitializeDriversAPI() {
 					a.drivers[instance_name].cmds[command].flags[flag_name] = f
 				}
 			}
-		}*/
-}
+		}
+}*/
 
 // GetInternalData
 //

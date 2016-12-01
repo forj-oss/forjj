@@ -39,7 +39,7 @@ func main() {
 	}
 
 	//	TODO : Use cli : Re-apply following function
-	forj_app.InitializeDriversAPI()
+	// forj_app.InitializeDriversAPI()
 	defer forj_app.driver_cleanup_all()
 	switch kingpin.MustParse(parse, err) {
 	case "create":

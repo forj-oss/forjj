@@ -222,6 +222,9 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
 	}
 	a.drivers_options.GetDriversMaintainParameters(plugin_payload.Args, action)
 
+	// TODO: Generate payload with cli objects and action flags
+	a.GetForjjFlags()
+	//a.GetObjectsData()
 	a.GetDriversActionsParameters(plugin_payload.Args, "common")
 	a.GetDriversActionsParameters(plugin_payload.Args, action)
 

@@ -123,27 +123,24 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 func (a *Forj) init_driver_flags(instance_name string) {
 	d := a.drivers[instance_name]
 	service_type := d.DriverType
-	commands := d.plugin.Yaml.Actions
+	commands := d.plugin.Yaml.Tasks
 	d_opts := a.drivers_options.Drivers[instance_name]
 
 	gotrace.Trace("Setting flags from plugin type '%s' (%s)", service_type, d.plugin.Yaml.Name)
-	for command, def := range commands {
+	for command, flags := range commands {
 		if _, ok := a.drivers[instance_name].cmds[command]; !ok {
 			fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", service_type, command)
 		}
 
 		// Sort Flags for readability:
-		keys := make([]string, 0, len(def.Flags))
-
-		for k := range def.Flags {
+		keys := make([]string, 0, len(flags))
+		for k := range flags {
 			keys = append(keys, k)
 		}
-
 		sort.Strings(keys)
 
-		search_re, _ := regexp.Compile("^(.*[_-])?(" + d.plugin.Yaml.Name + ")([_-].*)?$")
 		for _, option_name := range keys {
-			flag_options := def.Flags[option_name]
+			flag_options := flags[option_name]
 
 			// drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
 			// They are not in the list of possible drivers options from the cli.
@@ -152,18 +149,57 @@ func (a *Forj) init_driver_flags(instance_name string) {
 				continue
 			}
 
-			forjj_option_name := SetAppropriateflagName(option_name, instance_name, search_re)
+			forjj_option_name := instance_name + "-" + option_name
 			flag_opts := d_opts.set_flag_options(option_name, &flag_options)
 			if command == "common" {
 				// loop on create/update/maintain to create flag on each command
-				gotrace.Trace("Create common flags '%s' to each commands...", forjj_option_name)
-				for _, cmd := range []string{"create", "update", "maintain"} {
-					d.init_driver_flags_for(a, option_name, cmd, forjj_option_name, flag_options.Help, flag_opts)
-				}
+				gotrace.Trace("Create common flags '%s' to App layer.", forjj_option_name)
+				d.init_driver_flags_for(a, option_name, "", forjj_option_name, flag_options.Help, flag_opts)
 			} else {
 				d.init_driver_flags_for(a, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
 			}
 		}
+	}
+
+	for object_name, object_det := range d.plugin.Yaml.Objects {
+		var obj *cli.ForjObject
+		flag_key := object_det.Identified_by_flag
+
+		if o := a.cli.GetObject(object_name); o != nil {
+			if o.IsInternal() {
+				gotrace.Trace("'%s' object definition is invalid. This is an internal forjj object. Ignored.")
+				continue
+			}
+			// Get Object key.
+			obj = a.cli.NewObject(object_name, object_det.Help, false)
+			if flag_key == "" {
+				obj.Single()
+			} else {
+				if v, found := object_det.Flags[flag_key]; !found {
+					gotrace.Trace("Unable to create the object '%s' identified by '%s'. '%s' is not defined.",
+						object_name, flag_key, flag_key)
+				} else {
+					flag_opts := d_opts.set_flag_options(flag_key, &v)
+					obj.AddKey(cli.String, flag_key, v.Help, flag_opts)
+				}
+			}
+		} else {
+			obj = o
+		}
+
+		// Adding fields to the object.
+		for flag_name, flag_det := range object_det.Flags {
+			if obj.HasField(flag_name) {
+				gotrace.Trace("%s has already been defined as an object field. Ignored.")
+				continue
+			}
+			flag_opts := d_opts.set_flag_options(flag_key, &flag_det)
+			obj.AddField(cli.String, flag_key, flag_det.Help, flag_opts)
+		}
+
+		// TODO: Adding Actions to the object.
+
+		// TODO: Adding flags to object actions
 	}
 }
 
@@ -171,7 +207,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 //
 // It currently assigns defaults or required.
 //
-func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.YamlFlagsOptions) (opts *cli.ForjOpts) {
+func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.YamlFlags) (opts *cli.ForjOpts) {
 	if params == nil {
 		return
 	}
@@ -209,6 +245,12 @@ func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.Yam
 
 // Create the flag to a kingpin Command. (create/update/maintain)
 func (d *Driver) init_driver_flags_for(a *Forj, option_name, command, forjj_option_name, forjj_option_help string, opts *cli.ForjOpts) {
+	if command == "" {
+		// Add to the Application layer.
+		gotrace.Trace("Set App flag '%s(%s)'", forjj_option_name, option_name)
+		a.cli.AddAppFlag(cli.String, forjj_option_name, forjj_option_help, opts)
+		return
+	}
 	// No value by default. Will be set later after complete parse.
 	d.cmds[command].flags[forjj_option_name] = DriverCmdOptionFlag{driver_flag_name: option_name}
 
@@ -222,24 +264,9 @@ func (d *Driver) init_driver_flags_for(a *Forj, option_name, command, forjj_opti
 	return
 }
 
-// SetAppropriateflagName Define the Forjj flag name for the plugin selected.
-// If instanceName is not equal to service_type, then
-// any flag without <service_type> in flag name will returned with <instance_name>-<FlagName>
-// Any flag having at least .*[_-]<service_type> or <service_type>[_-].*or both, <service_type is replaced by <instance_name>
-func SetAppropriateflagName(flag_name, instance_name string, search_re *regexp.Regexp) string {
-
-	res := search_re.FindStringSubmatch(flag_name)
-	if res == nil {
-
-		return instance_name + "-" + flag_name
-	}
-
-	return search_re.ReplaceAllString(flag_name, "${1}"+instance_name+"${3}")
-}
-
 // GetDriversFlags - cli App context hook. Load drivers requested (app object)
 // This function is provided as cli app object Parse hook
-func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, d interface{}) error {
+func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{}) error {
 	list := a.cli.GetObjectValues(o.Name())
 	// Loop on drivers to pre-initialized drivers flags.
 	gotrace.Trace("Number of plugins provided from parameters: %d", len(list))
@@ -276,4 +303,9 @@ func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, d interface{})
 	// Those drivers are all used by all services that forjj should manage.
 	a.load_missing_drivers()
 	return nil
+}
+
+// GetForjjFlags build
+func (a *Forj) GetForjjFlags() {
+
 }
