@@ -233,7 +233,9 @@ func (a *Forj) init() {
 		OnActions(add_act, chg_act, rem_act, ren_act).
 		AddArg("name", opts_required).
 		OnActions(ren_act).
-		AddArg("new_name", opts_required) == nil {
+		AddArg("new_name", opts_required).
+		OnActions(add_act, chg_act, rem_act, list_act).
+		AddFlagsFromObjectAction(workspace, chg_act) == nil {
 		log.Printf("Repo: %s", a.cli.GetObject(repo).Error())
 	}
 
@@ -243,13 +245,15 @@ func (a *Forj) init() {
 		"one or more GIT repositories").
 		// Ex: forjj add/change repos "github/myrepo:::My Repo" "other_repo:::Another repo"
 		//     forjj add/change repos "github/myrepo:::My Repo,other_repo:::Another repo"
-		AddActions(add_act, chg_act) == nil {
+		AddActions(add_act, chg_act).
+		AddFlagsFromObjectAction(workspace, chg_act) == nil {
 		log.Printf("repo: to_create list: %s", a.cli.GetObject(repo).Error())
 	}
 
 	// Define remove repo list
 	if a.cli.GetObject(repo).CreateList("to_remove", ",", "name", "one or more GIT repositories").
-		AddActions(rem_act) == nil {
+		AddActions(rem_act).
+		AddFlagsFromObjectAction(workspace, chg_act) == nil {
 		log.Printf("repo: to_remove list: %s", a.cli.GetObject(repo).Error())
 	}
 
@@ -268,13 +272,14 @@ func (a *Forj) init() {
 		AddFlag("type", nil).
 		AddFlag("driver", nil).
 		AddFlag("name", nil).
-		ParseHook(a.GetDriversFlags) == nil {
+		ParseHook(a.GetDriversFlags).
+		OnActions(add_act, chg_act, rem_act, list_act).
+		AddFlagsFromObjectAction(workspace, chg_act) == nil {
 		log.Printf("app: %s", a.cli.GetObject(app).Error())
 	}
 
 	// Define app list
-	if a.cli.GetObject(app).CreateList("to_create", ",", "type:driver[:name]", "one or more application drivers. "+
-		"Syntax is '<driver_type>:<driver_name>[:<instance_name>]'. By default instance name is set to the driver name.").
+	if a.cli.GetObject(app).CreateList("to_create", ",", "type:driver[:name]", "one or more application drivers").
 		AddValidateHandler(func(l *cli.ForjListData) error {
 		if l.Data["name"] == "" {
 			driver := l.Data["driver"]
@@ -284,13 +289,15 @@ func (a *Forj) init() {
 		return nil
 	}).
 		// Ex: forjj add/change apps <type>:<driver>[:<instance>] ...
-		AddActions(add_act, chg_act) == nil {
+		AddActions(add_act, chg_act).
+		AddFlagsFromObjectAction(workspace, chg_act) == nil {
 		log.Printf("app: to_create: %s", a.cli.GetObject(app).Error())
 	}
 
 	if a.cli.GetObject(app).CreateList("to_remove", ",", "name", "one or more application drivers").
 		// Ex: forjj remove apps <instance> ...
-		AddActions(rem_act) == nil {
+		AddActions(rem_act).
+		AddFlagsFromObjectAction(workspace, chg_act) == nil {
 		log.Printf("%s", a.cli.GetObject(app).Error())
 	}
 
@@ -351,6 +358,7 @@ func (a *Forj) init() {
 
 	// Enhance Maintain
 	if a.cli.OnActions(maint_act).
+		AddActionFlagsFromObjectAction(workspace, chg_act).
 		AddFlag(cli.String, "file", maintain_option_file, nil) == nil {
 		log.Printf("action maintain: %s", a.cli.Error())
 	}
