@@ -9,10 +9,15 @@ const DefaultUsageTemplate = `{{define "FormatCommand"}}\
 {{define "FormatCommandList"}}\
 {{  range .}}\
 {{    if not .Hidden}}\
-{{      .Depth|Indent}}{{.Name}} {{if .Default}}*{{end}}{{template "FormatCommand" .}}\
+{{      if eq .Name "add"}}---------------------------------------------------------------------------------------------
+Following actions do updates of your software factory source code, by updating forjj or plugins objects settings.
+
+{{      end}}\
+{{      .Depth|Indent}}{{.Name}} {{if .Default}}*{{end}}\
+{{      template "FormatCommand" .}}\
 {{      if .Commands }}<commands>
 {{        .Help|Wrap 4}}\
-    <commands> can be {{range .Commands}}'{{.Name}}' {{end}}. Use {{.Name}} --help for details.
+    <commands> can be {{range .Commands}}'{{.Name}}' {{end}}. Use '{{.Name}} --help' for details.
 {{      else}}
 {{        .Help|Wrap 4}}\
 {{      end}}\
@@ -40,10 +45,6 @@ const DefaultUsageTemplate = `{{define "FormatCommand"}}\
 
 {{if .Context.SelectedCommand}}\
 usage: {{.App.Name}} {{.Context.SelectedCommand}}\
-{{  range  $Flagname, $FlagOpts := .Context.Flags}}\
-{{    if eq $FlagOpts.Name "apps" }} --apps {{$FlagOpts.Value}}\
-{{    end}}\
-{{  end}}\
 {{template "FormatUsage" .Context.SelectedCommand}}
 {{else}}\
 usage: {{.App.Name}}{{template "FormatUsage" .App}}

@@ -4,11 +4,13 @@ package main
 const (
 	forjj_help = `FORJJ - Software Factory 'solution as code' builder - Is the new successor of Forj.
 
-His role is to help you building an automated Software factory by integrating several tools together,
+His role is to help you building and maintaining an automated Software factory by integrating several tools together,
 implemented with the 'Infrastructure as Code' idea.
 
-'Infrastructure as Code' is part of DevOps. FORJJ can help you create/update/maintain your DevOps solution.
-But FORJJ is not DevOps if you do not help your teams to do DevOps.
+For details on Forjj, visit https://github.hpe.com/forjj/forjj
+
+'Infrastructure as Code' is part of DevOps (automation). FORJJ can help you create/update/maintain your DevOps solution.
+But FORJJ is not DevOps if you do not help your teams to do DevOps (DevOps Culture).
 `
 	forjj_debug_help      = "debug mode activated"
 	forjj_infra_name_help = "Infra repository name. By default, the name is '<Organization>-infra'. It is the Infra repo cloned directory name as well. Warning! You cannot update it on an existing workspace."
