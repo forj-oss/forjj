@@ -34,6 +34,9 @@ type Workspace struct {
 }
 
 func (w *Workspace) Init(Workspace_path string) {
+	if Workspace_path == "" {
+		return
+	}
 	Workspace_path = path.Clean(Workspace_path)
 	w.workspace_path = path.Dir(Workspace_path)
 	w.workspace = path.Base(Workspace_path)
