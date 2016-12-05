@@ -198,6 +198,7 @@ func (a *Forj) init() {
 	// Create Object layer in kingpin on top of each actions.
 	// ex: forjj add repo
 	if a.cli.NewObject(workspace, "any forjj workspace parameters", true).
+		Single().
 		AddKey(cli.String, workspace, workspace_path_help, "#w").
 		AddField(cli.String, "docker-exe-path", docker_exe_path_help, "#w").
 		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w").
@@ -303,6 +304,7 @@ func (a *Forj) init() {
 
 	// infra - Mostly built by plugins or other objects list with update action only.
 	if a.cli.NewObject(infra, "the global settings", true).
+		Single().
 		AddKey(cli.String, "infra-repo", "Infra repository name.", "#w").
 		AddField(cli.String, "infra-upstream", "Infra repository upstream instance name.", "#w").
 		AddField(cli.String, "flow", default_flow_help, "#w").
