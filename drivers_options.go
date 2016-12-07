@@ -170,7 +170,9 @@ func (a *Forj) init_driver_flags(instance_name string) {
 				gotrace.Trace("'%s' object definition is invalid. This is an internal forjj object. Ignored.")
 				continue
 			}
-			// Get Object key.
+			obj = o
+		} else {
+			// New Object and get the key.
 			obj = a.cli.NewObject(object_name, object_det.Help, false)
 			if flag_key == "" {
 				obj.Single()
@@ -183,18 +185,25 @@ func (a *Forj) init_driver_flags(instance_name string) {
 					obj.AddKey(cli.String, flag_key, v.Help, flag_opts)
 				}
 			}
-		} else {
-			obj = o
 		}
 
+		defineActions := make(map[string]bool)
+		for _, action := range a.cli.GetAllActions() {
+
+		}
 		// Adding fields to the object.
 		for flag_name, flag_det := range object_det.Flags {
 			if obj.HasField(flag_name) {
 				gotrace.Trace("%s has already been defined as an object field. Ignored.")
 				continue
 			}
-			flag_opts := d_opts.set_flag_options(flag_key, &flag_det)
+			flag_opts := d_opts.set_flag_options(flag_key, &flag_det.Options)
 			obj.AddField(cli.String, flag_key, flag_det.Help, flag_opts)
+			if flag_det.Actions == nil || len(flag_det.Actions) == 0 {
+				for key, _ := range defineActions {
+					defineActions[key] = true
+				}
+			}
 		}
 
 		// TODO: Adding Actions to the object.
@@ -219,7 +228,7 @@ func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.Yam
 		if option_value, found := d.Options[option_name]; found && option_value.Value != "" {
 			// Do not set flag in any case as required or with default, if a value has been set in the driver loaded options (creds-forjj.yml)
 			preloaded_data = true
-			if params.Secure {
+			if params.Options.Secure {
 				// We do not set a secure data as default in kingpin default flags to avoid displaying them from forjj help.
 				gotrace.Trace("Option value found for '%s' : -- set as hidden default value. --", option_name)
 				// The data will be retrieved by
@@ -233,10 +242,10 @@ func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.Yam
 
 	if !preloaded_data {
 		// No preloaded data from forjj-creds.yaml (or equivalent files) -- Normal plugin driver set up
-		if params.Required {
+		if params.Options.Required {
 			opts.Required()
 		}
-		if params.Default != "" {
+		if params.Options.Default != "" {
 			opts.Default(params.Default)
 		}
 	}
