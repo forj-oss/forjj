@@ -150,7 +150,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			}
 
 			forjj_option_name := instance_name + "-" + option_name
-			flag_opts := d_opts.set_flag_options(option_name, &flag_options)
+			flag_opts := d_opts.set_flag_options(option_name, &flag_options.Options)
 			if command == "common" {
 				// loop on create/update/maintain to create flag on each command
 				gotrace.Trace("Create common flags '%s' to App layer.", forjj_option_name)
@@ -161,6 +161,9 @@ func (a *Forj) init_driver_flags(instance_name string) {
 		}
 	}
 
+	// Create an object or enhance an existing one.
+	// Then create the object key if needed.
+	// Then add fields, define actions and create flags.
 	for object_name, object_det := range d.plugin.Yaml.Objects {
 		var obj *cli.ForjObject
 		flag_key := object_det.Identified_by_flag
@@ -181,34 +184,64 @@ func (a *Forj) init_driver_flags(instance_name string) {
 					gotrace.Trace("Unable to create the object '%s' identified by '%s'. '%s' is not defined.",
 						object_name, flag_key, flag_key)
 				} else {
-					flag_opts := d_opts.set_flag_options(flag_key, &v)
-					obj.AddKey(cli.String, flag_key, v.Help, flag_opts)
+					obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp)
 				}
 			}
 		}
 
 		defineActions := make(map[string]bool)
-		for _, action := range a.cli.GetAllActions() {
-
+		allActions := false
+		for action_name := range a.cli.GetAllActions() {
+			if action_name == cr_act || action_name == upd_act || action_name == maint_act {
+				continue
+			}
+			defineActions[action_name] = false
 		}
+
 		// Adding fields to the object.
 		for flag_name, flag_det := range object_det.Flags {
 			if obj.HasField(flag_name) {
 				gotrace.Trace("%s has already been defined as an object field. Ignored.")
 				continue
 			}
-			flag_opts := d_opts.set_flag_options(flag_key, &flag_det.Options)
-			obj.AddField(cli.String, flag_key, flag_det.Help, flag_opts)
-			if flag_det.Actions == nil || len(flag_det.Actions) == 0 {
-				for key, _ := range defineActions {
-					defineActions[key] = true
+			obj.AddField(cli.String, flag_key, flag_det.Help, flag_det.FormatRegexp)
+			if !allActions {
+				if flag_det.Actions == nil || len(flag_det.Actions) == 0 {
+					allActions = true
+					for key := range defineActions {
+						defineActions[key] = true
+					}
+				} else {
+					for _, action_name := range flag_det.Actions {
+						defineActions[action_name] = true
+					}
+					for key := range defineActions {
+						allActions = allActions && defineActions[key]
+					}
+
 				}
 			}
 		}
 
-		// TODO: Adding Actions to the object.
+		// Adding Actions to the object.
+		actionsToAdd := make([]string, 0, len(defineActions))
+		for action_name, toAdd := range defineActions {
+			if toAdd {
+				actionsToAdd = append(actionsToAdd, action_name)
+			}
+		}
+		obj.DefineActions(actionsToAdd...)
 
-		// TODO: Adding flags to object actions
+		// Adding flags to object actions
+		for flag_name, flag_det := range object_det.Flags {
+			if flag_det.Actions == nil || len(flag_det.Actions) == 0 {
+				obj.OnActions(actionsToAdd...)
+			} else {
+				obj.OnActions(flag_det.Actions...)
+			}
+			flag_opts := d_opts.set_flag_options(flag_key, &flag_det.Options)
+			obj.AddFlag(flag_name, flag_opts)
+		}
 	}
 }
 
@@ -216,7 +249,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 //
 // It currently assigns defaults or required.
 //
-func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.YamlFlags) (opts *cli.ForjOpts) {
+func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.YamlFlagOptions) (opts *cli.ForjOpts) {
 	if params == nil {
 		return
 	}
@@ -228,7 +261,7 @@ func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.Yam
 		if option_value, found := d.Options[option_name]; found && option_value.Value != "" {
 			// Do not set flag in any case as required or with default, if a value has been set in the driver loaded options (creds-forjj.yml)
 			preloaded_data = true
-			if params.Options.Secure {
+			if params.Secure {
 				// We do not set a secure data as default in kingpin default flags to avoid displaying them from forjj help.
 				gotrace.Trace("Option value found for '%s' : -- set as hidden default value. --", option_name)
 				// The data will be retrieved by
@@ -242,10 +275,10 @@ func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.Yam
 
 	if !preloaded_data {
 		// No preloaded data from forjj-creds.yaml (or equivalent files) -- Normal plugin driver set up
-		if params.Options.Required {
+		if params.Required {
 			opts.Required()
 		}
-		if params.Options.Default != "" {
+		if params.Default != "" {
 			opts.Default(params.Default)
 		}
 	}
@@ -314,7 +347,36 @@ func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{})
 	return nil
 }
 
-// GetForjjFlags build
-func (a *Forj) GetForjjFlags() {
+// GetForjjFlags build the Forjj list of parameters requested by the plugin fora specific action name.
+func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *Driver, action string) {
+	if tc, found := d.plugin.Yaml.Tasks[action] ; found {
+		for flag_name := range tc {
+			if v, found := a.GetDriversActionsParameter(d, flag_name) ; found {
+				r.Forj[flag_name] = v
+			}
+		}
+	}
+}
 
+// GetObjectsData build the list of Object required by the plugin provided from the cli flags.
+func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *Driver, action string) {
+	// Loop on each plugin object
+	for object_name := range d.plugin.Yaml.Objects {
+		for instance_name, instance_data := range a.cli.GetObjectValues(object_name) {
+			ia := make(goforjj.InstanceActions)
+			keys := make(goforjj.ActionKeys)
+			for key := range instance_data.Attrs() {
+				if key == "action" {
+					continue
+				}
+				if _, found, err := instance_data.Get(key) ; !found {
+					gotrace.Trace("%s", err)
+					continue
+				}
+				keys.AddKey(key, instance_data.GetString(key))
+			}
+			ia.AddAction(instance_data.GetString("action"), keys)
+			r.AddObjectActions(object_name, instance_name, ia)
+		}
+	}
 }

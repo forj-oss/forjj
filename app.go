@@ -77,7 +77,7 @@ type Forj struct {
 	drivers_list DriversList // List of drivers passed to the command line argument from --app.
 	//Actions      map[string]*ActionOpts // map of Commands with their arguments/flags
 
-	flags_loaded map[string]string // key/values for flags loaded. Used when doing a create AND maintain at the same time (create case)
+	//flags_loaded map[string]string // key/values for flags loaded. Used when doing a create AND maintain at the same time (create case)
 
 	drivers         map[string]*Driver // List of drivers data/flags/... per instance name (key)
 	drivers_options DriversOptions     // forjj-maintain.yml See infra-maintain.go
@@ -466,29 +466,21 @@ func (a *Forj) GetInternalData(param string) (result string) {
 //
 // Build the list of plugin shell parameters for dedicated action.
 // It will be created as a Hash of values
-func (a *Forj) GetDriversActionsParameters(cmd_args map[string]string, cmd string) {
+func (a *Forj) GetDriversActionsParameter(d *Driver, flag_name string) (string, bool) {
 	forjj_regexp, _ := regexp.Compile("forjj-(.*)")
 
-	if a.flags_loaded == nil {
-		a.flags_loaded = make(map[string]string)
-	}
-
-	for _, pluginOpts := range a.drivers {
-		for k, v := range pluginOpts.cmds[cmd].flags {
-			forjj_vars := forjj_regexp.FindStringSubmatch(k)
-			if forjj_vars == nil {
-				gotrace.Trace("'%s' candidate as parameters.", k)
-				if v_saved, ok := a.flags_loaded[k]; ok {
-					v.value = v_saved
-				}
-				if v.value != "" {
-					cmd_args[v.driver_flag_name] = v.value
-					a.flags_loaded[k] = v.value
-					gotrace.Trace("Set: '%s' <= '%s'", k, v.value)
-				}
-			} else {
-				cmd_args[k] = a.GetInternalData(forjj_vars[1])
-			}
+	forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
+	if forjj_vars == nil {
+		gotrace.Trace("'%s' candidate as parameters.", flag_name)
+		parameter_name := d.InstanceName + "-" + flag_name
+		if v, err := a.cli.GetAppStringValue(parameter_name) ; err != nil {
+			gotrace.Trace("Set: '%s' <= '%s'", flag_name, v)
+			return v, true
+		} else {
+			gotrace.Trace("%s", err)
+			return "", false
 		}
+	} else {
+		return a.GetInternalData(forjj_vars[1]), true
 	}
 }

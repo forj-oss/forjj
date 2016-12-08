@@ -217,22 +217,13 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
 		return err, false
 	}
 
-	plugin_payload := goforjj.PluginReqData{
-		Args: make(map[string]string),
-	}
-	a.drivers_options.GetDriversMaintainParameters(plugin_payload.Args, action)
+	plugin_payload := goforjj.NewReqData()
+	//a.drivers_options.GetDriversMaintainParameters(plugin_payload.Args, action)
 
 	// TODO: Generate payload with cli objects and action flags
-	a.GetForjjFlags()
-	//a.GetObjectsData()
-	a.GetDriversActionsParameters(plugin_payload.Args, "common")
-	a.GetDriversActionsParameters(plugin_payload.Args, action)
-
-	// For upstream plugins at create/update, provide ReposData map structure from forjj internals.
-	if d.DriverType == "upstream" && action != "maintain" {
-		// TODO: Get ReposData map structure from forjj internals...
-		plugin_payload.ReposData = a.GetReposData(instance_name)
-	}
+	a.GetForjjFlags(plugin_payload, d, "common")
+	a.GetForjjFlags(plugin_payload, d, action)
+	a.GetObjectsData(plugin_payload, d, action)
 
 	d.plugin.Result, err = d.plugin.PluginRunAction(action, plugin_payload)
 	if d.plugin.Result == nil {
