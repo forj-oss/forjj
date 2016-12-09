@@ -18,6 +18,7 @@ import (
 //
 // - Load missing drivers information from forjj-options.yaml
 func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
+	gotrace.Trace("Setting FORJJ Context...")
 	// load FORJJ workspace information
 	a.setWorkspace() // failure test exit is made after parse time.
 
@@ -125,6 +126,8 @@ func (a *Forj) setWorkspace() {
 		a.w.error = fmt.Errorf("Unable to find the workspace from current directory, FORJJ_WORKSPACE or cli. "+
 			"please define one to create it. %s", err)
 		return
+	} else {
+		gotrace.Trace("Found workspace setting : '%s'", orga_path)
 	}
 
 	a.w.Init(orga_path)

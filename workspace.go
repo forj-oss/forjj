@@ -137,6 +137,8 @@ func (w *Workspace) Load() error {
 // You will need to call Init(path) and later Load()
 func (w *Workspace) DetectIt() (string, error) {
 	var pwd string
+
+	gotrace.Trace("Detecting FORJJ workspace...")
 	if v, err := os.Getwd(); err != nil {
 		return "", err
 	} else {
