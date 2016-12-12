@@ -257,6 +257,11 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			}
 			flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
 			obj.AddFlag(flag_name, flag_opts)
+
+			// TODO: Adding secure object fields to maintain task (value can be loaded from creds or cli.
+			if flag_det.Options.Secure {
+				a.cli.OnActions(maint_act).AddActionFlagFromObjectField(object_name, flag_name)
+			}
 		}
 	}
 }
@@ -297,6 +302,10 @@ func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.Yam
 		if params.Default != "" {
 			opts.Default(params.Default)
 		}
+	}
+
+	if params.Envar != "" {
+		opts.Envar(params.Envar)
 	}
 	return
 }
