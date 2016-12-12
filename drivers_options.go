@@ -127,6 +127,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 	d_opts := a.drivers_options.Drivers[instance_name]
 
 	gotrace.Trace("Setting flags from plugin type '%s' (%s)", service_type, d.plugin.Yaml.Name)
+	gotrace.Trace("Setting actions flags...")
 	for command, flags := range commands {
 		if _, ok := a.drivers[instance_name].cmds[command]; !ok {
 			fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", service_type, command)
@@ -164,21 +165,24 @@ func (a *Forj) init_driver_flags(instance_name string) {
 	// Create an object or enhance an existing one.
 	// Then create the object key if needed.
 	// Then add fields, define actions and create flags.
+	gotrace.Trace("Setting Objects...")
 	for object_name, object_det := range d.plugin.Yaml.Objects {
 		var obj *cli.ForjObject
 		flag_key := object_det.Identified_by_flag
 
 		if o := a.cli.GetObject(object_name); o != nil {
 			if o.IsInternal() {
-				gotrace.Trace("'%s' object definition is invalid. This is an internal forjj object. Ignored.")
+				gotrace.Trace("'%s' object definition is invalid. This is an internal forjj object. Ignored.", object_name)
 				continue
 			}
 			obj = o
+			gotrace.Trace("Updating object '%s'", object_name)
 		} else {
 			// New Object and get the key.
 			obj = a.cli.NewObject(object_name, object_det.Help, false)
 			if flag_key == "" {
 				obj.Single()
+				gotrace.Trace("New single object '%s'", object_name)
 			} else {
 				if v, found := object_det.Flags[flag_key]; !found {
 					gotrace.Trace("Unable to create the object '%s' identified by '%s'. '%s' is not defined.",
@@ -186,6 +190,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 				} else {
 					obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp)
 				}
+				gotrace.Trace("New object '%s' with key '%s'", object_name, flag_key)
 			}
 		}
 
@@ -198,13 +203,15 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			defineActions[action_name] = false
 		}
 
+		gotrace.Trace("Adding fields to object '%s'", object_name)
 		// Adding fields to the object.
 		for flag_name, flag_det := range object_det.Flags {
 			if obj.HasField(flag_name) {
-				gotrace.Trace("%s has already been defined as an object field. Ignored.")
+				gotrace.Trace("%s has already been defined as an object field. Ignored.", flag_name)
 				continue
 			}
-			obj.AddField(cli.String, flag_key, flag_det.Help, flag_det.FormatRegexp)
+			obj.AddField(cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp)
+			gotrace.Trace("Field '%s' added to object '%s'", flag_name, object_name)
 			if !allActions {
 				if flag_det.Actions == nil || len(flag_det.Actions) == 0 {
 					allActions = true
@@ -215,14 +222,19 @@ func (a *Forj) init_driver_flags(instance_name string) {
 					for _, action_name := range flag_det.Actions {
 						defineActions[action_name] = true
 					}
+					allActions = true
 					for key := range defineActions {
-						allActions = allActions && defineActions[key]
+						if !defineActions[key] {
+							allActions = false
+							break
+						}
 					}
 
 				}
 			}
 		}
 
+		gotrace.Trace("Adding Actions to object '%s'", object_name)
 		// Adding Actions to the object.
 		actionsToAdd := make([]string, 0, len(defineActions))
 		for action_name, toAdd := range defineActions {
@@ -231,15 +243,19 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			}
 		}
 		obj.DefineActions(actionsToAdd...)
+		gotrace.Trace("Actions %s added to object '%s'", actionsToAdd, object_name)
 
+		gotrace.Trace("Adding Action flags to object '%s'", object_name)
 		// Adding flags to object actions
 		for flag_name, flag_det := range object_det.Flags {
 			if flag_det.Actions == nil || len(flag_det.Actions) == 0 {
 				obj.OnActions(actionsToAdd...)
+				gotrace.Trace("Adding flag '%s' for all actions to object '%s'", flag_name, object_name)
 			} else {
 				obj.OnActions(flag_det.Actions...)
+				gotrace.Trace("Adding flag '%s' for actions '%s' to object '%s'", flag_name, flag_det.Actions, object_name)
 			}
-			flag_opts := d_opts.set_flag_options(flag_key, &flag_det.Options)
+			flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
 			obj.AddFlag(flag_name, flag_opts)
 		}
 	}
@@ -298,9 +314,9 @@ func (d *Driver) init_driver_flags_for(a *Forj, option_name, command, forjj_opti
 
 	// Create flag 'option_name' on kingpin cmd or app
 	if forjj_option_name != option_name {
-		gotrace.Trace("Set action '%s' flag for '%s(%s)'", command, forjj_option_name, option_name)
+		gotrace.Trace("Set action '%s' flag '%s(%s)'", command, forjj_option_name, option_name)
 	} else {
-		gotrace.Trace("Set action '%s' flag for '%s'", command, forjj_option_name)
+		gotrace.Trace("Set action '%s' flag '%s'", command, forjj_option_name)
 	}
 	a.cli.OnActions(command).AddFlag(cli.String, forjj_option_name, forjj_option_help, opts)
 	return
@@ -349,9 +365,9 @@ func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{})
 
 // GetForjjFlags build the Forjj list of parameters requested by the plugin fora specific action name.
 func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *Driver, action string) {
-	if tc, found := d.plugin.Yaml.Tasks[action] ; found {
+	if tc, found := d.plugin.Yaml.Tasks[action]; found {
 		for flag_name := range tc {
-			if v, found := a.GetDriversActionsParameter(d, flag_name) ; found {
+			if v, found := a.GetDriversActionsParameter(d, flag_name); found {
 				r.Forj[flag_name] = v
 			}
 		}
@@ -369,7 +385,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *Driver, action string
 				if key == "action" {
 					continue
 				}
-				if _, found, err := instance_data.Get(key) ; !found {
+				if _, found, err := instance_data.Get(key); !found {
 					gotrace.Trace("%s", err)
 					continue
 				}

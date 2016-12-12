@@ -217,7 +217,7 @@ func (a *Forj) init() {
 		log.Printf("Workspace : %s", a.cli.GetObject(workspace).Error())
 	}
 
-	if a.cli.NewObject(repo, "a GIT repository", true).
+	if a.cli.NewObject(repo, "a GIT repository", false).
 		AddKey(cli.String, "name", repo_name_help, "#w").
 		AddField(cli.String, "instance", repo_instance_name_help, "#w").
 		AddField(cli.String, "flow", repo_flow_help, "#w").
@@ -258,7 +258,7 @@ func (a *Forj) init() {
 		log.Printf("repo: to_remove list: %s", a.cli.GetObject(repo).Error())
 	}
 
-	if a.cli.NewObject(app, "an application driver", true).
+	if a.cli.NewObject(app, "an application driver", false).
 		AddKey(cli.String, "name", app_name_help, "#w").
 		AddField(cli.String, "type", app_type_help, "#w").
 		AddField(cli.String, "driver", app_driver_help, "#w").
@@ -473,7 +473,7 @@ func (a *Forj) GetDriversActionsParameter(d *Driver, flag_name string) (string, 
 	if forjj_vars == nil {
 		gotrace.Trace("'%s' candidate as parameters.", flag_name)
 		parameter_name := d.InstanceName + "-" + flag_name
-		if v, err := a.cli.GetAppStringValue(parameter_name) ; err != nil {
+		if v, err := a.cli.GetAppStringValue(parameter_name); err != nil {
 			gotrace.Trace("Set: '%s' <= '%s'", flag_name, v)
 			return v, true
 		} else {
