@@ -220,8 +220,15 @@ func (a *Forj) init_driver_flags(instance_name string) {
 					}
 				} else {
 					for _, action_name := range flag_det.Actions {
+						if action_name == cr_act || action_name == upd_act || action_name == maint_act {
+							gotrace.Trace("Invalid action '%s' for field '%s'. Must be '%s'. Ignored.",
+								action_name, flag_name, MapBoolKeys(defineActions))
+							continue
+						}
 						defineActions[action_name] = true
 					}
+					gotrace.Trace("Object Field '%s-%s' is defined for actions '%s'",
+						object_name, flag_name, flag_det.Actions)
 					allActions = true
 					for key := range defineActions {
 						if !defineActions[key] {
@@ -258,9 +265,8 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
 			obj.AddFlag(flag_name, flag_opts)
 
-			// TODO: Adding secure object fields to maintain task (value can be loaded from creds or cli.
 			if flag_det.Options.Secure {
-				a.cli.OnActions(maint_act).AddActionFlagFromObjectField(object_name, flag_name)
+				a.cli.OnActions(maint_act).AddActionFlagFromObjectField(object_name, flag_name, flag_opts)
 			}
 		}
 	}
