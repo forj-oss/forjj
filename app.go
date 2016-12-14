@@ -199,13 +199,13 @@ func (a *Forj) init() {
 	// ex: forjj add repo
 	if a.cli.NewObject(workspace, "any forjj workspace parameters", true).
 		Single().
-		AddKey(cli.String, workspace, workspace_path_help, "#w").
-		AddField(cli.String, "docker-exe-path", docker_exe_path_help, "#w").
-		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w").
-		AddField(cli.String, "flows-repo", flows_repo_help, "#w").
-		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w").
-		AddField(cli.String, infra_f, forjj_infra_name_help, "#w").
-		AddField(cli.String, orga_f, forjj_orga_name_help, "#w").
+		AddKey(cli.String, workspace, workspace_path_help, "#w", nil).
+		AddField(cli.String, "docker-exe-path", docker_exe_path_help, "#w", nil).
+		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w", nil).
+		AddField(cli.String, "flows-repo", flows_repo_help, "#w", nil).
+		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w", nil).
+		AddField(cli.String, infra_f, forjj_infra_name_help, "#w", nil).
+		AddField(cli.String, orga_f, forjj_orga_name_help, "#w", nil).
 		DefineActions(chg_act, rem_act).OnActions().
 		AddFlag(workspace, opts_workspace).
 		AddFlag("docker-exe-path", nil).
@@ -218,12 +218,12 @@ func (a *Forj) init() {
 	}
 
 	if a.cli.NewObject(repo, "a GIT repository", false).
-		AddKey(cli.String, "name", repo_name_help, "#w").
-		AddField(cli.String, "instance", repo_instance_name_help, "#w").
-		AddField(cli.String, "flow", repo_flow_help, "#w").
-		AddField(cli.String, "repo_template", repo_template_help, "#w").
-		AddField(cli.String, "title", repo_title_help, "#ft").
-		AddField(cli.String, "new_name", new_repo_name_help, "#w").
+		AddKey(cli.String, "name", repo_name_help, "#w", nil).
+		AddField(cli.String, "instance", repo_instance_name_help, "#w", nil).
+		AddField(cli.String, "flow", repo_flow_help, "#w", nil).
+		AddField(cli.String, "repo_template", repo_template_help, "#w", nil).
+		AddField(cli.String, "title", repo_title_help, "#ft", nil).
+		AddField(cli.String, "new_name", new_repo_name_help, "#w", nil).
 		DefineActions(add_act, chg_act, rem_act, ren_act, list_act).
 		OnActions(add_act).
 		AddFlag("instance", nil).
@@ -259,9 +259,9 @@ func (a *Forj) init() {
 	}
 
 	if a.cli.NewObject(app, "an application driver", false).
-		AddKey(cli.String, "name", app_name_help, "#w").
-		AddField(cli.String, "type", app_type_help, "#w").
-		AddField(cli.String, "driver", app_driver_help, "#w").
+		AddKey(cli.String, "name", app_name_help, "#w", nil).
+		AddField(cli.String, "type", app_type_help, "#w", nil).
+		AddField(cli.String, "driver", app_driver_help, "#w", nil).
 		DefineActions(add_act, chg_act, rem_act, list_act).
 		OnActions(add_act).
 		AddArg("type", opts_required).
@@ -305,9 +305,9 @@ func (a *Forj) init() {
 	// infra - Mostly built by plugins or other objects list with update action only.
 	if a.cli.NewObject(infra, "the global settings", true).
 		Single().
-		AddKey(cli.String, "infra-repo", "Infra repository name.", "#w").
-		AddField(cli.String, "infra-upstream", "Infra repository upstream instance name.", "#w").
-		AddField(cli.String, "flow", default_flow_help, "#w").
+		AddKey(cli.String, "infra-repo", "Infra repository name.", "#w", nil).
+		AddField(cli.String, "infra-upstream", "Infra repository upstream instance name.", "#w", nil).
+		AddField(cli.String, "flow", default_flow_help, "#w", nil).
 		DefineActions(chg_act).
 		OnActions().
 		AddFlag("infra-repo", cli.Opts().Required()).

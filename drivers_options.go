@@ -188,7 +188,8 @@ func (a *Forj) init_driver_flags(instance_name string) {
 					gotrace.Trace("Unable to create the object '%s' identified by '%s'. '%s' is not defined.",
 						object_name, flag_key, flag_key)
 				} else {
-					obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp)
+					flag_opts := d_opts.set_flag_options(flag_key, &v.Options)
+					obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp, flag_opts)
 				}
 				gotrace.Trace("New object '%s' with key '%s'", object_name, flag_key)
 			}
@@ -203,15 +204,17 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			defineActions[action_name] = false
 		}
 
-		gotrace.Trace("Adding fields to object '%s'", object_name)
+		gotrace.Trace("Object '%s': Adding fields", object_name)
 		// Adding fields to the object.
 		for flag_name, flag_det := range object_det.Flags {
 			if obj.HasField(flag_name) {
-				gotrace.Trace("%s has already been defined as an object field. Ignored.", flag_name)
+				gotrace.Trace("Object '%s': Field '%s' has already been defined as an object field. Ignored.",
+					object_name, flag_name)
 				continue
 			}
-			obj.AddField(cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp)
-			gotrace.Trace("Field '%s' added to object '%s'", flag_name, object_name)
+			flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
+			obj.AddField(cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, flag_opts)
+			gotrace.Trace("Object '%s': Field '%s' added.", object_name, flag_name)
 			if !allActions {
 				if flag_det.Actions == nil || len(flag_det.Actions) == 0 {
 					allActions = true
@@ -219,16 +222,18 @@ func (a *Forj) init_driver_flags(instance_name string) {
 						defineActions[key] = true
 					}
 				} else {
+					actions_added := make([]string, 0, len(flag_det.Actions))
 					for _, action_name := range flag_det.Actions {
 						if action_name == cr_act || action_name == upd_act || action_name == maint_act {
-							gotrace.Trace("Invalid action '%s' for field '%s'. Must be '%s'. Ignored.",
+							gotrace.Trace("Invalid action '%s' for field '%s'. Accept only '%s'. Ignored.",
 								action_name, flag_name, MapBoolKeys(defineActions))
 							continue
 						}
 						defineActions[action_name] = true
+						actions_added = append(actions_added, action_name)
 					}
-					gotrace.Trace("Object Field '%s-%s' is defined for actions '%s'",
-						object_name, flag_name, flag_det.Actions)
+					gotrace.Trace("Object '%s': Field '%s' is defined for actions '%s' (were defined for '%s')",
+						object_name, flag_name, actions_added, flag_det.Actions)
 					allActions = true
 					for key := range defineActions {
 						if !defineActions[key] {
@@ -241,7 +246,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			}
 		}
 
-		gotrace.Trace("Adding Actions to object '%s'", object_name)
+		gotrace.Trace("Object '%s': Adding Object Actions...", object_name)
 		// Adding Actions to the object.
 		actionsToAdd := make([]string, 0, len(defineActions))
 		for action_name, toAdd := range defineActions {
@@ -250,22 +255,28 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			}
 		}
 		obj.DefineActions(actionsToAdd...)
-		gotrace.Trace("Actions %s added to object '%s'", actionsToAdd, object_name)
+		gotrace.Trace("Object '%s': Actions %s added.", object_name, actionsToAdd)
 
-		gotrace.Trace("Adding Action flags to object '%s'", object_name)
+		gotrace.Trace("Object '%s': Adding Object Action flags...", object_name)
 		// Adding flags to object actions
 		for flag_name, flag_det := range object_det.Flags {
+			if ok, _ := regexp.MatchString("forjj-.*", flag_name); ok {
+				gotrace.Trace("Object '%s': '%s' is an internal FORJJ variable. Not added in any object actions.",
+					object_name, flag_name)
+				continue
+			}
 			if flag_det.Actions == nil || len(flag_det.Actions) == 0 {
 				obj.OnActions(actionsToAdd...)
-				gotrace.Trace("Adding flag '%s' for all actions to object '%s'", flag_name, object_name)
+				gotrace.Trace("Object '%s': Adding flag '%s' for all actions.", object_name, flag_name)
 			} else {
 				obj.OnActions(flag_det.Actions...)
-				gotrace.Trace("Adding flag '%s' for actions '%s' to object '%s'", flag_name, flag_det.Actions, object_name)
+				gotrace.Trace("Object '%s': Adding flag '%s' for actions '%s'.",
+					object_name, flag_name, flag_det.Actions)
 			}
-			flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
-			obj.AddFlag(flag_name, flag_opts)
+			obj.AddFlag(flag_name, nil)
 
 			if flag_det.Options.Secure {
+				gotrace.Trace("Object '%s': Secure field '%s' added to maintain task.", object_name, flag_name)
 				a.cli.OnActions(maint_act).AddActionFlagFromObjectField(object_name, flag_name, flag_opts)
 			}
 		}
