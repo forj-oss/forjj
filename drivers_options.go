@@ -213,8 +213,10 @@ func (a *Forj) init_driver_flags(instance_name string) {
 				continue
 			}
 			flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
-			obj.AddField(cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, flag_opts)
+			obj.AddInstanceField(instance_name, cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, flag_opts)
 			gotrace.Trace("Object '%s': Field '%s' added.", object_name, flag_name)
+
+			// Determine list of Actions to Define at Object Level (Next step - Object Actions)
 			if !allActions {
 				if flag_det.Actions == nil || len(flag_det.Actions) == 0 {
 					allActions = true
@@ -277,10 +279,14 @@ func (a *Forj) init_driver_flags(instance_name string) {
 
 			if flag_det.Options.Secure {
 				gotrace.Trace("Object '%s': Secure field '%s' added to maintain task.", object_name, flag_name)
+				flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
 				a.cli.OnActions(maint_act).AddActionFlagFromObjectField(object_name, flag_name, flag_opts)
 			}
 		}
 	}
+
+	// TODO: Give plugin capability to manipulate new plugin object instances as list (ex: role => roles)
+	// TODO: integrate new plugins objects list in create/update task
 }
 
 // Set options on a new flag created.
