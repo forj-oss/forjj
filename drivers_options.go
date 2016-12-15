@@ -11,6 +11,7 @@ import (
 	"path"
 	"regexp"
 	"sort"
+	"strings"
 	"text/template"
 )
 
@@ -119,6 +120,17 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 
 }
 
+func (a *Forj) get_valid_driver_actions() (validActions []string) {
+	actions := a.cli.GetAllActions()
+	validActions = make([]string, 0, len(actions))
+	for action_name := range actions {
+		if inStringList(action_name, cr_act, upd_act, maint_act) == "" {
+			validActions = append(validActions, action_name)
+		}
+	}
+	return
+}
+
 // Initialize command drivers flags with plugin definition loaded from plugin yaml file.
 func (a *Forj) init_driver_flags(instance_name string) {
 	d := a.drivers[instance_name]
@@ -130,7 +142,8 @@ func (a *Forj) init_driver_flags(instance_name string) {
 	gotrace.Trace("Setting actions flags...")
 	for command, flags := range commands {
 		if _, ok := a.drivers[instance_name].cmds[command]; !ok {
-			fmt.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.", service_type, command)
+			log.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.",
+				service_type, command)
 		}
 
 		// Sort Flags for readability:
@@ -151,7 +164,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			}
 
 			forjj_option_name := instance_name + "-" + option_name
-			flag_opts := d_opts.set_flag_options(option_name, &flag_options.Options)
+			flag_opts := d_opts.set_flag_options(instance_name, option_name, &flag_options.Options)
 			if command == "common" {
 				// loop on create/update/maintain to create flag on each command
 				gotrace.Trace("Create common flags '%s' to App layer.", forjj_option_name)
@@ -188,19 +201,18 @@ func (a *Forj) init_driver_flags(instance_name string) {
 					gotrace.Trace("Unable to create the object '%s' identified by '%s'. '%s' is not defined.",
 						object_name, flag_key, flag_key)
 				} else {
-					flag_opts := d_opts.set_flag_options(flag_key, &v.Options)
+					flag_opts := d_opts.set_flag_options(instance_name, flag_key, &v.Options)
 					obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp, flag_opts)
 				}
 				gotrace.Trace("New object '%s' with key '%s'", object_name, flag_key)
 			}
 		}
 
+		// Determine which actions can be configured for drivers object flags.
+		validActions := a.get_valid_driver_actions()
 		defineActions := make(map[string]bool)
 		allActions := false
-		for action_name := range a.cli.GetAllActions() {
-			if action_name == cr_act || action_name == upd_act || action_name == maint_act {
-				continue
-			}
+		for _, action_name := range validActions {
 			defineActions[action_name] = false
 		}
 
@@ -212,9 +224,25 @@ func (a *Forj) init_driver_flags(instance_name string) {
 					object_name, flag_name)
 				continue
 			}
-			flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
+			flag_opts := d_opts.set_flag_options(instance_name, flag_name, &flag_det.Options)
 			obj.AddInstanceField(instance_name, cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, flag_opts)
-			gotrace.Trace("Object '%s': Field '%s' added.", object_name, flag_name)
+			gotrace.Trace("Object Instance '%s-%s': Field '%s' added.", object_name, instance_name, flag_name)
+
+			// Checking flag actions definition.
+			if flag_det.Actions != nil {
+				for _, action := range flag_det.Actions {
+					action_name := inStringList(action, validActions...)
+					if action_name == "" {
+						log.Printf("FORJJ Driver '%s-%s': Invalid action '%s' for field '%s'. Accept only '%s'. Ignored.",
+							service_type, d.Name, action, flag_name, validActions)
+						// Remove this bad Action name from yaml loaded driver.
+						flag_det.Actions = arrayStringDelete(flag_det.Actions, action)
+						// Updating the in-mem object_det, used in object loop context.
+						object_det.Flags[flag_name] = flag_det
+						continue
+					}
+				}
+			}
 
 			// Determine list of Actions to Define at Object Level (Next step - Object Actions)
 			if !allActions {
@@ -224,18 +252,11 @@ func (a *Forj) init_driver_flags(instance_name string) {
 						defineActions[key] = true
 					}
 				} else {
-					actions_added := make([]string, 0, len(flag_det.Actions))
 					for _, action_name := range flag_det.Actions {
-						if action_name == cr_act || action_name == upd_act || action_name == maint_act {
-							gotrace.Trace("Invalid action '%s' for field '%s'. Accept only '%s'. Ignored.",
-								action_name, flag_name, MapBoolKeys(defineActions))
-							continue
-						}
 						defineActions[action_name] = true
-						actions_added = append(actions_added, action_name)
 					}
 					gotrace.Trace("Object '%s': Field '%s' is defined for actions '%s' (were defined for '%s')",
-						object_name, flag_name, actions_added, flag_det.Actions)
+						object_name, flag_name, flag_det.Actions, flag_det.Actions)
 					allActions = true
 					for key := range defineActions {
 						if !defineActions[key] {
@@ -261,26 +282,28 @@ func (a *Forj) init_driver_flags(instance_name string) {
 
 		gotrace.Trace("Object '%s': Adding Object Action flags...", object_name)
 		// Adding flags to object actions
-		for flag_name, flag_det := range object_det.Flags {
+		for flag_name, flag_dets := range object_det.Flags {
 			if ok, _ := regexp.MatchString("forjj-.*", flag_name); ok {
 				gotrace.Trace("Object '%s': '%s' is an internal FORJJ variable. Not added in any object actions.",
 					object_name, flag_name)
 				continue
 			}
-			if flag_det.Actions == nil || len(flag_det.Actions) == 0 {
+			if flag_dets.Actions == nil || len(flag_dets.Actions) == 0 {
 				obj.OnActions(actionsToAdd...)
 				gotrace.Trace("Object '%s': Adding flag '%s' for all actions.", object_name, flag_name)
 			} else {
-				obj.OnActions(flag_det.Actions...)
+				obj.OnActions(flag_dets.Actions...)
 				gotrace.Trace("Object '%s': Adding flag '%s' for actions '%s'.",
-					object_name, flag_name, flag_det.Actions)
+					object_name, flag_name, flag_dets.Actions)
 			}
 			obj.AddFlag(flag_name, nil)
 
-			if flag_det.Options.Secure {
+			if flag_dets.Options.Secure {
 				gotrace.Trace("Object '%s': Secure field '%s' added to maintain task.", object_name, flag_name)
-				flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
-				a.cli.OnActions(maint_act).AddActionFlagFromObjectField(object_name, flag_name, flag_opts)
+				flag_opts := d_opts.set_flag_options(instance_name, flag_name, &flag_dets.Options)
+				a.cli.OnActions(maint_act).
+					WithObjectInstance(object_name, instance_name).
+					AddActionFlagFromObjectField(flag_name, flag_opts)
 			}
 		}
 	}
@@ -293,7 +316,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 //
 // It currently assigns defaults or required.
 //
-func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.YamlFlagOptions) (opts *cli.ForjOpts) {
+func (d *DriverOptions) set_flag_options(instance_name, option_name string, params *goforjj.YamlFlagOptions) (opts *cli.ForjOpts) {
 	if params == nil {
 		return
 	}
@@ -328,7 +351,7 @@ func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.Yam
 	}
 
 	if params.Envar != "" {
-		opts.Envar(params.Envar)
+		opts.Envar(strings.ToUpper(instance_name) + "_" + params.Envar)
 	}
 	return
 }
