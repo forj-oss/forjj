@@ -97,7 +97,7 @@ func (f *ForjjOptions) Save(file string) error {
 	return nil
 }
 
-// This functions loads the forjj options definitions from the LoadContext().
+// LoadForjjOptions loads the forjj options definitions from the LoadContext().
 func (a *Forj) LoadForjjOptions() error {
 	a.o.Init()
 	// Read definition file from repo.

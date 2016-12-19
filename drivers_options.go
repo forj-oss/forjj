@@ -42,6 +42,7 @@ func (d *Driver) Model() (m *DriverModel) {
 func (a *Forj) load_missing_drivers() error {
 	gotrace.Trace("Number of registered instances %d", len(a.o.Drivers))
 	gotrace.Trace("Number of loaded instances %d", len(a.drivers))
+	// TODO: Use data loaded from configuration saved in source 'forjj-options.yaml' and update it from driver, instead of reloading from scratch.
 	for instance, d := range a.o.Drivers {
 		if _, found := a.drivers[instance]; !found {
 			gotrace.Trace("Loading missing instance %s", instance)
@@ -417,7 +418,7 @@ func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{})
 	return nil
 }
 
-// GetForjjFlags build the Forjj list of parameters requested by the plugin fora specific action name.
+// GetForjjFlags build the Forjj list of parameters requested by the plugin for a specific action name.
 func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *Driver, action string) {
 	if tc, found := d.plugin.Yaml.Tasks[action]; found {
 		for flag_name := range tc {

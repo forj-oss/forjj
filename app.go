@@ -445,13 +445,13 @@ func (a *Forj) GetInternalData(param string) (result string) {
 		} else {
 			gotrace.Trace("Warning. instance_name requested outside plugin context.")
 		}
-	case "source-mount": // where the plugin has source mounted
+	case "source-mount": // where the plugin has source mounted in the container
 		if a.CurrentPluginDriver != nil {
 			result = a.CurrentPluginDriver.plugin.SourceMount
 		} else {
 			gotrace.Trace("Warning. source-mount requested outside plugin context.")
 		}
-	case "workspace-mount": // where the plugin has source mounted
+	case "workspace-mount": // where the plugin has source mounted to the container from caller
 		if a.CurrentPluginDriver != nil {
 			result = a.CurrentPluginDriver.plugin.WorkspaceMount
 		} else {
