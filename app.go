@@ -92,8 +92,6 @@ type Forj struct {
 	InfraPluginDriver   *Driver // Driver used by upstream
 
 	// Forjj Core values, saved at create time, updated at update time. maintain should save also.
-	Infra_repo *string // Infra repository name flag value
-	Orga_name  *string // Infra repository name flag value
 
 	creds_file           *string  // Credential file
 	Branch               string   // Update feature branch name

@@ -33,7 +33,7 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 		gotrace.Trace("Defining your Infra-repository %s", a.w.Infra.Name)
 		// TODO: Refer to a repotemplate to create the README.md content and file.
 		r := goforjj.PluginRepoData{
-			Title:     fmt.Sprintf("Infrastructure Repository for the organization %s", *a.Orga_name),
+			Title:     fmt.Sprintf("Infrastructure Repository for the organization %s", a.w.Organization),
 			Instance:  a.w.Instance,
 			Templates: make([]string, 0),
 			Users:     make(map[string]string),
@@ -46,7 +46,7 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 		a.r.Repos[a.w.Infra.Name] = &r
 	}
 
-	a.infra_readme = fmt.Sprintf("Infrastructure Repository for the organization %s", *a.Orga_name)
+	a.infra_readme = fmt.Sprintf("Infrastructure Repository for the organization %s", a.w.Organization)
 
 	if a.InfraPluginDriver == nil { // NO infra upstream driver loaded and defined.
 		// But should be ok if the git remote is already set.
