@@ -107,6 +107,10 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 			gotrace.Trace("Warning! Options files were not loaded. %s", err)
 		}
 	}
+
+	if v := a.cli.GetAction(cr_act).GetBoolAddr("no-maintain"); v != nil {
+		a.no_maintain = v
+	}
 	return nil
 }
 
