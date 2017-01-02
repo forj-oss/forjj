@@ -59,12 +59,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 		}
 	}
 
-	if f, found, isDefault, _ := c.GetStringValue(workspace, "", infra_f); found {
+	i_o := c.GetObject(infra)
+	if f, found, isDefault, _ := c.GetStringValue(infra, "", infra_f); found {
 		if isDefault {
 			if a.w.Organization != "" {
 				// Set the 'infra' default flag value
-				w_o.SetParamOptions(infra_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
-				f, _, _, _ = c.GetStringValue(workspace, "", infra_f)
+				i_o.SetParamOptions(infra_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
+				f, _, _, _ = c.GetStringValue(infra, "", infra_f)
 			}
 		}
 
@@ -123,7 +124,7 @@ func (a *Forj) setWorkspace() {
 	}
 	if !found {
 		orga_path, err = a.w.DetectIt()
-		a.w.error = fmt.Errorf("Unable to find the workspace from current directory, FORJJ_WORKSPACE or cli. "+
+		a.w.error = fmt.Errorf("Unable to find the workspace from current directory, FORJJ_WORKSPACE or --workspace. "+
 			"please define one to create it. %s", err)
 		return
 	} else {

@@ -204,7 +204,6 @@ func (a *Forj) init() {
 		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w", nil).
 		AddField(cli.String, "flows-repo", flows_repo_help, "#w", nil).
 		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w", nil).
-		AddField(cli.String, infra_f, forjj_infra_name_help, "#w", nil).
 		AddField(cli.String, orga_f, forjj_orga_name_help, "#w", nil).
 		DefineActions(chg_act, rem_act).OnActions().
 		AddFlag(workspace, opts_workspace).
@@ -212,7 +211,6 @@ func (a *Forj) init() {
 		AddFlag("contribs-repo", opts_contribs_repo).
 		AddFlag("flows-repo", opts_flows_repo).
 		AddFlag("repotemplates-repo", opts_repotmpl).
-		AddFlag(infra_f, opts_infra_repo).
 		AddFlag(orga_f, opts_orga_name) == nil {
 		log.Printf("Workspace : %s", a.cli.GetObject(workspace).Error())
 	}
@@ -305,12 +303,12 @@ func (a *Forj) init() {
 	// infra - Mostly built by plugins or other objects list with update action only.
 	if a.cli.NewObject(infra, "the global settings", true).
 		Single().
-		AddKey(cli.String, "infra-repo", "Infra repository name.", "#w", nil).
+		AddKey(cli.String, infra_f, forjj_infra_name_help, "#w", nil).
 		AddField(cli.String, "infra-upstream", "Infra repository upstream instance name.", "#w", nil).
 		AddField(cli.String, "flow", default_flow_help, "#w", nil).
 		DefineActions(chg_act).
 		OnActions().
-		AddFlag("infra-repo", cli.Opts().Required()).
+		AddFlag(infra_f, opts_infra_repo).
 		AddFlag("infra-upstream", nil).
 		AddFlag("flow", nil) == nil {
 		log.Printf("infra: %s", a.cli.GetObject(infra).Error())
