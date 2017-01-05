@@ -57,6 +57,10 @@ func (a *Forj) load_missing_drivers() error {
 				log.Printf("Unable to load plugin information for instance '%s'. %s", instance, err)
 				continue
 			}
+			// Complete the driver information in cli records
+			// The instance record has been created automatically with  cli.ForjObject.AddInstanceField()
+			a.cli.SetValue(app, d.Name, cli.String, "type", d.DriverType)
+			a.cli.SetValue(app, d.Name, cli.String, "driver", d.Name)
 			/*            if err := d.plugin.PluginLoadFrom(instance, d.Runtime) ; err != nil {
 			              log.Printf("Unable to load Runtime information from forjj-options for instance '%s'. Forjj may not work properly. You can fix it with 'forjj update --apps %s:%s:%s'. %s", instance, d.DriverType, d.Name, d.InstanceName, err)
 			          }*/
