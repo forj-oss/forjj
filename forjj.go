@@ -26,7 +26,7 @@ func main() {
 	}
 
 	forj_app.init()
-	parse, err := forj_app.cli.App.Parse(os.Args[1:])
+	parse, err := forj_app.cli.Parse(os.Args[1:])
 
 	// Check initial requirement for forjj create
 	if parse == "create" {

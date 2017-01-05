@@ -290,12 +290,12 @@ func (a *Forj) init() {
 	// Enhance create action
 	a.cli.OnActions(cr_act).
 		// Ex: forjj create --repos "github/myrepo:::My Repo,other_repo:::Another repo"
-		AddFlagFromObjectListAction(repo, "to_create", add_act).
+		AddActionFlagFromObjectListAction(repo, "to_create", add_act).
 		// Ex: forjj create --apps "upstream:github"
-		AddFlagFromObjectListAction(app, "to_create", add_act).
+		AddActionFlagFromObjectListAction(app, "to_create", add_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --docker-exe-path ...
-		AddFlagsFromObjectAction(workspace, upd_act).
+		AddActionFlagsFromObjectAction(workspace, upd_act).
 		AddArg(cli.String, workspace, workspace_path_help, opts_required).
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil).
 		AddFlag(cli.String, "flow", default_flow_help, nil).
