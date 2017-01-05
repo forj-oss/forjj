@@ -350,7 +350,12 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *Driver, action string
 				}
 				keys.AddKey(key, instance_data.GetString(key))
 			}
-			ia.AddAction(instance_data.GetString("action"), keys)
+			if action == maint_act {
+				// Everything is sent as "setup" action
+				ia.AddAction("setup", keys)
+			} else {
+				ia.AddAction(instance_data.GetString("action"), keys)
+			}
 			r.AddObjectActions(object_name, instance_name, ia)
 		}
 	}
