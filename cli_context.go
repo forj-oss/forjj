@@ -132,6 +132,9 @@ func (a *Forj) setWorkspace() {
 			"please define one to create it. %s", err)
 		return
 	} else {
+		if p, err := Abs(orga_path); err == nil {
+			orga_path = p
+		}
 		gotrace.Trace("Found workspace setting : '%s'", orga_path)
 	}
 

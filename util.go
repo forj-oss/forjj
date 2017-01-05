@@ -252,5 +252,5 @@ func Abs(name string) (string, error) {
 		return name, nil
 	}
 	wd, err := os.Getwd()
-	return path.Join(wd, name), err
+	return path.Clean(path.Join(wd, name)), err
 }
