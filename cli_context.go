@@ -3,32 +3,23 @@ package main
 import (
 	"fmt"
 	"github.com/alecthomas/kingpin"
+	"github.com/forj-oss/forjj-modules/cli"
 	"github.com/forj-oss/forjj-modules/trace"
 	"log"
 	"net/url"
 	"os"
 )
 
-// LoadContext : Load cli context to adapt the list of options/flags from the driver definition.
+// ParseContext : Load cli context to adapt the list of options/flags from the driver definition.
 //
 // It will
-// - detect the debug mode
 // - detect the organization name/path (to stored in app)
 //   It will set the default Infra name.
 // - detect the driver list source.
 // - detect ci/us drivers name (to stored in app)
 //
 // - Load missing drivers information from forjj-options.yaml
-func (a *Forj) LoadContext(args []string) {
-	cmd, err := a.cli.LoadContext(args)
-	kingpin.FatalIfError(err, "Application flags initialization issue. Driver flags issue?")
-
-	if cmd == nil {
-		return
-	}
-
-	a.GetActionOptsFromCli(cmd)
-
+func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	// load FORJJ workspace information
 	a.setWorkspace()
 
@@ -40,7 +31,7 @@ func (a *Forj) LoadContext(args []string) {
 
 	// Set organization name to use.
 	// Can be set only the first time
-	if f := a.cli.GetAppFlag(orga_f); f != nil {
+	if f := c.GetAppFlag(orga_f); f != nil {
 		if a.w.Organization == "" {
 			if !f.IsFound() {
 				f.Default(a.w.workspace)
@@ -86,9 +77,9 @@ func (a *Forj) LoadContext(args []string) {
 
 	// Identifying appropriate Contribution Repository.
 	// The value is not set in flagsv. But is in the parser context.
-	opts.set_from_urlflag(a, context, "contribs-repo", a.ContribRepo_uri, &a.w.Contrib_repo_path)
-	opts.set_from_urlflag(a, context, "flows-repo", a.FlowRepo_uri, &a.w.Flow_repo_path)
-	opts.set_from_urlflag(a, context, "repotemplates-repo", a.RepotemplateRepo_uri, &a.w.Repotemplate_repo_path)
+	a.ContribRepo_uri = a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path)
+	a.FlowRepo_uri = a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path)
+	a.RepotemplateRepo_uri = a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path)
 
 	// Getting list of drivers (--apps) - Obsolete
 	/*    a.drivers_list.list = make(map[string]DriverDef)
@@ -144,31 +135,17 @@ func (o *ActionOpts) set_from_flag(a *Forj, context *kingpin.ParseContext, flag 
 	return nil
 }
 
-func (o *ActionOpts) set_from_urlflag(a *Forj, context *kingpin.ParseContext, flag string, theurl *url.URL, store *string) {
-	value := ""
-
-	if _, found := o.flags[flag]; !found {
-		gotrace.Trace("No '%s' flag found in cli context. Used stored value '%s'", flag, *store)
-		value = *store
-	} else {
-		if d, found := a.flagValue(context, o.flags[flag]); found {
-			value = d
-		} else {
-			if o.flags[flag].HasEnvarValue() {
-				gotrace.Trace("Getting value from env for flag '%s'", flag)
-				value = o.flags[flag].GetEnvarValue()
-			}
-		}
-	}
+func (a *Forj) set_from_urlflag(flag string, store *string) *url.URL {
+	value := a.cli.GetAppStringValue(flag)
 
 	if u, err := url.Parse(value); err != nil {
 		log.Printf("%s", err)
 	} else {
-		*theurl = *u
 		if u.Scheme == "" {
 			*store = value
 		}
 	}
+	return u
 }
 
 func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool) {

@@ -29,13 +29,14 @@ func main() {
 	parse, err := forj_app.cli.Parse(os.Args[1:])
 
 	// Check initial requirement for forjj create
-	if parse == "create" {
-		if found, _ := forj_app.w.check_exist(); found {
-			log.Fatalf("Unable to create the workspace '%s'. Already exist.", forj_app.w.Path())
+	/*	if parse == "create" {
+			if found, _ := forj_app.w.check_exist(); found {
+				log.Fatalf("Unable to create the workspace '%s'. Already exist.", forj_app.w.Path())
+			}
 		}
-	}
 
-	forj_app.InitializeDriversFlag()
+		TODO : Use cli : Re-apply following function*/
+	forj_app.InitializeDriversAPI()
 	defer forj_app.driver_cleanup_all()
 	switch kingpin.MustParse(parse, err) {
 	case "create":

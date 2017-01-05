@@ -1,18 +1,12 @@
 package main
 
-import (
-    "github.com/alecthomas/kingpin"
-    "regexp"
-    "fmt"
-    "strings"
-    "github.com/forj-oss/forjj-modules/trace"
-    "github.com/forj-oss/goforjj"
-)
+import "github.com/forj-oss/goforjj"
 
 type ReposList struct {
-    Repos map[string]*goforjj.PluginRepoData
+	Repos map[string]*goforjj.PluginRepoData
 }
 
+/*
 // Syntax supported:
 // --add-repo [<instance>/]<RepoName>[:<Flow>[:<RepoTemplate>[:<RepoTitle>]]][,...]
 // --repo [<instance>/]<RepoName>[:<Flow>[:<RepoTemplate>[:<RepoTitle>]]][,...]
@@ -76,3 +70,4 @@ func SetReposListFlag(a *ActionOpts, f *kingpin.FlagClause) (*kingpin.FlagClause
     a.repoList = r
     return f
 }
+*/

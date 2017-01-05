@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/cli"
-	"github.com/forj-oss/forjj-modules/cli/interface"
+	//	"github.com/forj-oss/forjj-modules/cli/interface"
 	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 	"github.com/forj-oss/goforjj"
 	"github.com/forj-oss/forjj-modules/trace"
@@ -17,15 +17,15 @@ import (
 // TODO: Add flag for branch name to ensure local git branch is correct.
 
 // ActionOpts: Struct for args/flags for an action
-type ActionOpts struct {
-	name     string                         // Action name
-	flags    map[string]*kingpin.FlagClause // list of additional flags loaded.
-	flagsv   map[string]*string             // list of additional flags value loaded.
-	args     map[string]*kingpin.ArgClause  // List of Arguments by name
-	argsv    map[string]*string             // List of Arguments value by name
-	repoList *ReposList                     // List of values for --(add-)?repos flag.
-	Cmd      *kingpin.CmdClause             // Command object
-}
+//type ActionOpts struct {
+//	name     string                         // Action name
+//	flags    map[string]*kingpin.FlagClause // list of additional flags loaded.
+//	flagsv   map[string]*string             // list of additional flags value loaded.
+//	args     map[string]*kingpin.ArgClause  // List of Arguments by name
+//	argsv    map[string]*string             // List of Arguments value by name
+//	repoList *ReposList                     // List of values for --(add-)?repos flag.
+//	Cmd      *kingpin.CmdClause             // Command object
+//}
 
 type DriverCmdOptions struct {
 	flags map[string]DriverCmdOptionFlag // list of flags values
@@ -38,18 +38,18 @@ type DriverCmdOptionFlag struct {
 }
 
 type Driver struct {
-	DriverType    string                         // driver type name
-	InstanceName  string                         // Instance name.
-	Name          string                         // Name of driver to load Yaml.Name is the real internal driver name.
-	cmds          map[string]DriverCmdOptions    // List of flags per commands
-	flags         map[string]*kingpin.FlagClause // list of additional flags loaded at app level.
-	flagsv        map[string]*string             // list of additional flags value loaded at app level.
-	plugin        goforjj.PluginDef              // Plugin Data
-	InfraRepo     bool                           // True if this driver instance is the one hosting the infra repository.
-	FlagFile      string                         // Path to the predefined plugin or generic forjj plugin flag file.
-	ForjjFlagFile bool                           // true if the flag_file is set by forjj.
-	app_request   bool                           // true if the driver is loaded by a apps create/update/maintain task (otherwise requested by Repos or flows request.)
-	Runtime       *goforjj.YamlPluginRuntime     // Reference to the plugin runtime information given by the plugin yaml file.
+	DriverType   string                      // driver type name
+	InstanceName string                      // Instance name.
+	Name         string                      // Name of driver to load Yaml.Name is the real internal driver name.
+	cmds         map[string]DriverCmdOptions // List of flags per commands
+	//flags         map[string]*kingpin.FlagClause // list of additional flags loaded at app level.
+	//flagsv        map[string]*string             // list of additional flags value loaded at app level.
+	plugin        goforjj.PluginDef          // Plugin Data
+	InfraRepo     bool                       // True if this driver instance is the one hosting the infra repository.
+	FlagFile      string                     // Path to the predefined plugin or generic forjj plugin flag file.
+	ForjjFlagFile bool                       // true if the flag_file is set by forjj.
+	app_request   bool                       // true if the driver is loaded by a apps create/update/maintain task (otherwise requested by Repos or flows request.)
+	Runtime       *goforjj.YamlPluginRuntime // Reference to the plugin runtime information given by the plugin yaml file.
 	// When a driver is initially loaded, it will be saved here, and used it as ref every where.
 	// So we are sure that :
 	// - any change in plugin is not failing a running environment.
@@ -75,10 +75,10 @@ type DriversOptions struct {
 
 type Forj struct {
 	// Collections of fields regarding flags given
-	drivers_list DriversList            // List of drivers passed to the command line argument from --app.
-	Actions      map[string]*ActionOpts // map of Commands with their arguments/flags
+	drivers_list DriversList // List of drivers passed to the command line argument from --app.
+	//Actions      map[string]*ActionOpts // map of Commands with their arguments/flags
 
-	flags_loaded map[string]string // key/values for flags laoded. Used when doing a create AND maintain at the same time (create case)
+	flags_loaded map[string]string // key/values for flags loaded. Used when doing a create AND maintain at the same time (create case)
 
 	drivers         map[string]*Driver // List of drivers data/flags/... per instance name (key)
 	drivers_options DriversOptions     // forjj-maintain.yml See infra-maintain.go
@@ -86,8 +86,8 @@ type Forj struct {
 	cli *cli.ForjCli // ForjCli data
 	app *kingpin.Application
 
-	CurrentCommand clier.CmdClauser // Current Command
-	CurrentObject  clier.CmdClauser // Current Object
+	//	CurrentCommand clier.CmdClauser // Current Command
+	//	CurrentObject  clier.CmdClauser // Current Object
 
 	CurrentPluginDriver *Driver // Driver executing
 	InfraPluginDriver   *Driver // Driver used by upstream
@@ -163,6 +163,7 @@ func (a *Forj) init() {
 	// kingpin is driven by cli module.
 	a.cli = cli.NewForjCli(kingpinCli.New(a.app))
 
+	a.cli.ParseHook(a.ParseContext)
 	// Regular filter for lists
 	// Used by list capture function parameter
 	a.cli.AddFieldListCapture("w", `[a-z]+[a-z0-9_-]*`)
@@ -178,7 +179,7 @@ func (a *Forj) init() {
 	a.FlowRepo_uri = u
 
 	a.drivers = make(map[string]*Driver)
-	a.Actions = make(map[string]*ActionOpts)
+	//a.Actions = make(map[string]*ActionOpts)
 	a.o.Drivers = make(map[string]*Driver)
 
 	// ACTIONS ************
@@ -196,6 +197,7 @@ func (a *Forj) init() {
 	// Create Object layer in kingpin on top of each actions.
 	// ex: forjj add repo
 	a.cli.NewObject(workspace, "forjj workspace", true).
+		AddKey(cli.String, workspace, workspace_path_help).
 		AddField(cli.String, "docker-exe-path", docker_exe_path_help).
 		AddField(cli.String, "contribs-repo", contribs_repo_help).
 		AddField(cli.String, "flows-repo", flows_repo_help).
@@ -213,7 +215,7 @@ func (a *Forj) init() {
 		AddFlag(orga_f, opts_orga_name)
 
 	a.cli.NewObject(repo, "GIT repositories", true).
-		AddField(cli.String, "instance", repo_instance_name_help).
+		AddKey(cli.String, "instance", repo_instance_name_help).
 		AddField(cli.String, "name", repo_name_help).
 		AddField(cli.String, "flow", repo_flow_help).
 		AddField(cli.String, "repo-template", repo_template_help).
@@ -229,21 +231,21 @@ func (a *Forj) init() {
 		AddFlag("name", opts_required)
 
 	// Define create repo list
-	a.cli.GetObject(repo).CreateList("to_create", ",", "(#w/)?#w(:#w(:#w(:#ft)?)?)?", "name").
+	a.cli.GetObject(repo).CreateList("to_create", ",", "(#w/)?#w(:#w(:#w(:#ft)?)?)?").
 		Field(2, "instance").Field(3, "name").Field(5, "flow").Field(7, "repo-template").Field(9, "title").
 		// Ex: forjj add repos "github/myrepo:::My Repo" "other_repo:::Another repo"
 		//     forjj add repos "github/myrepo:::My Repo,other_repo:::Another repo"
 		AddActions(add_act)
 
 	// Define remove repo list
-	a.cli.GetObject(repo).CreateList("to_remove", ",", "#w", "name").
+	a.cli.GetObject(repo).CreateList("to_remove", ",", "#w").
 		Field(1, "name").
 		AddActions(rem_act)
 
 	a.cli.NewObject(app, "application driver", true).
+		AddKey(cli.String, "name", app_name_help).
 		AddField(cli.String, "type", app_type_help).
 		AddField(cli.String, "driver", app_driver_help).
-		AddField(cli.String, "name", app_name_help).
 		DefineActions(add_act, upd_act, rem_act, list_act).
 		OnActions(add_act).
 		AddArg("type", opts_required).
@@ -254,15 +256,16 @@ func (a *Forj) init() {
 		OnActions(list_act).
 		AddFlag("type", opts_required).
 		AddFlag("driver", opts_required).
-		AddFlag("name", nil)
+		AddFlag("name", nil).
+		ParseHook(a.GetDriversFlags)
 
 	// Define app list
-	a.cli.GetObject(app).CreateList("to_create", ",", "#w:#w(:#w)?", "name").
+	a.cli.GetObject(app).CreateList("to_create", ",", "#w:#w(:#w)?").
 		Field(1, "type").Field(2, "driver").Field(4, "name").
 		// Ex: forjj add apps <type>:<driver>[:<instance>] ...
 		AddActions(add_act)
 
-	a.cli.GetObject(app).CreateList("to_remove", ",", "#w", "name").
+	a.cli.GetObject(app).CreateList("to_remove", ",", "#w").
 		Field(1, "name").
 		// Ex: forjj remove apps <instance> ...
 		AddActions(rem_act)
@@ -290,9 +293,9 @@ func (a *Forj) init() {
 	// Enhance create action
 	a.cli.OnActions(cr_act).
 		// Ex: forjj create --repos "github/myrepo:::My Repo,other_repo:::Another repo"
-		AddActionFlagFromObjectListAction(repo, "to_create", add_act).
+		AddActionFlagFromObjectListAction(cr_act, repo, "to_create", add_act).
 		// Ex: forjj create --apps "upstream:github"
-		AddActionFlagFromObjectListAction(app, "to_create", add_act).
+		AddActionFlagFromObjectListAction(cr_act, app, "to_create", add_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, upd_act).
@@ -306,7 +309,7 @@ func (a *Forj) init() {
 		AddFlag(cli.String, "file", maintain_option_file, nil)
 
 	// Next to revisit
-	// a.GetDriversFlags(os.Args[1:])
+	//a.GetDriversFlags(os.Args[1:])
 
 	_, err := exec.LookPath("git")
 	kingpin.FatalIfError(err, "Unable to find 'git' command. Ensure it available in your PATH and retry.\n")
@@ -319,50 +322,53 @@ func (a *Forj) init() {
 // GetActionOptsFromCli
 //
 // Get the ActionsOpts of the selected Command clause in kingpin (ie create/update or maintain)
-func (a *Forj) GetActionOptsFromCli(cmd []clier.CmdClauser) {
+/*func (a *Forj) GetActionOptsFromCli(cmd []clier.CmdClauser) {
 	if len(cmd) >= 1 {
 		a.CurrentCommand = cmd[0]
 	}
 	if len(cmd) >= 1 {
 		a.CurrentObject = cmd[1]
 	}
-}
+}*/
 
-// InitializeDriversFlag
+// InitializeDriversAPI
 //
 // Function initializing driver flags with values.
 // From values found in the commandline, extract them
 // From forjj-* values, get it from Forjj internal data.
-func (a *Forj) InitializeDriversFlag() {
+func (a *Forj) InitializeDriversAPI() {
+	// TODO: Use cli : To re-apply
+	// We will need to apply value to the Driver REST API and do call to each object requested to transmit the
+	// object action. Common are systematically given. And maintain is a different use case.
+	/*	forjj_regexp, _ := regexp.Compile("forjj-(.*)")
 
-	forjj_regexp, _ := regexp.Compile("forjj-(.*)")
-
-	for instance_name, driverOpts := range a.drivers {
-		if driverOpts.plugin.Yaml.Name == "" {
-			continue
-		}
-
-		gotrace.Trace("driver: '%s(%s)', command: '%s'", driverOpts.DriverType, instance_name, a.CurrentCommand.FullCommand())
-		for _, command := range []string{"common", a.CurrentCommand.FullCommand()} {
-			gotrace.Trace(" From '%s' flags list", command)
-			for flag_name := range driverOpts.cmds[command].flags {
-				gotrace.Trace("  Flag_name => '%s'", flag_name)
-				forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
-				f, _ := a.drivers[instance_name].cmds[command].flags[flag_name]
-				if forjj_vars == nil {
-					if flag_value, ok := a.cli.GetStringValue(flag_name); ok {
-						f.value = flag_value
-						gotrace.Trace("   %s := %s", flag_name, flag_value)
-					}
-				} else {
-					flag_value := a.GetInternalData(forjj_vars[1])
-					f.value = flag_value
-					gotrace.Trace("   forjj(%s) => %s := %s", forjj_vars[1], flag_name, flag_value)
-				}
-				a.drivers[instance_name].cmds[command].flags[flag_name] = f
+		for instance_name, driverOpts := range a.drivers {
+			if driverOpts.plugin.Yaml.Name == "" {
+				continue
 			}
-		}
-	}
+
+			cur_cmd := a.cli.GetCurrentCommand()
+			gotrace.Trace("driver: '%s(%s)', command: '%s'", driverOpts.DriverType, instance_name, cur_cmd)
+			for _, command := range []string{"common", cur_cmd} { // a.CurrentCommand.FullCommand()} {
+				gotrace.Trace(" From '%s' flags list", command)
+				for flag_name := range driverOpts.cmds[command].flags {
+					gotrace.Trace("  Flag_name => '%s'", flag_name)
+					forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
+					f, _ := a.drivers[instance_name].cmds[command].flags[flag_name]
+					if forjj_vars == nil {
+						if flag_value, ok := a.cli.GetStringValue(flag_name); ok {
+							f.value = flag_value
+							gotrace.Trace("   %s := %s", flag_name, flag_value)
+						}
+					} else {
+						flag_value := a.GetInternalData(forjj_vars[1])
+						f.value = flag_value
+						gotrace.Trace("   forjj(%s) => %s := %s", forjj_vars[1], flag_name, flag_value)
+					}
+					a.drivers[instance_name].cmds[command].flags[flag_name] = f
+				}
+			}
+		}*/
 }
 
 // GetInternalData
