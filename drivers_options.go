@@ -11,7 +11,6 @@ import (
 	"path"
 	"regexp"
 	"sort"
-	"strings"
 	"text/template"
 )
 
@@ -164,7 +163,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			}
 
 			forjj_option_name := instance_name + "-" + option_name
-			flag_opts := d_opts.set_flag_options(instance_name, option_name, &flag_options.Options)
+			flag_opts := d_opts.set_flag_options(option_name, &flag_options.Options)
 			if command == "common" {
 				// loop on create/update/maintain to create flag on each command
 				gotrace.Trace("Create common flags '%s' to App layer.", forjj_option_name)
@@ -201,7 +200,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 					gotrace.Trace("Unable to create the object '%s' identified by '%s'. '%s' is not defined.",
 						object_name, flag_key, flag_key)
 				} else {
-					flag_opts := d_opts.set_flag_options(instance_name, flag_key, &v.Options)
+					flag_opts := d_opts.set_flag_options(flag_key, &v.Options)
 					obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp, flag_opts)
 				}
 				gotrace.Trace("New object '%s' with key '%s'", object_name, flag_key)
@@ -224,7 +223,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 					object_name, flag_name)
 				continue
 			}
-			flag_opts := d_opts.set_flag_options(instance_name, flag_name, &flag_det.Options)
+			flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
 			obj.AddInstanceField(instance_name, cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, flag_opts)
 			gotrace.Trace("Object Instance '%s-%s': Field '%s' added.", object_name, instance_name, flag_name)
 
@@ -299,11 +298,11 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			obj.AddFlag(flag_name, nil)
 
 			if flag_dets.Options.Secure {
-				gotrace.Trace("Object '%s': Secure field '%s' added to maintain task.", object_name, flag_name)
-				flag_opts := d_opts.set_flag_options(instance_name, flag_name, &flag_dets.Options)
+				flag_opts := d_opts.set_flag_options(flag_name, &flag_dets.Options)
 				a.cli.OnActions(maint_act).
 					WithObjectInstance(object_name, instance_name).
 					AddActionFlagFromObjectField(flag_name, flag_opts)
+				gotrace.Trace("Object '%s': Secure field '%s' added to maintain task.", object_name, flag_name)
 			}
 		}
 	}
@@ -316,7 +315,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 //
 // It currently assigns defaults or required.
 //
-func (d *DriverOptions) set_flag_options(instance_name, option_name string, params *goforjj.YamlFlagOptions) (opts *cli.ForjOpts) {
+func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.YamlFlagOptions) (opts *cli.ForjOpts) {
 	if params == nil {
 		return
 	}
@@ -351,7 +350,7 @@ func (d *DriverOptions) set_flag_options(instance_name, option_name string, para
 	}
 
 	if params.Envar != "" {
-		opts.Envar(strings.ToUpper(instance_name) + "_" + params.Envar)
+		opts.Envar(params.Envar)
 	}
 	return
 }
