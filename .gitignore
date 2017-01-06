@@ -6,3 +6,4 @@ tasks.json
 /test_*/
 /cli/debug_cli/main.go
 /*/*.iml
+/vendor
