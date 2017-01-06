@@ -279,7 +279,7 @@ func (d *Driver) init_driver_flags_for(a *Forj, option_name, command, forjj_opti
 
 // GetDriversFlags - cli App context hook. Load drivers requested (app object)
 // This function is provided as cli app object Parse hook
-func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{}) error {
+func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{}) (error, bool) {
 	list := a.cli.GetObjectValues(o.Name())
 	// Loop on drivers to pre-initialized drivers flags.
 	gotrace.Trace("Number of plugins provided from parameters: %d", len(list))
@@ -315,7 +315,7 @@ func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{})
 	// Automatically load all other drivers not requested by --apps but listed in forjj-options.yaml.
 	// Those drivers are all used by all services that forjj should manage.
 	a.load_missing_drivers()
-	return nil
+	return nil, true
 }
 
 // GetForjjFlags build the Forjj list of parameters requested by the plugin for a specific action name.

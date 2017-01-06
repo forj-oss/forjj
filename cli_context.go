@@ -17,7 +17,7 @@ import (
 // - detect ci/us drivers name (to stored in app)
 //
 // - Load missing drivers information from forjj-options.yaml
-func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
+func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	gotrace.Trace("Setting FORJJ Context...")
 	// load FORJJ workspace information
 	a.setWorkspace() // failure test exit is made after parse time.
@@ -111,7 +111,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	if v := a.cli.GetAction(cr_act).GetBoolAddr("no-maintain"); v != nil {
 		a.no_maintain = v
 	}
-	return nil
+	return nil, true
 }
 
 // Initialize the workspace environment required by Forjj to work.

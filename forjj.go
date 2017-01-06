@@ -66,5 +66,8 @@ func main() {
 			log.Fatalf("Forjj maintain issue. %s", err)
 		}
 		println("FORJJ - maintain ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
+	default:
+		// add/change/remove/rename => update
+	    // list => special case.
 	}
 }
