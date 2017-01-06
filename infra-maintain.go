@@ -1,17 +1,17 @@
 package main
 
 import (
-    "gopkg.in/yaml.v2"
-    "io/ioutil"
-    "fmt"
-    "path"
-    "github.com/forj-oss/forjj-modules/trace"
-    "github.com/forj-oss/goforjj"
+	"fmt"
+	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"path"
 )
 
 const (
-    drivers_def_options_file = ".forjj-maintain-options.yml"
-    drivers_data_options_file = "forjj-creds.yml"
+	drivers_def_options_file  = ".forjj-maintain-options.yml"
+	drivers_data_options_file = "forjj-creds.yml"
 )
 
 // FIXME: Def file keep just one driver at a time...
@@ -24,141 +24,141 @@ const (
 // Passed to each plugins
 // The file is saved, added and commited in the infra-repo.
 type forjjPlugins struct {
-    Plugins map[string]forjjPluginsOptions `,inline`
+	Plugins map[string]forjjPluginsOptions `,inline`
 }
 
 type forjjPluginsOptions struct {
-    Type string
-    Options map[string]string `,omitempty`
+	Type    string
+	Options map[string]string `,omitempty`
 }
 
 // Save maintain credentials and definition files:
 // - drivers_def_options_file in infra repo
 // - drivers_data_options_file in a.w.Path(), drivers_data_options_file
-func (a *Forj)SaveForjjPluginsOptions() error {
-    if a.drivers_options.Drivers == nil {
-        return nil
-    }
+func (a *Forj) SaveForjjPluginsOptions() error {
+	if a.drivers_options.Drivers == nil {
+		return nil
+	}
 
-    def := forjjPlugins{ make(map[string]forjjPluginsOptions) }
+	def := forjjPlugins{make(map[string]forjjPluginsOptions)}
 
-    for driver, opts := range a.drivers_options.Drivers {
-        o := forjjPluginsOptions{ opts.driver_type, make(map[string]string) }
-        for option, v := range opts.Options {
-            o.Options[option] = v.Help
-        }
-        def.Plugins[driver] = o
-    }
-    gotrace.Trace("Plugin options definition file content: %#v", def)
+	for driver, opts := range a.drivers_options.Drivers {
+		o := forjjPluginsOptions{opts.driver_type, make(map[string]string)}
+		for option, v := range opts.Options {
+			o.Options[option] = v.Help
+		}
+		def.Plugins[driver] = o
+	}
+	gotrace.Trace("Plugin options definition file content: %#v", def)
 
-    if err := def.Save(drivers_def_options_file) ; err != nil {
-        return fmt.Errorf("Unable to write '%s'. %s", drivers_def_options_file, err)
-    }
+	if err := def.Save(drivers_def_options_file); err != nil {
+		return fmt.Errorf("Unable to write '%s'. %s", drivers_def_options_file, err)
+	}
 
-    git("add", drivers_def_options_file)
+	git("add", drivers_def_options_file)
 
-    for driver, opts := range a.drivers_options.Drivers {
-        for option, v := range opts.Options {
-            def.Plugins[driver].Options[option] = v.Value
-        }
-    }
+	for driver, opts := range a.drivers_options.Drivers {
+		for option, v := range opts.Options {
+			def.Plugins[driver].Options[option] = v.Value
+		}
+	}
 
-    gotrace.Trace("Plugin options data file content: %#v", def)
-    workspace_file := path.Join(a.w.Path(), drivers_data_options_file)
-    if err := def.Save(workspace_file) ; err != nil {
-        return fmt.Errorf("Unable to write '%s'. %s", workspace_file, err)
-    }
-    return nil
+	gotrace.Trace("Plugin options data file content: %#v", def)
+	workspace_file := path.Join(a.w.Path(), drivers_data_options_file)
+	if err := def.Save(workspace_file); err != nil {
+		return fmt.Errorf("Unable to write '%s'. %s", workspace_file, err)
+	}
+	return nil
 }
 
-func (f *forjjPlugins)Save(file string) error {
-    yaml_data, err := yaml.Marshal(f)
-    if err != nil {
-        return err
-    }
+func (f *forjjPlugins) Save(file string) error {
+	yaml_data, err := yaml.Marshal(f)
+	if err != nil {
+		return err
+	}
 
-    if err := ioutil.WriteFile(file, yaml_data , 0644 ) ; err != nil {
-        return err
-    }
-    gotrace.Trace("File name saved: %s", file)
-    return nil
+	if err := ioutil.WriteFile(file, yaml_data, 0644); err != nil {
+		return err
+	}
+	gotrace.Trace("File name saved: %s", file)
+	return nil
 }
 
 // This functions loads the forjj plugins options definitions in 'Maintain' phase context.
 // 2 files have to be loaded. The definition in forj-repo and the one given at forjj cli.
-func (a *Forj)LoadForjjPluginsOptions(creds_file string) error {
-    // Read definition file from repo.
-    var fpdef forjjPlugins // Plugins/<plugin>/Options/<option>=help
+func (a *Forj) LoadForjjPluginsOptions(creds_file string) error {
+	// Read definition file from repo.
+	var fpdef forjjPlugins // Plugins/<plugin>/Options/<option>=help
 
-    filedef := path.Clean(path.Join(a.w.Path(), a.w.Infra.Name, drivers_def_options_file))
-    if err := fpdef.LoadFile(filedef) ; err != nil {
-        return err
-    }
-    gotrace.Trace("Plugin data definition file '%s' loaded.", filedef)
+	filedef := path.Clean(path.Join(a.w.Path(), a.w.Infra.Name, drivers_def_options_file))
+	if err := fpdef.LoadFile(filedef); err != nil {
+		return err
+	}
+	gotrace.Trace("Plugin data definition file '%s' loaded.", filedef)
 
-    // Load plugins Options data file, given to forjj
-    var fpdata forjjPlugins // Plugins/<plugin>/Options/<option>=value
+	// Load plugins Options data file, given to forjj
+	var fpdata forjjPlugins // Plugins/<plugin>/Options/<option>=value
 
-    if creds_file == "" {
-        creds_file = path.Clean(path.Join(a.w.Path(), drivers_data_options_file))
-        gotrace.Trace("Use default credential file '%s'.", creds_file)
-    }
-    if err := fpdata.LoadFile(creds_file) ; err != nil {
-        return err
-    }
-    gotrace.Trace("Plugin credentials file '%s' loaded.", creds_file)
+	if creds_file == "" {
+		creds_file = path.Clean(path.Join(a.w.Path(), drivers_data_options_file))
+		gotrace.Trace("Use default credential file '%s'.", creds_file)
+	}
+	if err := fpdata.LoadFile(creds_file); err != nil {
+		return err
+	}
+	gotrace.Trace("Plugin credentials file '%s' loaded.", creds_file)
 
-    // Load values in Forj.driver_options keys/values pair
-    for name, p_opts := range fpdef.Plugins { // each plugin
-        pluginOptions := make(map[string]goforjj.PluginOption)
+	// Load values in Forj.driver_options keys/values pair
+	for name, p_opts := range fpdef.Plugins { // each plugin
+		pluginOptions := make(map[string]goforjj.PluginOption)
 
-        for opt_name, help := range p_opts.Options { // each options
-            _, ok := fpdata.Plugins[name]
-            value, ok2 := fpdata.Plugins[name].Options[opt_name]
+		for opt_name, help := range p_opts.Options { // each options
+			_, ok := fpdata.Plugins[name]
+			value, ok2 := fpdata.Plugins[name].Options[opt_name]
 
-            if ok && ok2 {
-                pluginOptions[opt_name] = goforjj.PluginOption{ Value: value }
-            } else {
-                return fmt.Errorf("Missing driver '%s' option '%s'. driver_type : '%s'. You must create and set it in '%s'\nBasic help: %s - %s",
-                                  name, opt_name, p_opts.Type, creds_file, opt_name, help)
-            }
-        }
-        a.drivers_options.AddForjjPluginOptions(name, pluginOptions, p_opts.Type)
-    }
-    return nil
+			if ok && ok2 {
+				pluginOptions[opt_name] = goforjj.PluginOption{Value: value}
+			} else {
+				return fmt.Errorf("Missing driver '%s' option '%s'. driver_type : '%s'. You must create and set it in '%s'\nBasic help: %s - %s",
+					name, opt_name, p_opts.Type, creds_file, opt_name, help)
+			}
+		}
+		a.drivers_options.AddForjjPluginOptions(name, pluginOptions, p_opts.Type)
+	}
+	return nil
 }
 
-func (fp *forjjPlugins)LoadFile(file string) error {
-    yaml_data, err := ioutil.ReadFile(file)
-    if err != nil {
-        return fmt.Errorf("Unable to read '%s'. %s", drivers_data_options_file, err)
-    }
+func (fp *forjjPlugins) LoadFile(file string) error {
+	yaml_data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return fmt.Errorf("Unable to read '%s'. %s", drivers_data_options_file, err)
+	}
 
-    if err := yaml.Unmarshal(yaml_data, fp) ; err != nil {
-        return fmt.Errorf("Unable to decode the required plugin options from yaml format for maintain phase. %s.", err)
-    }
-    return nil
+	if err := yaml.Unmarshal(yaml_data, fp); err != nil {
+		return fmt.Errorf("Unable to decode the required plugin options from yaml format for maintain phase. %s.", err)
+	}
+	return nil
 }
 
-func (d *DriversOptions)AddForjjPluginOptions(name string, options map[string]goforjj.PluginOption, driver_type string) {
-    if d.Drivers == nil {
-        d.Drivers = make(map[string]DriverOptions)
-    }
+func (d *DriversOptions) AddForjjPluginOptions(name string, options map[string]goforjj.PluginOption, driver_type string) {
+	if d.Drivers == nil {
+		d.Drivers = make(map[string]DriverOptions)
+	}
 
-    d.Drivers[name] = DriverOptions{ driver_type, options }
+	d.Drivers[name] = DriverOptions{driver_type, options}
 }
 
 // Used by api service or cli driver to add options values requested by the driver from creds & def.
 // Currently this function add all values for all drivers to the args. So, we need to:
 // TODO: Revisit how args are built for drivers, when flow will be introduced.
 // We may need to select which one is required for each driver to implement the flow. TBD
-func (d *DriversOptions)GetDriversMaintainParameters(plugin_args map[string]string, action string) {
-    for n, v := range d.Drivers {
-        for k, o := range v.Options {
-            if o.Value == "" {
-                gotrace.Trace("Instance '%s' parameter '%s' has no value.", n, k)
-            }
-            plugin_args[k] = o.Value
-        }
-    }
+func (d *DriversOptions) GetDriversMaintainParameters(plugin_args map[string]string, action string) {
+	for n, v := range d.Drivers {
+		for k, o := range v.Options {
+			if o.Value == "" {
+				gotrace.Trace("Instance '%s' parameter '%s' has no value.", n, k)
+			}
+			plugin_args[k] = o.Value
+		}
+	}
 }

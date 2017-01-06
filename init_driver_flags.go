@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/forj-oss/forjj-modules/cli"
-	"github.com/forj-oss/goforjj"
 	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 	"log"
 	"regexp"
 	"sort"

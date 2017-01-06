@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/forj-oss/forjj-modules/cli"
-	"github.com/forj-oss/goforjj"
 	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"

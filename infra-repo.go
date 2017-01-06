@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/forj-oss/goforjj"
 	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 	"log"
 )
 

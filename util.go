@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/alecthomas/kingpin"
-	"github.com/kvz/logstreamer"
 	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/kvz/logstreamer"
 	"io/ioutil"
 	"log"
 	"net/http"
