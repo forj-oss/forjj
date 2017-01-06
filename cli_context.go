@@ -6,7 +6,6 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 	"log"
 	"net/url"
-	"os"
 )
 
 // ParseContext : Load cli context to adapt the list of options/flags from the driver definition.
@@ -115,13 +114,6 @@ func (a *Forj) setWorkspace() {
 	orga_path, found, _ = a.cli.GetStringValue(workspace, "", orga_f)
 
 	if !found {
-		if v := os.Getenv("FORJJ_WORKSPACE"); v != "" {
-			orga_path = v
-			found = true
-		}
-	}
-
-	if !found {
 		orga_path, err = a.w.DetectIt()
 		a.w.error = fmt.Errorf("Unable to find the workspace from current directory, FORJJ_WORKSPACE or cli. "+
 			"please define one to create it. %s", err)
@@ -130,21 +122,6 @@ func (a *Forj) setWorkspace() {
 
 	a.w.Init(orga_path)
 }
-
-// type validateHdlr func(string) error
-
-// Set a string variable pointer with value found in cli context.
-/*func (o *ActionOpts) set_from_flag(a *Forj, context *kingpin.ParseContext, flag string, store *string, val_fcnt validateHdlr) error {
-	if d, found := a.flagValue(context, o.flags[flag]); found {
-		if val_fcnt != nil {
-			if err := val_fcnt(d); err != nil {
-				return err
-			}
-		}
-		*store = d
-	}
-	return nil
-}*/
 
 // set_from_urlflag initialize a URL structure from a flag given.
 // If the flag is set and valid, the URL will be stored in the given string address (store).
@@ -167,89 +144,3 @@ func (a *Forj) set_from_urlflag(flag string, store *string) (*url.URL, error) {
 		return u, nil
 	}
 }
-
-/*func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool) {
-	for _, element := range context.Elements {
-		if flag, ok := element.Clause.(*kingpin.ArgClause); ok && flag == f {
-			value = *element.Value
-			found = true
-			return
-		}
-	}
-	return
-}*/
-
-/*func (*Forj) flagValue(context *kingpin.ParseContext, f *kingpin.FlagClause) (value string, found bool) {
-	for _, element := range context.Elements {
-		if flag, ok := element.Clause.(*kingpin.FlagClause); ok && flag == f {
-			value = *element.Value
-			found = true
-			return
-		}
-	}
-	return
-}*/
-
-// Set an application command
-/*func (a *Forj) SetCommand(name, help string) {
-	a.Actions[name] = &ActionOpts{
-		name:   name,
-		Cmd:    a.cli.App.Command(name, help),
-		flags:  make(map[string]*kingpin.FlagClause),
-		flagsv: make(map[string]*string),
-		args:   make(map[string]*kingpin.ArgClause),
-		argsv:  make(map[string]*string),
-	}
-}*/
-
-// Set a command argument
-/*func (a *Forj) SetCmdArg(cmd, name, help string, options map[string]interface{}) {
-	arg := a.Actions[cmd].Cmd.Arg(name, help)
-
-	if v, ok := options["required"]; ok && to_bool(v) {
-		arg.Required()
-	}
-	if v, ok := options["default"]; ok {
-		arg.Default(to_string(v))
-	}
-
-	a.Actions[cmd].argsv[name] = arg.String()
-	a.Actions[cmd].args[name] = arg
-}*/
-
-// Set a Command flag.
-/*func (a *Forj) SetCmdFlag(cmd, name, help string, options map[string]interface{}) (arg *kingpin.FlagClause) {
-	arg = a.Actions[cmd].Cmd.Flag(name, help)
-
-	if v, ok := options["required"]; ok && to_bool(v) {
-		arg.Required()
-	}
-	if v, ok := options["default"]; ok {
-		arg.Default(to_string(v))
-	}
-	if v, ok := options["hidden"]; ok && to_bool(v) {
-		arg.Hidden()
-	}
-
-	if v, ok := options["envar"]; ok {
-		arg.Envar(to_string(v))
-	}
-
-	if v, ok := options["set_value"]; ok && to_bool(v) {
-		if to_bool(v) {
-			a.Actions[cmd].flagsv[name] = arg.String()
-		} else {
-			a.Actions[cmd].flagsv[name] = nil
-		}
-	} else {
-		a.Actions[cmd].flagsv[name] = arg.String()
-	}
-
-	a.Actions[cmd].flags[name] = arg
-
-	return
-}*/
-
-/*func SetBoolFlag(flag *kingpin.FlagClause) *bool {
-	return flag.Bool()
-}*/
