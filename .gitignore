@@ -5,3 +5,4 @@ tasks.json
 /bin/build it
 /test_*/
 /cli/debug_cli/main.go
+/*/*.iml
