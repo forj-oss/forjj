@@ -111,7 +111,7 @@ func (a *Forj) setWorkspace() {
 	var found bool
 	var err error
 
-	orga_path, found, _ = a.cli.GetStringValue(workspace, "", orga_f)
+	orga_path, found, _ = a.cli.GetStringValue(workspace, "", workspace)
 
 	if !found {
 		orga_path, err = a.w.DetectIt()
