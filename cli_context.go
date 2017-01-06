@@ -92,7 +92,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	if err := a.LoadForjjPluginsOptions(file_desc); err != nil {
 		gotrace.Trace("Warning! Options files were not loaded. %s", err)
 	}
-
+	return nil
 }
 
 // Initialize the workspace environment required by Forjj to work.
@@ -103,7 +103,7 @@ func (a *Forj) setWorkspace() {
 	var err error
 
 	/* orga_path, found = a.cli.GetValue(workspace) */
-	orga_path, found = a.cli.GetStringValue(workspace)
+	orga_path, found = a.cli.GetStringValue(workspace, "", orga_f)
 
 	if !found {
 		if v := os.Getenv("FORJJ_WORKSPACE"); v != "" {
