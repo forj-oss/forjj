@@ -29,48 +29,41 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) error {
 	// Load Global Forjj options from infra repo, if found.
 	a.LoadForjjOptions()
 
+	w_o := c.GetObject(workspace)
 	// Set organization name to use.
 	// Can be set only the first time
-	if f := c.GetAppFlag(orga_f); f != nil {
+	if f, found := c.GetStringValue(workspace, "", orga_f); found {
 		if a.w.Organization == "" {
-			if !f.IsFound() {
-				f.Default(a.w.workspace)
-				a.w.Organization = a.w.workspace
-			} else {
-				a.w.Organization = f.GetStringValue()
-			}
+			w_o.SetParamOptions(orga_f, cli.Opts().Default(a.w.workspace))
+			a.w.Organization = a.w.workspace
 		} else {
-			if f.IsFound() && f.GetStringValue() != a.w.Organization {
+			if f != a.w.Organization {
 				fmt.Print("Warning!!! You cannot update the organization name in an existing workspace.\n")
 			}
 		}
 	} else {
-		kingpin.Fatalf("Internal error - %s is not found from App layer. Exiting.", orga_f)
+		a.w.Organization = f
 	}
 
-	if f := a.cli.GetAppFlag(infra_f); f != nil {
+	if f, found := c.GetStringValue(workspace, "", infra_f); found {
 		if a.w.Organization != "" {
 			log.Printf("Organization : '%s'", a.w.Organization)
 			// Set the 'infra' default flag value
-			f.Default(fmt.Sprintf("%s-infra", a.w.Organization))
+			w_o.SetParamOptions(infra_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
 		}
 		// Set the infra repo name to use
 		// Can be set only the first time
-		if f.IsFound() {
-			if a.w.Infra.Name == "" {
-				// Get infra name from the flag
-				a.w.Infra.Name = f.GetStringValue()
-			} else {
-				if f.GetStringValue() != a.w.Infra.Name {
-					fmt.Print("Warning!!! You cannot update the Infra repository name in an existing workspace.\n")
-				}
-			}
+		if a.w.Infra.Name == "" {
+			// Get infra name from the flag
+			a.w.Infra.Name = f
 		} else {
-			// Use the default setting.
-			a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
+			if f != a.w.Infra.Name {
+				fmt.Print("Warning!!! You cannot update the Infra repository name in an existing workspace.\n")
+			}
 		}
 	} else {
-		kingpin.Fatalf("Internal error - %s is not found from App layer. Exiting.", infra_f)
+		// Use the default setting.
+		a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
 	}
 
 	gotrace.Trace("Infrastructure repository defined : %s", a.w.Infra.Name)
@@ -120,10 +113,10 @@ func (a *Forj) setWorkspace() {
 	a.w.Init(orga_path)
 }
 
-type validateHdlr func(string) error
+// type validateHdlr func(string) error
 
 // Set a string variable pointer with value found in cli context.
-func (o *ActionOpts) set_from_flag(a *Forj, context *kingpin.ParseContext, flag string, store *string, val_fcnt validateHdlr) error {
+/*func (o *ActionOpts) set_from_flag(a *Forj, context *kingpin.ParseContext, flag string, store *string, val_fcnt validateHdlr) error {
 	if d, found := a.flagValue(context, o.flags[flag]); found {
 		if val_fcnt != nil {
 			if err := val_fcnt(d); err != nil {
@@ -133,8 +126,14 @@ func (o *ActionOpts) set_from_flag(a *Forj, context *kingpin.ParseContext, flag 
 		*store = d
 	}
 	return nil
-}
+}*/
 
+// set_from_urlflag initialize a URL structure from a flag given.
+// If the flag is set and valid, the URL will be stored in the given string address (store).
+//
+// flag : Application flag value (from cli module)
+//
+// store : string address where this flag will stored
 func (a *Forj) set_from_urlflag(flag string, store *string) *url.URL {
 	value := a.cli.GetAppStringValue(flag)
 
@@ -144,11 +143,12 @@ func (a *Forj) set_from_urlflag(flag string, store *string) *url.URL {
 		if u.Scheme == "" {
 			*store = value
 		}
+		return u
 	}
-	return u
+	return nil
 }
 
-func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool) {
+/*func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (value string, found bool) {
 	for _, element := range context.Elements {
 		if flag, ok := element.Clause.(*kingpin.ArgClause); ok && flag == f {
 			value = *element.Value
@@ -157,9 +157,9 @@ func (*Forj) argValue(context *kingpin.ParseContext, f *kingpin.ArgClause) (valu
 		}
 	}
 	return
-}
+}*/
 
-func (*Forj) flagValue(context *kingpin.ParseContext, f *kingpin.FlagClause) (value string, found bool) {
+/*func (*Forj) flagValue(context *kingpin.ParseContext, f *kingpin.FlagClause) (value string, found bool) {
 	for _, element := range context.Elements {
 		if flag, ok := element.Clause.(*kingpin.FlagClause); ok && flag == f {
 			value = *element.Value
@@ -168,10 +168,10 @@ func (*Forj) flagValue(context *kingpin.ParseContext, f *kingpin.FlagClause) (va
 		}
 	}
 	return
-}
+}*/
 
 // Set an application command
-func (a *Forj) SetCommand(name, help string) {
+/*func (a *Forj) SetCommand(name, help string) {
 	a.Actions[name] = &ActionOpts{
 		name:   name,
 		Cmd:    a.cli.App.Command(name, help),
@@ -180,10 +180,10 @@ func (a *Forj) SetCommand(name, help string) {
 		args:   make(map[string]*kingpin.ArgClause),
 		argsv:  make(map[string]*string),
 	}
-}
+}*/
 
 // Set a command argument
-func (a *Forj) SetCmdArg(cmd, name, help string, options map[string]interface{}) {
+/*func (a *Forj) SetCmdArg(cmd, name, help string, options map[string]interface{}) {
 	arg := a.Actions[cmd].Cmd.Arg(name, help)
 
 	if v, ok := options["required"]; ok && to_bool(v) {
@@ -195,10 +195,10 @@ func (a *Forj) SetCmdArg(cmd, name, help string, options map[string]interface{})
 
 	a.Actions[cmd].argsv[name] = arg.String()
 	a.Actions[cmd].args[name] = arg
-}
+}*/
 
 // Set a Command flag.
-func (a *Forj) SetCmdFlag(cmd, name, help string, options map[string]interface{}) (arg *kingpin.FlagClause) {
+/*func (a *Forj) SetCmdFlag(cmd, name, help string, options map[string]interface{}) (arg *kingpin.FlagClause) {
 	arg = a.Actions[cmd].Cmd.Flag(name, help)
 
 	if v, ok := options["required"]; ok && to_bool(v) {
@@ -228,8 +228,8 @@ func (a *Forj) SetCmdFlag(cmd, name, help string, options map[string]interface{}
 	a.Actions[cmd].flags[name] = arg
 
 	return
-}
+}*/
 
-func SetBoolFlag(flag *kingpin.FlagClause) *bool {
+/*func SetBoolFlag(flag *kingpin.FlagClause) *bool {
 	return flag.Bool()
-}
+}*/
