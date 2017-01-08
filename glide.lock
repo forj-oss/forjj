@@ -1,5 +1,5 @@
-hash: 09992d024722924a6fde29d427fe9db46833914510873d6257510a46e60c6c2c
-updated: 2017-01-07T21:57:35.81164248Z
+hash: 8f7301553dba66bd4cb7afd7658ada5677d31f2c2d137be36f53b22adb56ace6
+updated: 2017-01-11T09:55:27.267794343Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -13,13 +13,15 @@ imports:
 - name: github.com/fatih/color
   version: e8e01ee22a7d4a91b49646e39245fe08e69c7878
 - name: github.com/forj-oss/forjj-modules
-  version: 75c9467e4411a884ed6f43ad0fbbec1c8c958e05
+  version: 4bcc726f85aead07d6c0383cf66c25326539d160
   repo: https://github.com/clarsonneur/forjj-modules
   subpackages:
   - cli
   - cli/interface
   - cli/kingpinCli
   - trace
+- name: github.com/forj-oss/goforjj
+  version: fe6dd25d7514fe4a98c4463fa611123d4320c3c3
 - name: github.com/kr/text
   version: 7cafcd837844e784b526369c9bce262804aebc60
 - name: github.com/kvz/logstreamer
@@ -31,11 +33,9 @@ imports:
 - name: github.com/moul/http2curl
   version: 4e24498b31dba4683efb9d35c1c8a91e2eda28c8
 - name: github.com/parnurzeal/gorequest
-  version: bdd24ac7ec2b0b2126f4782dd031644cbea1d223
-- name: github.com/forj-oss/goforjj
-  version: 84e45671d095683b31325981a929b2cb2c5c5579
+  version: f441e24175ffc865a6354b65375e537201c51382
 - name: golang.org/x/net
-  version: b7883d29650d340156352196ef5e434db117757b
+  version: 60c41d1de8da134c05b7b40154a9a82bf5b7edb9
   subpackages:
   - proxy
   - publicsuffix
