@@ -1,6 +1,14 @@
 #!/bin/bash
 #
 
+if [ "$BUILD_ENV_LOADED" != "true" ]
+then
+   echo "Please go to your project and load your build environment. 'source build-env.sh'"
+   exit 1
+fi
+
+cd $BUILD_ENV_PROJECT
+
 if [ "$http_proxy" != "" ]
 then
    PROXY="-e http_proxy=$http_proxy -e https_proxy=$http_proxy -e no_proxy=$no_proxy"

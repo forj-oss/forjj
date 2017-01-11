@@ -2,6 +2,14 @@
 
 #CGO_ENABLED=0 go install
 
+if [ "$BUILD_ENV_LOADED" != "true" ] 
+then
+   echo "Please go to your project and load your build environment. 'source build-env.sh'"
+   exit 1
+fi
+
+cd $BUILD_ENV_PROJECT
+
 BUILD_ENV=forjj-golang-env
 
 if [ "$http_proxy" != "" ]
