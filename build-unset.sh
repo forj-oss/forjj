@@ -1,8 +1,8 @@
-if [ "$FORJJ_PATH" != "" ]
+if [ "$BUILD_ENV_PATH" != "" ]
 then
-   export PATH=$FORJJ_PATH
-   unset FORJJ_PATH
-   unset PROMPT_ADDONS_FORJJ
+   export PATH=$BUILD_ENV_PATH
+   unset BUILD_ENV_PATH
+   unset PROMPT_ADDONS_BUILD_ENV
    unset BUILD_ENV_LOADED
    unset BUILD_ENV_PROJECT
    unalias build-env-unset

@@ -1,4 +1,6 @@
-FROM golang:1.7.1
+FROM golang:1.7.4
+
+MAINTAINER christophe.larsonneur@hpe.com
 
 ARG UID
 ARG GID
@@ -13,5 +15,10 @@ RUN curl -fsSL "$GLIDE_DOWNLOAD_URL" -o glide.tar.gz \
     && rm glide.tar.gz
 # Create a directory inside the container to store all our application and then
 # make it the working directory.
-RUN mkdir -p /go/src && groupadd -g $GID developer && useradd -u $UID -g $GID developer
+RUN groupadd -g $GID developer \
+    && useradd -u $UID -g $GID developer \
+    && install -d -o developer -g developer -m 755 /go/src
+
+COPY go-static /usr/local/go/bin
+
 WORKDIR /go/src

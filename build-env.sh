@@ -4,13 +4,13 @@ then
    echo "Alias build-env added to your existing .bashrc. Next time your could simply move to the project dir and call 'build-env'. The source task will done for you."
 fi
 
-if [ "$FORJJ_PATH" = "" ]
+if [ "$BUILD_ENV_PATH" = "" ]
 then
    export BUILD_ENV_LOADED=true
    export BUILD_ENV_PROJECT=$(pwd)
-   FORJJ_PATH=$PATH
+   BUILD_ENV_PATH=$PATH
    export PATH=$(pwd)/bin:$PATH
-   PROMPT_ADDONS_FORJJ="Forjj-build-env"
+   PROMPT_ADDONS_BUILD_ENV="BE: $(basename ${BUILD_ENV_PROJECT})"
    echo "Build env loaded. To unload it, call 'build-env-unset'"
    alias build-env-unset='cd $BUILD_ENV_PROJECT && source build-unset.sh'
 fi

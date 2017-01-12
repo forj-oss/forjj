@@ -1,8 +1,8 @@
-#/bin/bash -e
+#!/usr/bin/env bash
 
-#CGO_ENABLED=0 go install
+set -e
 
-if [ "$BUILD_ENV_LOADED" != "true" ] 
+if [ "$BUILD_ENV_LOADED" != "true" ]
 then
    echo "Please go to your project and load your build environment. 'source build-env.sh'"
    exit 1
@@ -22,6 +22,8 @@ USER="--build-arg UID=$(id -u) --build-arg GID=$(id -g)"
 set -x
 sudo docker build -t $BUILD_ENV $PROXY $USER glide
 
+# Requires forjj to be static.
+export CGO_ENABLED=0
 go install
 
 scp  -P5001 $GOPATH/bin/forjj lacws.emea.hpqcorp.net:/storage/install/published/larsonsh/forjj
