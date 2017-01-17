@@ -134,6 +134,7 @@ const (
 const (
 	debug_f = "debug"
 	infra_f = "infra"
+	infra_upstream_f = "infra-upstream"
 	cred_f  = "credentials-file"
 	orga_f  = "organization"
 )
@@ -302,12 +303,12 @@ func (a *Forj) init() {
 	if a.cli.NewObject(infra, "the global settings", true).
 		Single().
 		AddKey(cli.String, infra_f, forjj_infra_name_help, "#w", nil).
-		AddField(cli.String, "infra-upstream", "Infra repository upstream instance name.", "#w", nil).
+		AddField(cli.String, infra_upstream_f, "Infra repository upstream instance name.", "#w", nil).
 		AddField(cli.String, "flow", default_flow_help, "#w", nil).
 		DefineActions(chg_act).
 		OnActions().
 		AddFlag(infra_f, opts_infra_repo).
-		AddFlag("infra-upstream", nil).
+		AddFlag(infra_upstream_f, nil).
 		AddFlag("flow", nil) == nil {
 		log.Printf("infra: %s", a.cli.GetObject(infra).Error())
 	}

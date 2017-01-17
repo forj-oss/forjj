@@ -150,7 +150,16 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
 	// Set upstream instance requested to the infra-repo. ie Forj.w.Instance
 
 	// Requested to change the infra instance name from the cli
-	instance_requested, _, _, _ := a.cli.GetStringValue(infra, "", "infra-upstream")
+	var instance_requested string
+	if i, found, _, err := a.cli.GetStringValue(infra, "", infra_upstream_f) ; err != nil {
+		return fmt.Errorf("Unable to define your INFRA upstream. %s", err)
+	} else {
+		if !found {
+			return fmt.Errorf("INFRA upstream not defined.")
+		}
+		instance_requested = i
+	}
+
 	if instance_requested != "" && a.w.Instance != instance_requested {
 		switch {
 		case a.w.Instance == "none" || a.w.Instance == "":
