@@ -4,6 +4,18 @@ then
    echo "Alias build-env added to your existing .bashrc. Next time your could simply move to the project dir and call 'build-env'. The source task will done for you."
 fi
 
+if [ -f .gopath ]
+then
+   gopath="$(cat .gopath)"
+   if [ "$gopath" != "" ] && [ -d "$gopath" ]
+   then
+      BUILD_ENV_GOPATH="$GOPATH"
+      export GOPATH="$gopath"
+   else
+      echo "GOPATH = '$gopath' is invalid. Please update your .gopath"
+   fi
+fi
+
 if [ "$BUILD_ENV_PATH" = "" ]
 then
    export BUILD_ENV_LOADED=true
@@ -14,3 +26,4 @@ then
    echo "Build env loaded. To unload it, call 'build-env-unset'"
    alias build-env-unset='cd $BUILD_ENV_PROJECT && source build-unset.sh'
 fi
+
