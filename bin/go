@@ -35,3 +35,4 @@ MOUNT="-v $GOPATH:/go -v $(pwd):/go/src/$PROJECT -w /go/src/$PROJECT"
 
 sudo docker run --rm -it $MOUNT -t $BUILD_ENV $PROXY $USER forjj-golang-env $GOBIN "$@"
 
+rmdir $GOPATH/src/$PROJECT
