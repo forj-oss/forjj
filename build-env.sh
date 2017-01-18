@@ -11,6 +11,7 @@ then
    then
       BUILD_ENV_GOPATH="$GOPATH"
       export GOPATH="$gopath"
+      echo "Local setting of GOPATH to '$GOPATH'"
    else
       echo "GOPATH = '$gopath' is invalid. Please update your .gopath"
    fi

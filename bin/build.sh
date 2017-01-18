@@ -22,8 +22,17 @@ USER="--build-arg UID=$(id -u) --build-arg GID=$(id -g)"
 set -x
 sudo docker build -t $BUILD_ENV $PROXY $USER glide
 
+if [ "$GOPATH" = "" ]
+then
+    echo "Unable to build without GOPATH. Please set it (build)env or your local personal '.gopath')"
+    exit 1
+fi
+
 # Requires forjj to be static.
 export CGO_ENABLED=0
 go install
 
-scp  -P5001 $GOPATH/bin/forjj lacws.emea.hpqcorp.net:/storage/install/published/larsonsh/forjj
+if [ -f .publish_lacws ]
+then
+   scp  -P5001 $GOPATH/bin/forjj lacws.emea.hpqcorp.net:/storage/install/published/larsonsh/forjj
+fi
