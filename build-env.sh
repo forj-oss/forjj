@@ -17,12 +17,18 @@ then
    fi
 fi
 
+if [ "$GOPATH" = "" ]
+then
+   echo "Missing GOPATH. Please set it, or define it in your local personal '.gopath' file"
+   return
+fi
+
 if [ "$BUILD_ENV_PATH" = "" ]
 then
    export BUILD_ENV_LOADED=true
    export BUILD_ENV_PROJECT=$(pwd)
    BUILD_ENV_PATH=$PATH
-   export PATH=$(pwd)/bin:$PATH
+   export PATH=$(pwd)/bin:$PATH:$GOPATH/bin
    PROMPT_ADDONS_BUILD_ENV="BE: $(basename ${BUILD_ENV_PROJECT})"
    echo "Build env loaded. To unload it, call 'build-env-unset'"
    alias build-env-unset='cd $BUILD_ENV_PROJECT && source build-unset.sh'
