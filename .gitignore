@@ -9,3 +9,4 @@ tasks.json
 /vendor
 .glide
 .gopath
+.publish_lacws
