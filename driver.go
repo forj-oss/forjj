@@ -40,7 +40,7 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 
 	// check flag for create
 	if err := d.check_flag_before(instance, action); err != nil {
-		return err, (action == "create") // Aborteable if create, because the resource exist and we can use it. So, forjj can continue the task.
+		return err, (action == "create") // Abort-able if create, because the resource exist and we can use it. So, forjj can continue the task.
 	}
 
 	// Calling upstream driver - To create plugin source files for the current upstream infra repository
@@ -54,7 +54,7 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 	if a.InfraPluginDriver == d { // Infra upstream instance case
 		if v, found := a.InfraPluginDriver.plugin.Result.Data.Repos[a.w.Infra.Name]; found {
 			// Saving infra repository information to the workspace
-			a.w.Infra = v
+			a.w.Infra = &v
 		} else {
 			return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance), false
 		}

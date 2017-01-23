@@ -195,7 +195,7 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
 	}
 
 	if len(upstreams) == 1 {
-		a.w.Instance = upstreams[0].Name
+		a.w.Instance = upstreams[0].InstanceName
 	}
 	gotrace.Trace("Selected by default '%s' as upstream instance to connect '%s' repo", a.w.Instance, a.w.Infra.Name)
 	return

@@ -436,6 +436,12 @@ func (a *Forj) GetInternalData(param string) (result string) {
 		result = a.w.Organization
 	case "infra":
 		result = a.w.Infra.Name
+	case "infra-upstream":
+		if a.w.Instance == "" || a.w.Instance == "none" {
+			result= ""
+		} else {
+			result = a.w.Infra.GetUpstream()
+		}
 	case "instance-name":
 		if a.CurrentPluginDriver != nil {
 			result = a.CurrentPluginDriver.InstanceName

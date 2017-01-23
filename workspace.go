@@ -20,17 +20,17 @@ const forjj_workspace_json_file = "forjj.json"
 // But it can store any data that is workspace environment specific.
 // like where is the docker static binary.
 type Workspace struct {
-	Organization           string             // Workspace Organization name
-	Driver                 string             // Infra upstream driver name
-	Instance               string             // Infra upstream instance name
-	Infra                  goforjj.PluginRepo // Infra-repo definition
-	DockerBinPath          string             // Docker static binary path
-	Contrib_repo_path      string             // Contrib Repo path used.
-	Flow_repo_path         string             // Flow repo path used.
-	Repotemplate_repo_path string             // Repotemplate Path used.
-	workspace              string             // Workspace name
-	workspace_path         string             // Workspace directory path.
-	error                  error              // Error detected
+	Organization           string              // Workspace Organization name
+	Driver                 string              // Infra upstream driver name
+	Instance               string              // Infra upstream instance name
+	Infra                  *goforjj.PluginRepo // Infra-repo definition
+	DockerBinPath          string              // Docker static binary path
+	Contrib_repo_path      string              // Contrib Repo path used.
+	Flow_repo_path         string              // Flow repo path used.
+	Repotemplate_repo_path string              // Repotemplate Path used.
+	workspace              string              // Workspace name
+	workspace_path         string              // Workspace directory path.
+	error                  error               // Error detected
 }
 
 func (w *Workspace) Init(Workspace_path string) {
@@ -40,12 +40,7 @@ func (w *Workspace) Init(Workspace_path string) {
 	Workspace_path, _ = Abs(path.Clean(Workspace_path))
 	w.workspace_path = path.Dir(Workspace_path)
 	w.workspace = path.Base(Workspace_path)
-	if w.Infra.Remotes == nil {
-		w.Infra.Remotes = make(map[string]string)
-	}
-	if w.Infra.BranchConnect == nil {
-		w.Infra.BranchConnect = make(map[string]string)
-	}
+	w.Infra = goforjj.NewRepo()
 	gotrace.Trace("Use workspace : %s (%s / %s)", w.Path(), w.workspace_path, w.workspace)
 }
 

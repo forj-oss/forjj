@@ -58,7 +58,7 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 			hint = "\nIf you are ok with this configuration, use '--infra-upstream none' to confirm. Otherwise, please define the --apps with the upstream driver and needed flags."
 		}
 
-		remote_exist, remote_connected, err = git_remote_exist("master", "origin", a.w.Infra.Remotes["origin"])
+		remote_exist, remote_connected, err = git_remote_exist("master", "origin", a.w.Infra.GetOrigin())
 		if err != nil {
 			return
 		}
@@ -70,20 +70,20 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 			case !remote_exist:
 				err = fmt.Errorf("%s an upstream.%s", msg, hint)
 			case !remote_connected:
-				err = fmt.Errorf("%s a valid upstream '%s'.%s", msg, a.w.Infra.Remotes["origin"], hint)
+				err = fmt.Errorf("%s a valid upstream '%s'.%s", msg, a.w.Infra.GetOrigin(), hint)
 			}
 
 		case a.w.Instance == "none": // The infra is set with no upstream instance
 			// Will create the 1st commit and nothing more.
 			err = a.ensure_local_repo_synced(a.w.Infra.Name, "master", "", "", a.infra_readme)
 
-		case a.w.Infra.Remotes["origin"] == "": // The infra upstream string is not defined
+		case a.w.Infra.GetOrigin() == "": // The infra upstream string is not defined
 			err = fmt.Errorf("You provided the infra upstream instance name to connect to your local repository, without defining the upstream instance. please retry and use --apps to define it.")
 
-		case a.w.Infra.Remotes["origin"] != "" && !remote_connected:
-			err = a.ensure_local_repo_synced(a.w.Infra.Name, "master", "origin", a.w.Infra.Remotes["origin"], a.infra_readme)
+		case a.w.Infra.GetOrigin() != "" && !remote_connected:
+			err = a.ensure_local_repo_synced(a.w.Infra.Name, "master", "origin", a.w.Infra.GetOrigin(), a.infra_readme)
 
-		case a.w.Infra.Remotes["origin"] != "" && remote_connected:
+		case a.w.Infra.GetOrigin() != "" && remote_connected:
 			if action == "create" {
 				log.Printf("The infra already exist and is connected. The automatic git push/forjj maintain is then disabled.")
 				*a.no_maintain = true
@@ -120,7 +120,7 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 		return
 	}
 
-	if _, remote_connected, giterr := git_remote_exist("master", "origin", a.w.Infra.Remotes["origin"]); giterr != nil {
+	if _, remote_connected, giterr := git_remote_exist("master", "origin", a.w.Infra.GetOrigin()); giterr != nil {
 		if err != nil {
 			err = fmt.Errorf("%s. %s.", err, giterr)
 		}
@@ -137,11 +137,11 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 			} else {
 				log.Printf("Plugin instance %s(%s) informed service already exists. We need to restore the workspace before doing the update.", a.w.Instance, a.w.Driver)
 			}
-			if e := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "origin", a.w.Infra.Remotes["origin"], a.infra_readme); e != nil {
+			if e := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "origin", a.w.Infra.GetOrigin(), a.infra_readme); e != nil {
 				err = fmt.Errorf("%s\n%s", err, e)
 			}
 
-			log.Printf("As the upstream service already exists, forjj has only fetched your workspace infra repository from '%s'.", a.w.Infra.Remotes["origin"])
+			log.Printf("As the upstream service already exists, forjj has only fetched your workspace infra repository from '%s'.", a.w.Infra.GetOrigin())
 
 			// Then re-apply cli default options and repos back to the existing restored code.
 			a.LoadForjjOptions()

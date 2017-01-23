@@ -8,13 +8,13 @@ your preferred toolset.
 
 Forjj has been designed to be widely opened to contribution.
 
-- [Forjj plugins](https://github.hpe.com/forjj/forjj-contribs)
+- [Forjj plugins](https://github.com/forj-oss/forjj-contribs)
 
-  Any pieces to build a solution with integration are stored in [forjj-contribs](https://github.hpe.com/forjj/forjj-contribs) repository as a forjj plugin.
-  For example, ci/jenkins is a plugin which contains code to create/manage a jenkins instance and jobs. See [jenkins forjj plugin](https://github.hpe.com/forjj/forjj-contribs/ci/jenkinsi)
+  Any pieces to build a solution with integration are stored in [forjj-contribs](https://github.com/forj-oss/forjj-contribs) repository as a forjj plugin.
+  For example, ci/jenkins is a plugin which contains code to create/manage a jenkins instance and jobs. See [jenkins forjj plugin](https://github.com/forj-oss/forjj-contribs/ci/jenkinsi)
   See [contribution page to get plugins details](CONTRIBUTION.md)
 
-- [Forjj core](https://github.hpe.com/forjj/forjj) (this project)
+- [Forjj core](https://github.com/forj-oss/forjj) (this project)
 
   Forjj core is a GO binary. It contains code to:
 
@@ -34,7 +34,7 @@ Forjj has been designed to be widely opened to contribution.
 
 - **Partially completed** - the infra repository, `myforj-infra`, with the infra code to create/maintain it, pushed to github.
   - **DONE** github: forjj driver to help forjj to interact with github service
-  - **CLOSED to DONE** jenkins: forjj driver to help forjj to create a jenkins instance as code and apply it with maintain.
+  - **DONE** jenkins: forjj driver to help forjj to create a jenkins instance as code and apply it with maintain.
 - **NOT STARTED** - a `demo` repository, pushed to github.
 - **IN PROGRESS** - a new jenkins instance in your workstation.
 - **IN PROGRESS** - integration between github and jenkins (7 jobs)
