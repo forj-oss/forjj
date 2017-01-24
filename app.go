@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/cli"
-	//	"github.com/forj-oss/forjj-modules/cli/interface"
 	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
@@ -12,6 +11,8 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"text/template"
+	"bytes"
 )
 
 // TODO: Support multiple contrib sources.
@@ -93,6 +94,7 @@ type Forj struct {
 
 	// Forjj Core values, saved at create time, updated at update time. maintain should save also.
 
+	InternalForjData     map[string]string
 	creds_file           *string  // Credential file
 	Branch               string   // Update feature branch name
 	ContribRepo_uri      *url.URL // URL to github raw files for plugin files.
@@ -366,71 +368,19 @@ func (a *Forj) init() {
 	kingpin.FatalIfError(err, "Unable to find 'git' command. Ensure it available in your PATH and retry.\n")
 }
 
-//
-// Generic Application function settings
-//
-
-// GetActionOptsFromCli
-//
-// Get the ActionsOpts of the selected Command clause in kingpin (ie create/update or maintain)
-/*func (a *Forj) GetActionOptsFromCli(cmd []clier.CmdClauser) {
-	if len(cmd) >= 1 {
-		a.CurrentCommand = cmd[0]
+// LoadInternalData()
+func (a *Forj) LoadInternalData() {
+	a.InternalForjData = make(map[string]string)
+	ldata := []string{ "organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount"}
+	for _, param := range ldata {
+		a.InternalForjData[param] = a.getInternalData(param)
 	}
-	if len(cmd) >= 1 {
-		a.CurrentObject = cmd[1]
-	}
-}*/
-
-// InitializeDriversAPI
-//
-// Function initializing driver flags with values.
-// From values found in the commandline (cli), extract them
-// From forjj-* values, get it from Forjj internal data.
-/*func (a *Forj) InitializeDriversAPI() {
-	// TODO: Use cli : To re-apply
-	// We will need to apply value to the Driver REST API and do call to each object requested to transmit the
-	// object action. Common are systematically given. And maintain is a different use case.
-		forjj_regexp, _ := regexp.Compile("forjj-(.*)")
-
-		for instance_name, driverOpts := range a.drivers {
-			if driverOpts.plugin.Yaml.Name == "" {
-				continue
-			}
-
-			if v := a.cli.GetCurrentCommand(); v == nil {
-				return
-			} else {
-				if len(v) >= 1 {}
-			}
-			cur_cmd := a.cli.GetCurrentCommand()
-			gotrace.Trace("driver: '%s(%s)', command: '%s'", driverOpts.DriverType, instance_name, cur_cmd)
-			for _, command := range []string{"common", cur_cmd} { // a.CurrentCommand.FullCommand()} {
-				gotrace.Trace(" From '%s' flags list", command)
-				for flag_name := range driverOpts.cmds[command].flags {
-					gotrace.Trace("  Flag_name => '%s'", flag_name)
-					forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
-					f, _ := a.drivers[instance_name].cmds[command].flags[flag_name]
-					if forjj_vars == nil {
-						if flag_value, ok := a.cli.GetStringValue(flag_name); ok {
-							f.value = flag_value
-							gotrace.Trace("   %s := %s", flag_name, flag_value)
-						}
-					} else {
-						flag_value := a.GetInternalData(forjj_vars[1])
-						f.value = flag_value
-						gotrace.Trace("   forjj(%s) => %s := %s", forjj_vars[1], flag_name, flag_value)
-					}
-					a.drivers[instance_name].cmds[command].flags[flag_name] = f
-				}
-			}
-		}
-}*/
+}
 
 // GetInternalData
 //
 // Provide value for some forjj internal parameters. Used by InitializeDriversFlag to provide values to plugins as they requested it.
-func (a *Forj) GetInternalData(param string) (result string) {
+func (a *Forj) getInternalData(param string) (result string) {
 	switch param {
 	case "organization":
 		result = a.w.Organization
@@ -471,12 +421,28 @@ func (a *Forj) GetInternalData(param string) (result string) {
 // It will be created as a Hash of values
 func (a *Forj) GetDriversActionsParameter(d *Driver, flag_name string) (string, bool) {
 	forjj_regexp, _ := regexp.Compile("forjj-(.*)")
+	forjj_interpret, _ := regexp.Compile(`\{\{.*\}\}`)
 
 	forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
 	if forjj_vars == nil {
 		gotrace.Trace("'%s' candidate as parameters.", flag_name)
 		parameter_name := d.InstanceName + "-" + flag_name
 		if v, err := a.cli.GetAppStringValue(parameter_name); err != nil {
+			if forjj_interpret.MatchString(v) {
+				gotrace.Trace("Interpreting '%s' from '%s'", v, parameter_name)
+				// Initialized defaults value from templates
+				var doc bytes.Buffer
+
+				if t, err := template.New("forj-data").Parse(v); err != nil {
+					gotrace.Trace("Unable to interpret Parameter '%s' value '%s'. %s", parameter_name, v, err)
+					return "", false
+				} else {
+					t.Execute(&doc, a.InternalForjData)
+				}
+
+				v = doc.String()
+				gotrace.Trace("'%s' interpreted to '%s'", parameter_name, v)
+			}
 			gotrace.Trace("Set: '%s' <= '%s'", flag_name, v)
 			return v, true
 		} else {
@@ -484,6 +450,6 @@ func (a *Forj) GetDriversActionsParameter(d *Driver, flag_name string) (string, 
 			return "", false
 		}
 	} else {
-		return a.GetInternalData(forjj_vars[1]), true
+		return a.InternalForjData[forjj_vars[1]], true
 	}
 }

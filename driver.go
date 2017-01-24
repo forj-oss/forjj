@@ -218,9 +218,9 @@ func (d *Driver) driver_do(a *Forj, instance_name, action string, args ...string
 	}
 
 	plugin_payload := goforjj.NewReqData()
-	//a.drivers_options.GetDriversMaintainParameters(plugin_payload.Args, action)
 
-	// TODO: Generate payload with cli objects and action flags
+	// Load all internal Forjj data, identified by 'forjj-*'
+	a.LoadInternalData()
 	a.GetForjjFlags(plugin_payload, d, "common")
 	a.GetForjjFlags(plugin_payload, d, action)
 	a.GetObjectsData(plugin_payload, d, action)

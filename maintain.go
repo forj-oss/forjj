@@ -87,7 +87,7 @@ func (a *Forj) do_driver_maintain(instance string) error {
 		if a.InfraPluginDriver == d { // Infra upstream instance case
 			if v, found := d.plugin.Result.Data.Repos[a.w.Infra.Name]; found {
 				// Saving infra repository information returned to the workspace
-				a.w.Infra = v
+				a.w.Infra = &v
 			} else {
 				return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance)
 			}
