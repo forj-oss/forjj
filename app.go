@@ -105,7 +105,7 @@ type Forj struct {
 
 	infra_readme string // Initial infra repo README.md text.
 
-	w Workspace    // Data structure to stored in the workspace. See workspace.go
+	w WorkspaceStruct    // Data structure to stored in the workspace. See workspace.go
 	o ForjjOptions // Data structured stored in the root of the infra repo. See forjj-options.go
 	r ReposList    // Collection of Repositories managed. Data structured stored in the root of the infra repo. See repos.go
 }
