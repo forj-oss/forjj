@@ -121,6 +121,8 @@ func (a *Forj) setWorkspace() {
 	var found bool
 	var err error
 
+	a.w.Init()
+
 	orga_path, found, _, err = a.cli.GetStringValue(workspace, "", workspace)
 
 	if err != nil {
@@ -138,7 +140,7 @@ func (a *Forj) setWorkspace() {
 		gotrace.Trace("Found workspace setting : '%s'", orga_path)
 	}
 
-	a.w.Init(orga_path)
+	a.w.SetPath(orga_path)
 }
 
 // set_from_urlflag initialize a URL structure from a flag given.
