@@ -1,4 +1,4 @@
-package: github.hpe.com/christophe-larsonneur/forjj
+package: github.com/forj-oss/forjj
 import:
 - package: github.com/alecthomas/kingpin
   repo: https://github.com/clarsonneur/kingpin

@@ -7,7 +7,7 @@ const (
 His role is to help you building and maintaining an automated Software factory by integrating several tools together,
 implemented with the 'Infrastructure as Code' idea.
 
-For details on Forjj, visit https://github.hpe.com/forjj/forjj
+For details on Forjj, visit https://github.com/forj-oss/forjj
 
 'Infrastructure as Code' is part of DevOps (automation). FORJJ can help you create/update/maintain your DevOps solution.
 But FORJJ is not DevOps if you do not help your teams to do DevOps (DevOps Culture).

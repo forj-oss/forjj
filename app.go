@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/cli"
 	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
@@ -12,7 +13,6 @@ import (
 	"os/exec"
 	"regexp"
 	"text/template"
-	"bytes"
 )
 
 // TODO: Support multiple contrib sources.
@@ -134,11 +134,11 @@ const (
 )
 
 const (
-	debug_f = "debug"
-	infra_f = "infra"
+	debug_f          = "debug"
+	infra_f          = "infra"
 	infra_upstream_f = "infra-upstream"
-	cred_f  = "credentials-file"
-	orga_f  = "organization"
+	cred_f           = "credentials-file"
+	orga_f           = "organization"
 )
 
 //
@@ -172,11 +172,11 @@ func (a *Forj) init() {
 
 	a.cli.AddAppFlag(cli.String, cred_f, forjj_creds_help, opts_creds_file)
 
-	u, _ := url.Parse("https://github.hpe.com/forj/forjj-contribs/raw/master")
+	u, _ := url.Parse("https://github.com/forj-oss/forjj-contribs/raw/master")
 	a.ContribRepo_uri = u
-	u, _ = url.Parse("https://github.hpe.com/forj/forjj-repotemplates/raw/master")
+	u, _ = url.Parse("https://github.com/forj-oss/forjj-repotemplates/raw/master")
 	a.RepotemplateRepo_uri = u
-	u, _ = url.Parse("https://github.hpe.com/forj/forjj-flows/raw/master")
+	u, _ = url.Parse("https://github.com/forj-oss/forjj-flows/raw/master")
 	a.FlowRepo_uri = u
 
 	a.drivers = make(map[string]*Driver)
@@ -371,7 +371,7 @@ func (a *Forj) init() {
 // LoadInternalData()
 func (a *Forj) LoadInternalData() {
 	a.InternalForjData = make(map[string]string)
-	ldata := []string{ "organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount"}
+	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount"}
 	for _, param := range ldata {
 		a.InternalForjData[param] = a.getInternalData(param)
 	}
@@ -388,7 +388,7 @@ func (a *Forj) getInternalData(param string) (result string) {
 		result = a.w.Infra.Name
 	case "infra-upstream":
 		if a.w.Instance == "" || a.w.Instance == "none" {
-			result= ""
+			result = ""
 		} else {
 			result = a.w.Infra.GetUpstream()
 		}
