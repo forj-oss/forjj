@@ -8,13 +8,13 @@ your preferred toolset.
 
 Forjj has been designed to be widely opened to contribution.
 
-- [Forjj plugins](https://github.hpe.com/forjj/forjj-contribs)
+- [Forjj plugins](https://github.com/forj-oss/forjj-contribs)
 
-  Any pieces to build a solution with integration are stored in [forjj-contribs](https://github.hpe.com/forjj/forjj-contribs) repository as a forjj plugin.
-  For example, ci/jenkins is a plugin which contains code to create/manage a jenkins instance and jobs. See [jenkins forjj plugin](https://github.hpe.com/forjj/forjj-contribs/ci/jenkinsi)
+  Any pieces to build a solution with integration are stored in [forjj-contribs](https://github.com/forj-oss/forjj-contribs) repository as a forjj plugin.
+  For example, ci/jenkins is a plugin which contains code to create/manage a jenkins instance and jobs. See [jenkins forjj plugin](https://github.com/forj-oss/forjj-contribs/ci/jenkinsi)
   See [contribution page to get plugins details](CONTRIBUTION.md)
 
-- [Forjj core](https://github.hpe.com/forjj/forjj) (this project)
+- [Forjj core](https://github.com/forj-oss/forjj) (this project)
 
   Forjj core is a GO binary. It contains code to:
 
@@ -34,7 +34,7 @@ Forjj has been designed to be widely opened to contribution.
 
 - **Partially completed** - the infra repository, `myforj-infra`, with the infra code to create/maintain it, pushed to github.
   - **DONE** github: forjj driver to help forjj to interact with github service
-  - **CLOSED to DONE** jenkins: forjj driver to help forjj to create a jenkins instance as code and apply it with maintain.
+  - **DONE** jenkins: forjj driver to help forjj to create a jenkins instance as code and apply it with maintain.
 - **NOT STARTED** - a `demo` repository, pushed to github.
 - **IN PROGRESS** - a new jenkins instance in your workstation.
 - **IN PROGRESS** - integration between github and jenkins (7 jobs)
@@ -47,7 +47,7 @@ Really? I can create a DevOps organization on my workstation??? Yes.
 Here is the requirement:
 
 - docker : You need a linux docker system, 1.9.1 or higher.
-- github : To simplify, we use github.hpe.com for the SCM upstream part. You must have a valid account on github.hpe.com and a valid personal token. (`GITHUB_TOKEN`)
+- github : To simplify, we use github.com for the SCM upstream part. You must have a valid account on github.com and a valid personal token. (`GITHUB_TOKEN`)
 
   The token must have access to `admin:org, admin:repo_hook, admin:org_hook`
   **NOTE**: The latest version of github entreprise do not authorize to create an organization from the API if you are not `siteadmin`. But You can usually create an organization from the web interface. Forjj github will take care of that.
@@ -59,7 +59,7 @@ If you do not want to build your own forjj version from source, you can get the 
 
 If you want a more stable version (source not changing too much...), you should build it yourself, as I'm pushing my code frequently when I consider it to be acceptable version. See [how to build it section](forjj#how-to-build-it-how-to-test-it).
 
-NOTE: I'm using forjj to build forjj on github.hpe.com.
+NOTE: I'm using forjj to build forjj on github.com.
 
 # Run it
 
@@ -75,7 +75,7 @@ mkdir -p ~/bin && wget -O ~/bin/forjj http://lacws.emea.hpqcorp.net/Install_priv
 
 ```bash
 GITHUB_TOKEN=d6603f803805a4e9f51ebf85d5668bf499f58331
-forjj create ~/devops/myforj --apps ci:jenkins,ustream:github --github-server github.hpe.com --github-token $GITHUB_TOKEN --jenkins-addr myworkstation.emea.hpqcorp.net
+forjj create ~/devops/myforj --apps ci:jenkins,ustream:github --github-token $GITHUB_TOKEN --jenkins-addr myworkstation.emea.hpqcorp.net
 ```
 
 Then forjj will create in ~/devops/myforj :
@@ -137,8 +137,8 @@ As soon as you have defined the GOPATH variable, you could build forjj as follow
 mkdir ~/src/go
 export GOPATH=~/src/go
 export PATH=$PATH:$GOPATH/bin
-go get https://github.hpe.com/forjj/forjj.git
-cd ~/src/go/src/github.hpe.com/forjj/forjj
+go get https://github.com/forj-oss/forjj.git
+cd ~/src/go/src/github.com/forj-oss/forjj
 go get
 go install
 ```
@@ -147,8 +147,8 @@ Now, `forjj` should work
 
 For forjj github plugin:
 ```bash
-go get https://github.hpe.com/forjj/forjj-contribs
-cd ~/src/go/src/github.hpe.com/forjj/forjj-contribs/upstream/github
+go get https://github.com/forj-oss/forjj-contribs
+cd ~/src/go/src/github.com/forj-oss/forjj-contribs/upstream/github
 go generate
 bin/build.sh
 ```
@@ -158,8 +158,8 @@ Now, a new docker image has been generated, called `docker.hos.hpecorp.net/forjj
 
 For forjj jenkins plugin:
 ```bash
-go get https://github.hpe.com/forjj/forjj-contribs
-cd ~/src/go/src/github.hpe.com/forjj/forjj-contribs/ci/jenkins
+go get https://github.com/forj-oss/forjj-contribs
+cd ~/src/go/src/github.com/forj-oss/forjj-contribs/ci/jenkins
 go generate
 bin/build.sh
 ```
@@ -185,15 +185,15 @@ forjj create ~/tmp/forjj
 # create source code for github
 # write github source code, add and commit it
 # Instantiate github configuration as described by the generated code.
-forjj create ~/tmp/forjj --debug --apps ci:jenkins,upstream:github --github-token $GITHUB_TOKEN --github-server github.hpe.com --jenkins-service-addr maison.emea.hpqcorp.net --docker-exe-path ~/tmp/docker
+forjj create ~/tmp/forjj --debug --apps ci:jenkins,upstream:github --github-token $GITHUB_TOKEN --jenkins-service-addr maison.emea.hpqcorp.net --docker-exe-path ~/tmp/docker
 ```
 
 ```bash
-# Create a worspace
+# Create a workspace
 # create source code for github
 # write github source code, add and commit it
 # Instantiate github configuration as described by the generated code.
-forjj create ~/tmp/forjj --debug --apps ci:jenkins,upstream:github --github-token $GITHUB_TOKEN --github-server github.hpe.com --jenkins-service-addr maison.emea.hpqcorp.net --docker-exe-path ~/tmp/docker
+forjj create ~/tmp/forjj --debug --apps ci:jenkins,upstream:github --github-token $GITHUB_TOKEN --jenkins-service-addr maison.emea.hpqcorp.net --docker-exe-path ~/tmp/docker
 ```
 
 Thank you

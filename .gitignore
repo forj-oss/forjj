@@ -1,3 +1,13 @@
 *.swp
-test_go*
 tasks.json
+/.idea
+*.iml
+/bin/build it
+/test_*/
+/cli/debug_cli/main.go
+/*/*.iml
+/vendor
+.glide
+.gopath
+.publish_lacws
+forjj

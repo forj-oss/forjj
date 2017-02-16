@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+
+if [ "$http_proxy" != "" ]
+then
+   PROXY="-e http_proxy=$http_proxy -e https_proxy=$http_proxy -e no_proxy=$no_proxy"
+fi
+
+USER="-u $(id -u)"
+PROJECT="$(basename $(pwd))"
+echo "PROJECT = $PROJECT"
+
+if [ "$GOPATH" = "" ]
+then
+   echo "GOPATH not set. Please set it."
+   exit 1
+fi
+
+MOUNT="-v $GOPATH:/go -v $(pwd):/go/src/$PROJECT -w /go/src/$PROJECT"
+
+sudo docker run --rm -it $MOUNT -t $BUILD_ENV $PROXY $USER forjj-golang-env bash
+
+rmdir $GOPATH/src/$PROJECT
+

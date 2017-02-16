@@ -1,0 +1,17 @@
+#!/bin/sh -e
+
+export CGO_ENABLED=0
+
+DEFAULT_BIN_NAME=$(basename $(pwd))
+
+if [ "$1" = "install" ]
+then
+   shift
+   /usr/local/go/bin/go build "$@"
+   if [ -x $DEFAULT_BIN_NAME ]
+   then
+       mv -v $DEFAULT_BIN_NAME /go/bin
+   fi
+else
+   /usr/local/go/bin/go "$@"
+fi
