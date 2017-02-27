@@ -35,18 +35,21 @@ type WorkspaceStruct struct {
 	is_workspace           bool				   // True if instance is the workspace data to save in Workspace path.
 }
 
-func (w *WorkspaceStruct)MarshalYAML() (interface{}, error) {
-	
+/*func (w *WorkspaceStruct)MarshalYAML() (interface{}, error) {
+
+}*/
+
+func (w *WorkspaceStruct)Init() {
+	w.Infra = goforjj.NewRepo()
 }
 
-func (w *WorkspaceStruct) Init(Workspace_path string) {
+func (w *WorkspaceStruct) SetPath(Workspace_path string) {
 	if Workspace_path == "" {
 		return
 	}
 	Workspace_path, _ = Abs(path.Clean(Workspace_path))
 	w.workspace_path = path.Dir(Workspace_path)
 	w.workspace = path.Base(Workspace_path)
-	w.Infra = goforjj.NewRepo()
 	gotrace.Trace("Use workspace : %s (%s / %s)", w.Path(), w.workspace_path, w.workspace)
 }
 

@@ -19,6 +19,11 @@ import (
 // - Load missing drivers information from forjj-options.yaml
 func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	gotrace.Trace("Setting FORJJ Context...")
+
+	// TODO: Be able to choose where to load one of more (merged) Forjfiles.
+	// Detect and load a Forjfile
+	a.LoadForjfile()
+
 	// load FORJJ workspace information
 	a.setWorkspace() // failure test exit is made after parse time.
 
