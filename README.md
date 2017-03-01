@@ -1,50 +1,16 @@
 # Introduction
 
 **The project is under development, and start with a POC to build github/jenkins integration.**
-[github + jenkins Solution Builder][See Example below]
 
-Forjj is the *New Power DevOps solution* to build and maintain a complete DevOps solution, integrating SCM/CI/ChatOps/CD all with
-your preferred toolset.
+For details about the POC, read [this](POC.md).
 
-Forjj has been designed to be widely opened to contribution.
+If you are interesting on what forjj will do in future. Have a look [here](FUTURE.md)
 
-- [Forjj plugins](https://github.com/forj-oss/forjj-contribs)
-
-  Any pieces to build a solution with integration are stored in [forjj-contribs](https://github.com/forj-oss/forjj-contribs) repository as a forjj plugin.
-  For example, ci/jenkins is a plugin which contains code to create/manage a jenkins instance and jobs. See [jenkins forjj plugin](https://github.com/forj-oss/forjj-contribs/ci/jenkinsi)
-  See [contribution page to get plugins details](CONTRIBUTION.md)
-
-- [Forjj core](https://github.com/forj-oss/forjj) (this project)
-
-  Forjj core is a GO binary. It contains code to:
-
-  - automate the DevOs solution creation from a solution description data.
-  - store source code in git repositories.
-  - create a demo project
-  - enhance solution, in scaling, or any other infrastructure update.
-  - repositories management
-
-  Forjj core could be expanded with a web ui to:
-
-  - expose options of plugins
-  - assist in project management (creation/update/delete)
-  - assist in solution infrastructure management (scale/changes)
-
-# Project status:
-
-- **Partially completed** - the infra repository, `myforj-infra`, with the infra code to create/maintain it, pushed to github.
-  - **DONE** github: forjj driver to help forjj to interact with github service
-  - **DONE** jenkins: forjj driver to help forjj to create a jenkins instance as code and apply it with maintain.
-- **NOT STARTED** - a `demo` repository, pushed to github.
-- **IN PROGRESS** - a new jenkins instance in your workstation.
-- **IN PROGRESS** - integration between github and jenkins (7 jobs)
-
-
-# How to start your first simple DevOps organization on your workstation?
+# How to start your first simple DevOps solution on your workstation?
 
 Really? I can create a DevOps organization on my workstation??? Yes.
 
-Here is the requirement:
+## Requirement:
 
 - docker : You need a linux docker system, 1.9.1 or higher.
 - github : To simplify, we use github.com for the SCM upstream part. You must have a valid account on github.com and a valid personal token. (`GITHUB_TOKEN`)
@@ -75,7 +41,9 @@ mkdir -p ~/bin && wget -O ~/bin/forjj http://lacws.emea.hpqcorp.net/Install_priv
 
 ```bash
 GITHUB_TOKEN=d6603f803805a4e9f51ebf85d5668bf499f58331
-forjj create ~/devops/myforj --apps ci:jenkins,ustream:github --github-token $GITHUB_TOKEN --jenkins-addr myworkstation.emea.hpqcorp.net
+forjj create ~/devops/myforj --apps ci:jenkins,upstream:github
+                             --github-token $GITHUB_TOKEN
+                             --jenkins-addr myworkstation.emea.hpqcorp.net
 ```
 
 Then forjj will create in ~/devops/myforj :
@@ -121,79 +89,9 @@ The jenkins `myforj_infra_PR` should be started pretty soon and shown GREEN stat
 The PR job could be there to validate that forjj could maintain this repository with this code. (TBD)
 Then merging this PR will start the `myforj_infra_master` job. This job will call forjj maintain to create the repo with github/jenkins integration (3 new jobs)
 
-# How to build it? How to test it?
 
-Today, there is 3 components to build:
-- forjj (this project)
-- forjj github (plugin)
-- forjj jenkins (plugin)
-
-## Build forjj
-
-As soon as you have defined the GOPATH variable, you could build forjj as follow:
-
-
-```bash
-mkdir ~/src/go
-export GOPATH=~/src/go
-export PATH=$PATH:$GOPATH/bin
-go get https://github.com/forj-oss/forjj.git
-cd ~/src/go/src/github.com/forj-oss/forjj
-go get
-go install
-```
-
-Now, `forjj` should work
-
-For forjj github plugin:
-```bash
-go get https://github.com/forj-oss/forjj-contribs
-cd ~/src/go/src/github.com/forj-oss/forjj-contribs/upstream/github
-go generate
-bin/build.sh
-```
-
-Now, a new docker image has been generated, called `docker.hos.hpecorp.net/forjj/github`
-
-
-For forjj jenkins plugin:
-```bash
-go get https://github.com/forj-oss/forjj-contribs
-cd ~/src/go/src/github.com/forj-oss/forjj-contribs/ci/jenkins
-go generate
-bin/build.sh
-```
-
-Now, a new docker image has been generated, called `docker.hos.hpecorp.net/forjj/jenkins`
-
-
-So, now you can start playing with forjj.
-
-## Testing forjj
-
-We can create thing, step by step. Like create a basic workspace.
-
-Ex: Create a basic workspace:
-
-```bash
-# Create an empty workspace.
-forjj create ~/tmp/forjj
-```
-
-```bash
-# Create a worspace
-# create source code for github
-# write github source code, add and commit it
-# Instantiate github configuration as described by the generated code.
-forjj create ~/tmp/forjj --debug --apps ci:jenkins,upstream:github --github-token $GITHUB_TOKEN --jenkins-service-addr maison.emea.hpqcorp.net --docker-exe-path ~/tmp/docker
-```
-
-```bash
-# Create a workspace
-# create source code for github
-# write github source code, add and commit it
-# Instantiate github configuration as described by the generated code.
-forjj create ~/tmp/forjj --debug --apps ci:jenkins,upstream:github --github-token $GITHUB_TOKEN --jenkins-service-addr maison.emea.hpqcorp.net --docker-exe-path ~/tmp/docker
-```
+For details about the POC, and how to build it, see [this](POC.md)
+For contribution, see [this](CONTRIBUTION.md)
 
 Thank you
+Forj team

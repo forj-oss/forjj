@@ -8,6 +8,6 @@ tasks.json
 /*/*.iml
 /vendor
 .glide
-.gopath
+.be-*
 .publish_lacws
 forjj
