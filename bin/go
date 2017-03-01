@@ -42,5 +42,5 @@ then
    shift
 fi
 
-eval sudo docker run --rm -it $MOUNT -t $BUILD_ENV $PROXY $USER forjj-golang-env $GOBIN $BUILD_FLAGS "$@"
+eval $BUILD_ENV_DOCKER run --rm -it $MOUNT -t $BUILD_ENV $PROXY $USER forjj-golang-env $GOBIN $BUILD_FLAGS "$@"
 
