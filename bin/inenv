@@ -18,6 +18,6 @@ fi
 
 MOUNT="-v $GOPATH:/go -w /go/src/$PROJECT"
 
-sudo docker run --rm -it $MOUNT -t $BUILD_ENV $PROXY $USER forjj-golang-env bash
+$BUILD_ENV_DOCKER run --rm -it $MOUNT -t $BUILD_ENV $PROXY $USER forjj-golang-env bash
 
 

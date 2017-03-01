@@ -57,8 +57,8 @@ Today, there is 3 components to build:
 1. Create (or use) your GO Path environment
 
 ```bash
-mkdir ~/src/go/src # if you want to create it
-cd ~/src/go/src # Or use $GOPATH/src if you already have one.
+export GOPATH=~/src/go && mkdir $GOPATH/src # if you want to create it
+cd $GOPATH/src
 ```
 
 2. Clone your fork (or https://github.com/forj-oss/forjj)
@@ -71,9 +71,13 @@ cd forjj
 3. If you want to use docker to build, load the build environment.
 
 ```bash
-echo ~/src/go > .gopath
-source build-env.sh
-create-build-env.sh
+source build-env.sh $GOPATH
+```
+
+If docker is accessible using `sudo`, do the following instead:
+
+```bash
+source build-env.sh --sudo $GOPATH
 ```
 
 **Note:**
