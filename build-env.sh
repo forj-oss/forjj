@@ -59,13 +59,13 @@ then
       export GOPATH="$gopath"
       echo "Local setting of GOPATH to '$GOPATH'"
    else
-      echo "GOPATH = '$gopath' is invalid. Please update your .gopath"
+      echo "GOPATH = '$gopath' is invalid. Please update your .be-gopath"
    fi
 fi
 
 if [ "$GOPATH" = "" ]
 then
-   echo "Missing GOPATH. Please set it, or define it in your local personal '.gopath' file"
+   echo "Missing GOPATH. Please set it, or define it in your local personal '.be-gopath' file"
    return
 fi
 

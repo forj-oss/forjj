@@ -14,7 +14,7 @@ create-build-env.sh
 
 if [ "$GOPATH" = "" ]
 then
-    echo "Unable to build without GOPATH. Please set it (build)env or your local personal '.gopath')"
+    echo "Unable to build without GOPATH. Please set it (build)env or your local personal '.be-gopath')"
     exit 1
 fi
 
