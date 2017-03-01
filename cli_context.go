@@ -22,7 +22,10 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	// TODO: Be able to choose where to load one of more (merged) Forjfiles.
 	// Detect and load a Forjfile
-	a.LoadForjfile()
+	if err := a.LoadForjfile() ; err != nil {
+		a.w.error = err
+		return nil, false
+	}
 
 	// load FORJJ workspace information
 	a.setWorkspace() // failure test exit is made after parse time.

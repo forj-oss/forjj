@@ -11,7 +11,12 @@ import (
 // TODO: Implement Flow
 // TODO: Call maintain to start the plugin provision container command.
 
-var forj_app Forj
+var (
+	forj_app Forj
+	build_branch string
+	build_commit string
+	build_date string
+)
 
 // Define the default Docker image to use for running forjj actions task by drivers.
 const Docker_image = "docker.hos.hpecorp.net/devops/forjj"

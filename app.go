@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"regexp"
 	"text/template"
+	"fmt"
 )
 
 // TODO: Support multiple contrib sources.
@@ -160,7 +161,13 @@ func (a *Forj) init() {
 	opts_workspace := cli.Opts().Envar("FORJJ_WORKSPACE").Short('W')
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
-	a.app.Version("forjj V0.0.1 (POC)").Author("Christophe Larsonneur <christophe.larsonneur@hpe.com>")
+
+	version := "forjj V0.0.1 (POC)"
+	if build_branch != "master" {
+		version += fmt.Sprintf(" branch %s - %s - %s", build_branch, build_date, build_commit)
+	}
+
+	a.app.Version(version).Author("Christophe Larsonneur <christophe.larsonneur@hpe.com>")
 	// kingpin is driven by cli module.
 	a.cli = cli.NewForjCli(kingpinCli.New(a.app))
 
