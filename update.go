@@ -12,7 +12,7 @@ import (
 // Workspace data has been initialized or loaded.
 // forjj-options has been initialized or loaded
 func (a *Forj) Update() error {
-	if _, err := a.w.check_exist(); err != nil {
+	if _, err := a.w.Check_exist(); err != nil {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
@@ -29,7 +29,7 @@ func (a *Forj) Update() error {
 	// Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
 	// save infra repository location in the workspace.
-	defer a.w.Save(a)
+	defer a.w.Save()
 
 	// Ensure infra exist and list of repos sent to the upstream as well.
 	// If the upstream do not exist but requested, the driver exit with an error.

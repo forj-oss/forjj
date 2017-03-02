@@ -5,31 +5,48 @@ import (
 	"path"
 	"fmt"
 	"io/ioutil"
-	"github.com/forj-oss/forjj/.glide/cache/src/https-gopkg.in-yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
-type Forjfile struct {
+type ForjfileTmpl struct {
+	Workspace WorkspaceStruct `yaml:"local-settings"` // See workspace.go
+	Forge `yaml:",inline"`
+}
+
+type Forge struct {
 	Forj ForjDefaultStruct
 	Infra RepoStruct
-	Workspace WorkspaceStruct `yaml:"local"`
-	Repos map[string]RepoStruct
-	Apps map[string]map[string]string
+	Repos map[string]RepoStruct `yaml:"repositories"`
+	Apps map[string]AppStruct `yaml:"applications"`
 	Instances map[string]map[string]map[string]string `yaml:",inline"`
+}
+
+type WorkspaceStruct struct {
+	DockerBinPath          string `yml:"docker-exe-path"`    // Docker static binary path
+	Contrib_repo_path      string `yml:"contribs-path"`      // Contrib Repo path used.
+	Flow_repo_path         string `yml:"flows-path"`         // Flow repo path used.
+	Repotemplate_repo_path string `yml:"repotemplates-path"` // Repotemplate Path used.
+	More                   map[string]string `yaml:",inline"`
 }
 
 type ForjDefaultStruct struct {
 	Organization string
-	More map[string]string `yaml:",inline"`
+	Users map[string]UserStruct
+	Groups map[string]GroupStruct
+	More map[string]map[string]map[string]string `yaml:",inline"`
+}
+
+type UserStruct struct {
+	Email string
+}
+
+type GroupStruct struct {
+	Members []string
 }
 
 type RepoStruct struct {
 	Name string
 	Upstream string
-	More map[string]string `yaml:",inline"`
-}
-
-type WorkspaceStruct struct {
-	ContribsPath string `yml:"contribs-path"`
 	More map[string]string `yaml:",inline"`
 }
 
@@ -42,10 +59,63 @@ type AppStruct struct {
 
 const forj_file_name = "Forjfile"
 
-// Load: Search for Forjfile in . and load it
-func Load(aPath string) (f *Forjfile, loaded bool, err error) {
+// TODO: Load multiple templates that will be merged.
 
-	forj_path := path.Clean(aPath)
+// LoadTmpl: Search for Forjfile in `aPath` and load it.
+// This file combines the Forjfile in the infra repository and the Workspace
+func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
+	var (
+		yaml_data []byte
+		file string
+	)
+
+	if fi, d, e := loadFile(aPath) ; e != nil {
+		err = e
+		return
+	} else {
+		yaml_data = d
+		file = fi
+	}
+
+	f = new(ForjfileTmpl)
+
+	if e := yaml.Unmarshal(yaml_data, f) ; e != nil {
+		err = fmt.Errorf("Unable to load %s. %s", file, e)
+		return
+	}
+	loaded = true
+	fmt.Printf("%#v\n", f)
+	return
+}
+
+// Load : Load Forjfile stored in a Repository.
+func Load(aPath string) (f *Forge, loaded bool, err error) {
+	var (
+		yaml_data []byte
+		file string
+	)
+
+	if fi, d, e := loadFile(aPath) ; e != nil {
+		err = e
+		return
+	} else {
+		yaml_data = d
+		file = fi
+	}
+
+	f = new(Forge)
+
+	if e := yaml.Unmarshal(yaml_data, f) ; e != nil {
+		err = fmt.Errorf("Unable to load %s. %s", file, e)
+		return
+	}
+	loaded = true
+	fmt.Printf("%#v\n", f)
+	return
+}
+
+func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
+		forj_path := path.Clean(aPath)
 
 	if forj_path != "." {
 		if _, err = os.Stat(forj_path) ; err != nil {
@@ -54,7 +124,7 @@ func Load(aPath string) (f *Forjfile, loaded bool, err error) {
 	}
 
 	// TODO: interpret ~ to $HOME and get it from path.Home()
-	file := path.Join(forj_path, forj_file_name)
+	file = path.Join(forj_path, forj_file_name)
 	if fi, e := os.Stat(file) ; e != nil {
 		if forj_path != "." {
 			err = e
@@ -67,20 +137,11 @@ func Load(aPath string) (f *Forjfile, loaded bool, err error) {
 		}
 	}
 
-	var yaml_data []byte
 	if fd, e := ioutil.ReadFile(file) ; e != nil {
 		err = e
 		return
 	} else {
 		yaml_data = fd
 	}
-
-	f = new(Forjfile)
-
-	if e := yaml.Unmarshal(yaml_data, f) ; e != nil {
-		err = fmt.Errorf("Unable to load %s. %s", file, e)
-		return
-	}
-	loaded = true
 	return
 }

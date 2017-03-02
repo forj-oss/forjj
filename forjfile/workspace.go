@@ -1,4 +1,4 @@
-package main
+package forjfile
 
 import (
 	"encoding/json"
@@ -19,31 +19,27 @@ const forjj_workspace_json_file = "forjj.json"
 // Usually, we stored data to found out where the infra is.
 // But it can store any data that is workspace environment specific.
 // like where is the docker static binary.
-type WorkspaceStruct struct {
+type Workspace struct {
 	Organization           string              // Workspace Organization name
 	Driver                 string              // Infra upstream driver name
 	Instance               string              // Infra upstream instance name
 	Infra                  *goforjj.PluginRepo // Infra-repo definition
-	DockerBinPath          string              // Docker static binary path
-	Contrib_repo_path      string              // Contrib Repo path used.
-	Flow_repo_path         string              // Flow repo path used.
-	Repotemplate_repo_path string              // Repotemplate Path used.
 	workspace              string              // Workspace name
 	workspace_path         string              // Workspace directory path.
 	error                  error               // Error detected
-	More map[string]string `yaml:",inline"`
-	is_workspace           bool				   // True if instance is the workspace data to save in Workspace path.
+	is_workspace           bool                // True if instance is the workspace data to save in Workspace path.
+	WorkspaceStruct
 }
 
 /*func (w *WorkspaceStruct)MarshalYAML() (interface{}, error) {
 
 }*/
 
-func (w *WorkspaceStruct)Init() {
+func (w *Workspace)Init() {
 	w.Infra = goforjj.NewRepo()
 }
 
-func (w *WorkspaceStruct) SetPath(Workspace_path string) {
+func (w *Workspace) SetPath(Workspace_path string) {
 	if Workspace_path == "" {
 		return
 	}
@@ -54,18 +50,18 @@ func (w *WorkspaceStruct) SetPath(Workspace_path string) {
 }
 
 // Path Provide the workspace absolute path
-func (w *WorkspaceStruct) Path() string {
+func (w *Workspace) Path() string {
 	return path.Clean(path.Join(w.workspace_path, w.workspace))
 }
 
 // Name Provide the workspace Name
-func (w *WorkspaceStruct) Name() string {
+func (w *Workspace) Name() string {
 	return w.workspace
 }
 
 // Ensure workspace path exists. So, if missing, it will be created.
 // The current path (pwd) is moved to the existing workspace path.
-func (w *WorkspaceStruct) Ensure_exist() (string, error) {
+func (w *Workspace) Ensure_exist() (string, error) {
 	w_path := w.Path()
 	_, err := os.Stat(w_path)
 	if os.IsNotExist(err) {
@@ -78,7 +74,7 @@ func (w *WorkspaceStruct) Ensure_exist() (string, error) {
 }
 
 // Check if a workspace exist or not
-func (w *WorkspaceStruct) check_exist() (bool, error) {
+func (w *Workspace) Check_exist() (bool, error) {
 	w_path := w.Path()
 	_, err := os.Stat(w_path)
 	if os.IsNotExist(err) {
@@ -88,7 +84,7 @@ func (w *WorkspaceStruct) check_exist() (bool, error) {
 
 }
 
-func (w *WorkspaceStruct) Save(app *Forj) {
+func (w *Workspace) Save() {
 	var djson []byte
 
 	workspace_path, err := w.Ensure_exist()
@@ -105,9 +101,18 @@ func (w *WorkspaceStruct) Save(app *Forj) {
 	gotrace.Trace("File '%s' saved with '%s'", fjson, djson)
 }
 
+func (w *Workspace) Error() error {
+	return w.error
+}
+
+func (w *Workspace) SetError(err error) error{
+	w.error = err
+	return w.error
+}
+
 // Load workspace information from the forjj.json
 // Workspace path is get from forjj and set kept in the workspace as reference for whole forjj thanks to a.w.Path()
-func (w *WorkspaceStruct) Load() error {
+func (w *Workspace) Load() error {
 	if w.workspace_path == "" || w.workspace == "" {
 		return fmt.Errorf("Invalid workspace. name or path are empty.")
 	}
@@ -139,7 +144,7 @@ func (w *WorkspaceStruct) Load() error {
 // try to identify if we are in an existing workspace
 // It will return the path found.
 // You will need to call Init(path) and later Load()
-func (w *WorkspaceStruct) DetectIt() (string, error) {
+func (w *Workspace) DetectIt() (string, error) {
 	var pwd string
 
 	gotrace.Trace("Detecting FORJJ workspace...")

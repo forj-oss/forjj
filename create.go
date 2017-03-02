@@ -26,7 +26,7 @@ func (a *Forj) Create() error {
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
 	// save infra repository location in the workspace.
-	defer a.w.Save(a)
+	defer a.w.Save()
 
 	if err, aborted, new_infra := a.ensure_infra_exists("create"); err != nil {
 		if !aborted {

@@ -13,7 +13,7 @@ import (
 // But this would be a next version and needs to be validated before this decision is made.
 // Workspace information already loaded by the cli context.
 func (a *Forj) Maintain() error {
-	if _, err := a.w.check_exist(); err != nil {
+	if _, err := a.w.Check_exist(); err != nil {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 

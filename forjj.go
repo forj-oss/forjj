@@ -39,8 +39,8 @@ func main() {
 			log.Fatalf("Unable to create the workspace '%s'. Already exist.", forj_app.w.Path())
 		}
 	}*/
-	if err == nil && forj_app.w.error != nil {
-		kingpin.Fatalf("Unable to go on. %s", forj_app.w.error)
+	if err == nil && forj_app.w.Error() != nil {
+		kingpin.Fatalf("Unable to go on. %s", forj_app.w.Error())
 	}
 
 	//	TODO : Use cli : Re-apply following function

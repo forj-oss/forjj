@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"text/template"
 	"fmt"
+	"forjj/forjfile"
 )
 
 // TODO: Support multiple contrib sources.
@@ -106,7 +107,8 @@ type Forj struct {
 
 	infra_readme string // Initial infra repo README.md text.
 
-	w WorkspaceStruct    // Data structure to stored in the workspace. See workspace.go
+	f forjfile.Forge      // Forge Data stored in the Repository (Loaded from Forjfile)
+	w forjfile.Workspace  // Data structure to stored in the workspace. See workspace.go
 	o ForjjOptions // Data structured stored in the root of the infra repo. See forjj-options.go
 	r ReposList    // Collection of Repositories managed. Data structured stored in the root of the infra repo. See repos.go
 }

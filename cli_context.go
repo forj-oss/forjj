@@ -23,7 +23,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// TODO: Be able to choose where to load one of more (merged) Forjfiles.
 	// Detect and load a Forjfile
 	if err := a.LoadForjfile() ; err != nil {
-		a.w.error = err
+		a.w.SetError(err)
 		return nil, false
 	}
 
@@ -40,15 +40,15 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// Set organization name to use.
 	// Can be set only the first time
 	if f, found, _, _ := c.GetStringValue(workspace, "", orga_f); !found {
-		if a.w.Organization == "" && a.w.workspace != "" {
-			a.w.Organization = a.w.workspace
+		if a.w.Organization == "" && a.w.Name() != "" {
+			a.w.Organization = a.w.Name()
 		}
 		if a.w.Organization != "" {
 			w_o.SetParamOptions(orga_f, cli.Opts().Default(a.w.Organization))
 		}
 	} else {
 		if f == "" {
-			f = a.w.workspace
+			f = a.w.Name()
 		}
 		if a.w.Organization == "" {
 			a.w.Organization = f
@@ -62,8 +62,8 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	if a.w.Organization != "" {
 		log.Printf("Organization : '%s'", a.w.Organization)
 	} else {
-		if a.w.error == nil {
-			a.w.error = fmt.Errorf("No organization defined.")
+		if a.w.Error() == nil {
+			a.w.SetError(fmt.Errorf("No organization defined."))
 		}
 	}
 
@@ -98,6 +98,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	// Identifying appropriate Contribution Repository.
 	// The value is not set in flagsv. But is in the parser context.
+
 	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
 		a.ContribRepo_uri = v
 	}
@@ -138,8 +139,8 @@ func (a *Forj) setWorkspace() {
 	}
 	if !found {
 		orga_path, err = a.w.DetectIt()
-		a.w.error = fmt.Errorf("Unable to find the workspace from current directory, FORJJ_WORKSPACE or --workspace. "+
-			"please define one to create it. %s", err)
+		a.w.SetError(fmt.Errorf("Unable to find the workspace from current directory, FORJJ_WORKSPACE or --workspace. "+
+			"please define one to create it. %s", err))
 		return
 	} else {
 		if p, err := Abs(orga_path); err == nil {
