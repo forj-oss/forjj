@@ -1,4 +1,4 @@
-package: github.com/forj-oss/forjj
+package: forjj
 import:
 - package: github.com/alecthomas/kingpin
   repo: https://github.com/clarsonneur/kingpin
