@@ -9,6 +9,7 @@ import (
 	"path"
 	"text/template"
 	"forjj/drivers"
+	"forjj/forjfile"
 )
 
 // Load driver options to a Command requested.
@@ -30,8 +31,8 @@ func (a *Forj) load_driver_options(instance_name string) error {
 
 // prepare_registered_drivers get the list of drivers identified in the Repository (Forjfile) and prepare it (Driver).
 func (a *Forj) prepare_registered_drivers() error {
-	for _, d := range a.o.Drivers {
-		a.add_defined_driver(d)
+	for _, app := range a.f.Apps {
+		a.add_defined_driver(app)
 	}
 	return nil
 }
@@ -197,13 +198,16 @@ func (a *Forj) init_driver_flags(instance_name string) {
 }
 
 
-func (a *Forj) add_defined_driver(driver *drivers.Driver) error {
-	if _, found := a.drivers[driver.InstanceName]; !found {
-		gotrace.Trace("Loading missing instance %s", driver.InstanceName)
-		a.drivers[driver.InstanceName] = driver
+func (a *Forj) add_defined_driver(app forjfile.AppStruct) error {
+	if _, found := a.drivers[app.Name()]; !found {
+		driver := new(drivers.Driver)
+		driver.InstanceName = app.Name()
+		driver.Name = app.Driver
+		driver.DriverType = app.Type
+		a.drivers[app.Name()] = driver
 		driver.Init()
 	}
-	gotrace.Trace("Registered driver to load: %s\n", driver.DriverType, driver.Name)
+	gotrace.Trace("Registered driver to load: %s - %s", app.Type, app.Name())
 	return nil
 }
 

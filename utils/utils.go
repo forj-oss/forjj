@@ -1,10 +1,9 @@
-package forjfile
+package utils
 
 import (
 	"os"
 	"path"
 )
-
 
 func Abs(name string) (string, error) {
 	if path.IsAbs(name) {

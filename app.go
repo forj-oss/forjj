@@ -95,6 +95,7 @@ const (
 const (
 	debug_f          = "debug"
 	infra_f          = "infra"
+	infra_path_f     = "infra-path"
 	infra_upstream_f = "infra-upstream"
 	cred_f           = "credentials-file"
 	orga_f           = "organization"
@@ -116,7 +117,7 @@ func (a *Forj) init() {
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
-	opts_workspace := cli.Opts().Envar("FORJJ_WORKSPACE").Short('W')
+	opts_infra_path := cli.Opts().Envar("FORJJ_INFRA").Short('W')
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 
@@ -129,7 +130,7 @@ func (a *Forj) init() {
 	// kingpin is driven by cli module.
 	a.cli = cli.NewForjCli(kingpinCli.New(a.app))
 
-	a.cli.ParseHook(a.ParseContext)
+	a.cli.ParseAfterHook(a.ParseContext)
 	// Regular filter for lists
 	// Used by list capture function parameter
 	a.cli.AddFieldListCapture("w", `[a-z]+[a-z0-9_-]*`)
@@ -165,14 +166,12 @@ func (a *Forj) init() {
 	// ex: forjj add repo
 	if a.cli.NewObject(workspace, "any forjj workspace parameters", true).
 		Single().
-		AddKey(cli.String, workspace, workspace_path_help, "#w", nil).
 		AddField(cli.String, "docker-exe-path", docker_exe_path_help, "#w", nil).
 		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w", nil).
 		AddField(cli.String, "flows-repo", flows_repo_help, "#w", nil).
 		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w", nil).
 		AddField(cli.String, orga_f, forjj_orga_name_help, "#w", nil).
 		DefineActions(chg_act, rem_act).OnActions().
-		AddFlag(workspace, opts_workspace).
 		AddFlag("docker-exe-path", nil).
 		AddFlag("contribs-repo", opts_contribs_repo).
 		AddFlag("flows-repo", opts_flows_repo).
@@ -269,11 +268,13 @@ func (a *Forj) init() {
 	// infra - Mostly built by plugins or other objects list with update action only.
 	if a.cli.NewObject(infra, "the global settings", true).
 		Single().
-		AddKey(cli.String, infra_f, forjj_infra_name_help, "#w", nil).
+		AddField(cli.String, infra_path_f, infra_path_help, "#w", nil).
+		AddField(cli.String, infra_f, forjj_infra_name_help, "#w", nil).
 		AddField(cli.String, infra_upstream_f, "Infra repository upstream instance name.", "#w", nil).
 		AddField(cli.String, "flow", default_flow_help, "#w", nil).
 		DefineActions(chg_act).
 		OnActions().
+		AddFlag(infra_path_f, opts_infra_path).
 		AddFlag(infra_f, opts_infra_repo).
 		AddFlag(infra_upstream_f, nil).
 		AddFlag("flow", nil) == nil {

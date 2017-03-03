@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"os/user"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -113,12 +112,4 @@ func inStringList(element string, elements ...string) string {
 		}
 	}
 	return ""
-}
-
-func Abs(name string) (string, error) {
-	if path.IsAbs(name) {
-		return name, nil
-	}
-	wd, err := os.Getwd()
-	return path.Clean(path.Join(wd, name)), err
 }

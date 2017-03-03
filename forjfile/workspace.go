@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"forjj/utils"
 )
 
 const forjj_workspace_json_file = "forjj.json"
@@ -43,10 +44,14 @@ func (w *Workspace) SetPath(Workspace_path string) {
 	if Workspace_path == "" {
 		return
 	}
-	Workspace_path, _ = Abs(path.Clean(Workspace_path))
+	Workspace_path, _ = utils.Abs(path.Clean(Workspace_path))
 	w.workspace_path = path.Dir(Workspace_path)
 	w.workspace = path.Base(Workspace_path)
 	gotrace.Trace("Use workspace : %s (%s / %s)", w.Path(), w.workspace_path, w.workspace)
+}
+
+func (w *Workspace) SetFrom(aWorkspace WorkspaceStruct) {
+	w.WorkspaceStruct = aWorkspace
 }
 
 // Path Provide the workspace absolute path
@@ -138,29 +143,4 @@ func (w *Workspace) Load() error {
 	}
 	gotrace.Trace("File '%s' loaded.", fjson)
 	return nil
-}
-
-// When this function is called, it will
-// try to identify if we are in an existing workspace
-// It will return the path found.
-// You will need to call Init(path) and later Load()
-func (w *Workspace) DetectIt() (string, error) {
-	var pwd string
-
-	gotrace.Trace("Detecting FORJJ workspace...")
-	if v, err := os.Getwd(); err != nil {
-		return "", err
-	} else {
-		pwd = v
-	}
-	for {
-		if _, err := os.Stat(path.Join(pwd, forjj_workspace_json_file)); err == nil {
-			gotrace.Trace("Found workspace at '%s'", pwd)
-			return pwd, nil
-		}
-		pwd = path.Dir(pwd)
-		if pwd == "/" {
-			return "", fmt.Errorf("Unable to find a valid workspace from your path.")
-		}
-	}
 }
