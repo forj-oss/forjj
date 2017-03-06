@@ -18,6 +18,8 @@ then
     exit 1
 fi
 
+glide i
+
 # Requires forjj to be static.
 export CGO_ENABLED=0
 go install

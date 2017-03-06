@@ -15,7 +15,7 @@ then
 fi
 
 USER="-u $(id -u)"
-PROJECT="$(basename $(pwd))"
+PROJECT="$(basename $BUILD_ENV_PROJECT)"
 echo "PROJECT = $PROJECT"
 
 if [ "$GOPATH" = "" ]
@@ -42,5 +42,5 @@ then
    shift
 fi
 
-eval $BUILD_ENV_DOCKER run --rm -it $MOUNT -t $BUILD_ENV $PROXY $USER forjj-golang-env $GOBIN $BUILD_FLAGS "$@"
+eval $BUILD_ENV_DOCKER run --rm -it $MOUNT $PROXY $USER forjj-golang-env $GOBIN $BUILD_FLAGS "$@"
 

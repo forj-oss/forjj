@@ -7,7 +7,7 @@ then
 fi
 
 USER="-u $(id -u)"
-PROJECT="$(basename $(pwd))"
+PROJECT="$(basename $BUILD_ENV_PROJECT)"
 echo "PROJECT = $PROJECT"
 
 if [ "$GOPATH" = "" ]
@@ -18,6 +18,6 @@ fi
 
 MOUNT="-v $GOPATH:/go -w /go/src/$PROJECT"
 
-$BUILD_ENV_DOCKER run --rm -it $MOUNT -t $BUILD_ENV $PROXY $USER forjj-golang-env bash
+$BUILD_ENV_DOCKER run --rm -it $MOUNT $PROXY $USER forjj-golang-env bash
 
 
