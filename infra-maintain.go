@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"path"
+	"forjj/git"
 )
 
 const (
@@ -43,7 +44,7 @@ func (a *Forj) SaveForjjPluginsOptions() error {
 	def := forjjPlugins{make(map[string]forjjPluginsOptions)}
 
 	for driver, opts := range a.drivers_options.Drivers {
-		o := forjjPluginsOptions{opts.driver_type, make(map[string]string)}
+		o := forjjPluginsOptions{opts.Driver_type, make(map[string]string)}
 		for option, v := range opts.Options {
 			o.Options[option] = v.Help
 		}
@@ -55,7 +56,7 @@ func (a *Forj) SaveForjjPluginsOptions() error {
 		return fmt.Errorf("Unable to write '%s'. %s", drivers_def_options_file, err)
 	}
 
-	git("add", drivers_def_options_file)
+	git.Do("add", drivers_def_options_file)
 
 	for driver, opts := range a.drivers_options.Drivers {
 		for option, v := range opts.Options {
@@ -140,25 +141,3 @@ func (fp *forjjPlugins) LoadFile(file string) error {
 	return nil
 }
 
-func (d *DriversOptions) AddForjjPluginOptions(name string, options map[string]goforjj.PluginOption, driver_type string) {
-	if d.Drivers == nil {
-		d.Drivers = make(map[string]DriverOptions)
-	}
-
-	d.Drivers[name] = DriverOptions{driver_type, options}
-}
-
-// Used by api service or cli driver to add options values requested by the driver from creds & def.
-// Currently this function add all values for all drivers to the args. So, we need to:
-// TODO: Revisit how args are built for drivers, when flow will be introduced.
-// We may need to select which one is required for each driver to implement the flow. TBD
-func (d *DriversOptions) GetDriversMaintainParameters(plugin_args map[string]string, action string) {
-	for n, v := range d.Drivers {
-		for k, o := range v.Options {
-			if o.Value == "" {
-				gotrace.Trace("Instance '%s' parameter '%s' has no value.", n, k)
-			}
-			plugin_args[k] = o.Value
-		}
-	}
-}

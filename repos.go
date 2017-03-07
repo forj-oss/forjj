@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"forjj/drivers"
+	"forjj/git"
 )
 
 const forjj_repo_file = "forjj-repos.yml"
@@ -58,9 +60,9 @@ func (a *Forj) GetReposData(instance string) (ret map[string]goforjj.PluginRepoD
 }
 
 // SaveManagedRepos Stored Repositories managed by the plugin in the list of repos (forjj-repos.yaml)
-func (a *Forj) SaveManagedRepos(d *Driver, instance string) {
+func (a *Forj) SaveManagedRepos(d *drivers.Driver, instance string) {
 	for name, repo := range a.r.Repos {
-		if _, found := d.plugin.Result.Data.Repos[name]; found {
+		if _, found := d.Plugin.Result.Data.Repos[name]; found {
 			// Saving infra repository information to the workspace
 			repo.Instance = instance
 		}
@@ -134,7 +136,7 @@ func (a *Forj) RepoCodeSave() (err error) {
 
 	gotrace.Trace("%s written with %s.", forjj_repo_file, NumReposDisplay(len(a.r.Repos)))
 
-	git("add", forjj_repo_file)
+	git.Do("add", forjj_repo_file)
 	return nil
 }
 
@@ -156,24 +158,6 @@ func (a *Forj) RepoCodeLoad() error {
 
 	gotrace.Trace("%s loaded from forjj-repos.yml", NumReposDisplay(len(a.r.Repos)))
 
-	return nil
-}
-
-func (a *Forj) DriverGet(instance string) (d *Driver) {
-	var found bool
-
-	if d, found = a.drivers[instance]; found {
-		return
-	}
-
-	if d, found = a.o.Drivers[instance]; !found {
-		a.drivers[instance] = &Driver{
-			Name:         d.Name,
-			DriverType:   d.DriverType,
-			InstanceName: d.InstanceName,
-		}
-		return
-	}
 	return nil
 }
 

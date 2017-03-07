@@ -98,7 +98,7 @@ func (a *Forj) Update() error {
 
 		repos_num := a.GetReposRequestedFor(instance, "update")
 		gotrace.Trace("Instance '%s' hosts %s.", instance, NumReposDisplay(repos_num))
-		if !d.app_request && repos_num == 0 {
+		if !d.AppRequest() && repos_num == 0 {
 			continue // Do not try to update a non requested app (--apps) or an instance having no requested repo updates.
 		}
 

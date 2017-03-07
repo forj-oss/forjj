@@ -13,3 +13,12 @@ func Abs(name string) (string, error) {
 	wd, err := os.Getwd()
 	return path.Clean(path.Join(wd, name)), err
 }
+
+func Touch(file string) error {
+	if fd, err := os.Create(file); err == nil {
+		return fd.Close()
+	} else {
+		return err
+	}
+}
+

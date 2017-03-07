@@ -7,15 +7,16 @@ import (
 	"log"
 	"regexp"
 	"sort"
+	"forjj/drivers"
 )
 
 // initDriverObjectFlags internally used by init_driver_flags()
 type initDriverObjectFlags struct {
 	// Initialized by init_driver_flags()
-	d             *Driver
+	d             *drivers.Driver
 	a             *Forj
 	instance_name string
-	d_opts        *DriverOptions
+	d_opts        *drivers.DriverOptions
 
 	// Initialized by determine_object()
 	object_name string
@@ -31,7 +32,7 @@ type initDriverObjectFlags struct {
 func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string]goforjj.YamlFlag) {
 	service_type := id.d.DriverType
 
-	if _, ok := id.a.drivers[id.instance_name].cmds[command]; !ok {
+	if ok := id.a.drivers[id.instance_name].IsValidCommand(command); !ok {
 		log.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.",
 			service_type, command)
 	}
@@ -49,18 +50,19 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 		// drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
 		// They are not in the list of possible drivers options from the cli.
 		if ok, _ := regexp.MatchString("forjj-.*", option_name); ok {
-			id.d.cmds[command].flags[option_name] = DriverCmdOptionFlag{driver_flag_name: option_name} // No value by default. Will be set later after complete parse.
+			// No value by default. Will be set later after complete parse.
+			id.d.InitCmdFlag(command, option_name, option_name)
 			continue
 		}
 
 		forjj_option_name := id.instance_name + "-" + option_name
-		flag_opts := id.d_opts.set_flag_options(option_name, &flag_options.Options)
+		flag_opts := id.d_opts.SetFlagOptions(option_name, &flag_options.Options)
 		if command == "common" {
 			// loop on create/update/maintain to create flag on each command
 			gotrace.Trace("Create common flags '%s' to App layer.", forjj_option_name)
-			id.d.init_driver_flags_for(id.a, option_name, "", forjj_option_name, flag_options.Help, flag_opts)
+			id.a.init_driver_flags_for(id.d, option_name, "", forjj_option_name, flag_options.Help, flag_opts)
 		} else {
-			id.d.init_driver_flags_for(id.a, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
+			id.a.init_driver_flags_for(id.d, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
 		}
 	}
 
@@ -90,7 +92,7 @@ func (id *initDriverObjectFlags) determine_object(object_name string, object_det
 				gotrace.Trace("Unable to create the object '%s' identified by '%s'. '%s' is not defined.",
 					object_name, flag_key, flag_key)
 			} else {
-				flag_opts := id.d_opts.set_flag_options(flag_key, &v.Options)
+				flag_opts := id.d_opts.SetFlagOptions(flag_key, &v.Options)
 				id.obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp, flag_opts)
 			}
 			gotrace.Trace("New object '%s' with key '%s'", object_name, flag_key)
@@ -118,7 +120,7 @@ func (id *initDriverObjectFlags) add_object_fields(flag_name string, flag_det *g
 			id.obj.Name(), flag_name)
 		return
 	}
-	flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
+	flag_opts := d_opts.SetFlagOptions(flag_name, &flag_det.Options)
 	id.obj.AddInstanceField(id.instance_name, cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, flag_opts)
 	gotrace.Trace("Object Instance '%s-%s': Field '%s' added.", id.obj.Name(), id.instance_name, flag_name)
 
@@ -191,7 +193,7 @@ func (id *initDriverObjectFlags) add_object_actions_flags(flag_name string, flag
 	id.obj.AddFlag(flag_name, nil)
 
 	if flag_det.Options.Secure {
-		flag_opts := id.d_opts.set_flag_options(flag_name, &flag_det.Options)
+		flag_opts := id.d_opts.SetFlagOptions(flag_name, &flag_det.Options)
 		id.a.cli.OnActions(maint_act).
 			WithObjectInstance(id.object_name, id.instance_name).
 			AddActionFlagFromObjectField(flag_name, flag_opts)

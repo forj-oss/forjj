@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"github.com/forj-oss/forjj-modules/trace"
 	"log"
+	"forjj/drivers"
+	"forjj/git"
 )
 
 // Create the Solution source code with validated parameters.
@@ -79,7 +81,7 @@ func (a *Forj) Create() error {
 
 		// Push if exist and automatic task is still enabled.
 		if a.w.Infra.Exist && !*a.no_maintain {
-			git("push")
+			git.Do("push")
 		} else {
 			gotrace.Trace("No final push: infra is marked as inexistent.")
 		}
@@ -87,7 +89,7 @@ func (a *Forj) Create() error {
 
 	// Loop on drivers requested like jenkins classified as ci type.
 	for instance, d := range a.drivers {
-		if instance == a.w.Instance || !d.app_request {
+		if instance == a.w.Instance || !d.AppRequest() {
 			continue // Do not try to create infra-upstream twice or create from a non requested app (--apps)
 		}
 
@@ -182,7 +184,7 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
 	}
 
 	// No upstream instance selected. Trying to get one from the list of drivers requested (--apps)
-	upstreams := []*Driver{}
+	upstreams := []*drivers.Driver{}
 	for _, dv := range a.drivers {
 		if dv.DriverType == "upstream" {
 			upstreams = append(upstreams, dv)

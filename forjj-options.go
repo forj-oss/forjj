@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"forjj/drivers"
+	"forjj/git"
 )
 
 const (
@@ -16,7 +18,7 @@ const (
 // This data structure is going to be saved in the infra repository anytime a global update is done.
 type ForjjOptions struct {
 	Defaults map[string]string
-	Drivers  map[string]*Driver
+	Drivers  map[string]*drivers.Driver
 }
 
 func (a *Forj) GetUniqDriverName(driverType string) (od string) {
@@ -62,7 +64,7 @@ func (a *Forj) SetDefault(action string) {
 // At least, the infra repo must exists.
 func (o *ForjjOptions) Init() {
 	if o.Drivers == nil {
-		o.Drivers = make(map[string]*Driver)
+		o.Drivers = make(map[string]*drivers.Driver)
 	}
 
 	if o.Defaults == nil {
@@ -75,9 +77,9 @@ func (o *ForjjOptions) SaveForjjOptions(CommitMsg string) error {
 		return fmt.Errorf("Unable to write '%s'. %s", forjj_options_file, err)
 	}
 
-	git("add", forjj_options_file)
+	git.Do("add", forjj_options_file)
 
-	if err := git_commit(CommitMsg, false); err != nil {
+	if err := git.Commit(CommitMsg, false); err != nil {
 		return fmt.Errorf("Unable to commit the organization update. %s", err)
 	}
 

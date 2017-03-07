@@ -59,20 +59,20 @@ func (a *Forj) do_driver_maintain(instance string) error {
 
 	// Ensure remote upstream exists - calling upstream driver - maintain
 	// This will create/update the upstream service
-	if err, _ := d.driver_do(a, instance, "maintain"); err != nil {
+	if err, _ := a.driver_do(d, instance, "maintain"); err != nil {
 		return fmt.Errorf("Driver issue. %s.", err)
 	}
 
 	if d.DriverType != "upstream" {
 		return nil
 	}
-	log.Printf("%s maintained by %s.\n", NumReposDisplay(len(a.drivers[instance].plugin.Result.Data.Repos)), instance)
+	log.Printf("%s maintained by %s.\n", NumReposDisplay(len(a.drivers[instance].Plugin.Result.Data.Repos)), instance)
 	// Loop on upstream repositories to ensure it exists with at least a README.md file.
 
 	// Ensure we are back to the infra repository.
 	defer os.Chdir(a.RepoPath(a.w.Infra.Name))
 
-	for name, repo := range a.drivers[instance].plugin.Result.Data.Repos {
+	for name, repo := range a.drivers[instance].Plugin.Result.Data.Repos {
 		log.Printf("Maintaining local repo '%s'", name)
 		if err := a.ensure_local_repo_initialized(name); err != nil {
 			return err
@@ -85,7 +85,7 @@ func (a *Forj) do_driver_maintain(instance string) error {
 		}
 
 		if a.InfraPluginDriver == d { // Infra upstream instance case
-			if v, found := d.plugin.Result.Data.Repos[a.w.Infra.Name]; found {
+			if v, found := d.Plugin.Result.Data.Repos[a.w.Infra.Name]; found {
 				// Saving infra repository information returned to the workspace
 				a.w.Infra = &v
 			} else {

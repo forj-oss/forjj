@@ -6,10 +6,9 @@ import (
 	"github.com/forj-oss/forjj-modules/cli"
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
-	"log"
-	"os"
 	"path"
 	"text/template"
+	"forjj/drivers"
 )
 
 // Load driver options to a Command requested.
@@ -20,63 +19,44 @@ func (a *Forj) load_driver_options(instance_name string) error {
 		return err
 	}
 
-	if a.drivers[instance_name].plugin.Yaml.Name != "" { // if true => Driver Def loaded
+	if a.drivers[instance_name].Plugin.Yaml.Name != "" { // if true => Driver Def loaded
 		a.init_driver_flags(instance_name)
 	}
 
 	return nil
 }
 
-func (d *Driver) Model() (m *DriverModel) {
-	m = &DriverModel{
-		InstanceName: d.InstanceName,
-		Name:         d.Name,
-	}
-	return
-}
-
 // TODO: Check if forjj-options, plugins runtime are valid or not.
 
-func (a *Forj) load_missing_drivers() error {
-	gotrace.Trace("Number of registered instances %d", len(a.o.Drivers))
-	gotrace.Trace("Number of loaded instances %d", len(a.drivers))
-	// TODO: Use data loaded from configuration saved in source 'forjj-options.yaml' and update it from driver, instead of reloading from scratch.
-	for instance, d := range a.o.Drivers {
-		if _, found := a.drivers[instance]; !found {
-			gotrace.Trace("Loading missing instance %s", instance)
-			a.drivers[instance] = d
-			d.cmds = map[string]DriverCmdOptions{ // List of Driver actions supported.
-				"common":   {make(map[string]DriverCmdOptionFlag)},
-				"create":   {make(map[string]DriverCmdOptionFlag)},
-				"update":   {make(map[string]DriverCmdOptionFlag)},
-				"maintain": {make(map[string]DriverCmdOptionFlag)},
-			}
-
-			gotrace.Trace("Loading '%s'", instance)
-			if err := a.load_driver_options(instance); err != nil {
-				log.Printf("Unable to load plugin information for instance '%s'. %s", instance, err)
-				continue
-			}
-			// Complete the driver information in cli records
-			// The instance record has been created automatically with  cli.ForjObject.AddInstanceField()
-			a.cli.SetValue(app, d.Name, cli.String, "type", d.DriverType)
-			a.cli.SetValue(app, d.Name, cli.String, "driver", d.Name)
-			/*            if err := d.plugin.PluginLoadFrom(instance, d.Runtime) ; err != nil {
-			              log.Printf("Unable to load Runtime information from forjj-options for instance '%s'. Forjj may not work properly. You can fix it with 'forjj update --apps %s:%s:%s'. %s", instance, d.DriverType, d.Name, d.InstanceName, err)
-			          }*/
-			d.plugin.PluginSetWorkspace(a.w.Path())
-			d.plugin.PluginSetSource(path.Join(a.w.Path(), a.w.Infra.Name, "apps", d.DriverType))
-			d.plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
-		}
+// prepare_registered_drivers get the list of drivers identified in the Repository (Forjfile) and prepare it (Driver).
+func (a *Forj) prepare_registered_drivers() error {
+	for _, d := range a.o.Drivers {
+		a.add_defined_driver(d)
 	}
 	return nil
+}
+
+// GetDriversFlags - Prepare drivers to load identified by cli App context hook.
+// This function is provided as cli app object Parse hook
+func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{}) (error, bool) {
+	list := a.cli.GetObjectValues(o.Name())
+	// Loop on drivers to pre-initialized drivers flags.
+	gotrace.Trace("Number of plugins provided from parameters: %d", len(list))
+	for _, d := range list {
+		if err := a.add_driver(d.GetString("driver"), d.GetString("type"), d.GetString("name"), true) ; err != nil {
+			gotrace.Trace("%s", err)
+			continue
+		}
+
+	}
+	return nil, true
 }
 
 // Read Driver yaml document
 func (a *Forj) read_driver(instance_name string) (err error) {
 	var (
 		yaml_data []byte
-		driver    *Driver
+		driver    *drivers.Driver
 	)
 	if d, ok := a.drivers[instance_name]; ok {
 		driver = d
@@ -93,30 +73,30 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 		return
 	}
 
-	if err = driver.plugin.PluginDefLoad(yaml_data); err != nil {
+	if err = driver.Plugin.PluginDefLoad(yaml_data); err != nil {
 		return
 	}
 
 	// Set defaults value for undefined parameters
 	var ff string
-	if driver.plugin.Yaml.CreatedFile == "" {
+	if driver.Plugin.Yaml.CreatedFile == "" {
 		ff = "." + driver.InstanceName + ".created"
 		driver.ForjjFlagFile = true // Forjj will test the creation success itself, as the driver did not created it automatically.
 	} else {
-		ff = driver.plugin.Yaml.CreatedFile
+		ff = driver.Plugin.Yaml.CreatedFile
 	}
 
 	// Initialized defaults value from templates
 	var doc bytes.Buffer
 
 	if t, err := template.New("plugin").Parse(ff); err != nil {
-		return fmt.Errorf("Unable to interpret plugin yaml definition. '/created_flag_file' has an invalid template string '%s'. %s", driver.plugin.Yaml.CreatedFile, err)
+		return fmt.Errorf("Unable to interpret plugin yaml definition. '/created_flag_file' has an invalid template string '%s'. %s", driver.Plugin.Yaml.CreatedFile, err)
 	} else {
 		t.Execute(&doc, driver.Model())
 	}
 	driver.FlagFile = doc.String()
-	driver.Runtime = &driver.plugin.Yaml.Runtime
-	gotrace.Trace("Created flag file name Set to default for plugin instance '%s' to %s", driver.InstanceName, driver.plugin.Yaml.CreatedFile)
+	driver.Runtime = &driver.Plugin.Yaml.Runtime
+	gotrace.Trace("Created flag file name Set to default for plugin instance '%s' to %s", driver.InstanceName, driver.Plugin.Yaml.CreatedFile)
 
 	return
 
@@ -145,8 +125,8 @@ func (a *Forj) init_driver_flags(instance_name string) {
 		d_opts:        &opts,
 	}
 
-	gotrace.Trace("Setting create/update/maintain flags from plugin type '%s' (%s)", service_type, d.plugin.Yaml.Name)
-	for command, flags := range d.plugin.Yaml.Tasks {
+	gotrace.Trace("Setting create/update/maintain flags from plugin type '%s' (%s)", service_type, d.Plugin.Yaml.Name)
+	for command, flags := range d.Plugin.Yaml.Tasks {
 		id.set_task_flags(command, flags)
 	}
 
@@ -154,7 +134,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 	// Then create the object key if needed.
 	// Then add fields, define actions and create flags.
 	gotrace.Trace("Setting Objects...")
-	for object_name, object_det := range d.plugin.Yaml.Objects {
+	for object_name, object_det := range d.Plugin.Yaml.Objects {
 		new := id.determine_object(object_name, &object_det)
 
 		// Determine which actions can be configured for drivers object flags.
@@ -216,115 +196,36 @@ func (a *Forj) init_driver_flags(instance_name string) {
 	// TODO: integrate new plugins objects list in create/update task
 }
 
-// Set options on a new flag created.
-//
-// It currently assigns defaults or required.
-//
-func (d *DriverOptions) set_flag_options(option_name string, params *goforjj.YamlFlagOptions) (opts *cli.ForjOpts) {
-	if params == nil {
-		return
-	}
 
-	var preloaded_data bool
-	opts = cli.Opts()
-
-	if d != nil {
-		if option_value, found := d.Options[option_name]; found && option_value.Value != "" {
-			// Do not set flag in any case as required or with default, if a value has been set in the driver loaded options (creds-forjj.yml)
-			preloaded_data = true
-			if params.Secure {
-				// We do not set a secure data as default in kingpin default flags to avoid displaying them from forjj help.
-				gotrace.Trace("Option value found for '%s' : -- set as hidden default value. --", option_name)
-				// The data will be retrieved by
-			} else {
-				gotrace.Trace("Option value found for '%s' : %s -- Default value. --", option_name, option_value.Value)
-				// But here, we can show through kingpin default what was loaded.
-				opts.Default(option_value.Value)
-			}
-		}
+func (a *Forj) add_defined_driver(driver *drivers.Driver) error {
+	if _, found := a.drivers[driver.InstanceName]; !found {
+		gotrace.Trace("Loading missing instance %s", driver.InstanceName)
+		a.drivers[driver.InstanceName] = driver
+		driver.Init()
 	}
-
-	if !preloaded_data {
-		// No preloaded data from forjj-creds.yaml (or equivalent files) -- Normal plugin driver set up
-		if params.Required {
-			opts.Required()
-		}
-		if params.Default != "" {
-			opts.Default(params.Default)
-		}
-	}
-
-	if params.Envar != "" {
-		opts.Envar(params.Envar)
-	}
-	return
+	gotrace.Trace("Registered driver to load: %s\n", driver.DriverType, driver.Name)
+	return nil
 }
 
-// Create the flag to a kingpin Command. (create/update/maintain)
-func (d *Driver) init_driver_flags_for(a *Forj, option_name, command, forjj_option_name, forjj_option_help string, opts *cli.ForjOpts) {
-	if command == "" {
-		// Add to the Application layer.
-		gotrace.Trace("Set App flag '%s(%s)'", forjj_option_name, option_name)
-		a.cli.AddAppFlag(cli.String, forjj_option_name, forjj_option_help, opts)
-		return
+// add_driver add a new driver to the list of drivers to load is none were already identified.
+func (a *Forj) add_driver(driver, driver_type, instance string, cli_requested bool) error {
+	if driver == "" || driver_type == "" {
+		return fmt.Errorf("Invalid plugin definition. driver:%s, driver_type:%s", driver, driver_type)
 	}
-	// No value by default. Will be set later after complete parse.
-	d.cmds[command].flags[forjj_option_name] = DriverCmdOptionFlag{driver_flag_name: option_name}
-
-	// Create flag 'option_name' on kingpin cmd or app
-	if forjj_option_name != option_name {
-		gotrace.Trace("Set action '%s' flag '%s(%s)'", command, forjj_option_name, option_name)
-	} else {
-		gotrace.Trace("Set action '%s' flag '%s'", command, forjj_option_name)
+	if instance == "" {
+		instance = driver
 	}
-	a.cli.OnActions(command).AddFlag(cli.String, forjj_option_name, forjj_option_help, opts)
-	return
-}
-
-// GetDriversFlags - cli App context hook. Load drivers requested (app object)
-// This function is provided as cli app object Parse hook
-func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{}) (error, bool) {
-	list := a.cli.GetObjectValues(o.Name())
-	// Loop on drivers to pre-initialized drivers flags.
-	gotrace.Trace("Number of plugins provided from parameters: %d", len(list))
-	for _, d := range list {
-		driver := d.GetString("driver")
-		driver_type := d.GetString("type")
-		instance := d.GetString("name")
-		if driver == "" || driver_type == "" {
-			gotrace.Trace("Invalid plugin definition. driver:%s, driver_type:%s", driver, driver_type)
-			continue
-		}
-
-		a.drivers[instance] = &Driver{
-			Name:         driver,
-			DriverType:   driver_type,
-			InstanceName: instance,
-			app_request:  true,
-			cmds: map[string]DriverCmdOptions{ // List of Driver actions supported.
-				"common":   {make(map[string]DriverCmdOptionFlag)},
-				"create":   {make(map[string]DriverCmdOptionFlag)},
-				"update":   {make(map[string]DriverCmdOptionFlag)},
-				"maintain": {make(map[string]DriverCmdOptionFlag)},
-			},
-		}
-		gotrace.Trace("Selected '%s' app driver: %s\n", driver_type, driver)
-
-		if err := a.load_driver_options(instance); err != nil {
-			fmt.Printf("Error: %#v\n", err)
-			os.Exit(1)
-		}
+	if _, found := a.drivers[instance] ; found {
+		return nil
 	}
-
-	// Automatically load all other drivers not requested by --apps but listed in forjj-options.yaml.
-	// Those drivers are all used by all services that forjj should manage.
-	a.load_missing_drivers()
-	return nil, true
+	a.drivers[instance] = drivers.NewDriver(driver, driver_type, instance, true)
+	gotrace.Trace("Identified driver to load: %s\n", driver_type, driver)
+	return nil
 }
 
 // GetForjjFlags build the Forjj list of parameters requested by the plugin for a specific action name.
-func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *Driver, action string) {
-	if tc, found := d.plugin.Yaml.Tasks[action]; found {
+func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action string) {
+	if tc, found := d.Plugin.Yaml.Tasks[action]; found {
 		for flag_name := range tc {
 			if v, found := a.GetDriversActionsParameter(d, flag_name); found {
 				r.Forj[flag_name] = v
@@ -334,9 +235,9 @@ func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *Driver, action string)
 }
 
 // GetObjectsData build the list of Object required by the plugin provided from the cli flags.
-func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *Driver, action string) {
+func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, action string) {
 	// Loop on each plugin object
-	for object_name := range d.plugin.Yaml.Objects {
+	for object_name := range d.Plugin.Yaml.Objects {
 		for instance_name, instance_data := range a.cli.GetObjectValues(object_name) {
 			ia := make(goforjj.InstanceActions)
 			keys := make(goforjj.ActionKeys)

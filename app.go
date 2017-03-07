@@ -6,7 +6,6 @@ import (
 	"github.com/forj-oss/forjj-modules/cli"
 	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
 	"log"
 	"net/url"
 	"os"
@@ -15,6 +14,7 @@ import (
 	"text/template"
 	"fmt"
 	"forjj/forjfile"
+	"forjj/drivers"
 )
 
 // TODO: Support multiple contrib sources.
@@ -31,50 +31,6 @@ import (
 //	Cmd      *kingpin.CmdClause             // Command object
 //}
 
-type DriverCmdOptions struct {
-	flags map[string]DriverCmdOptionFlag // list of flags values
-	//    args  map[string]string // list of args values
-}
-
-type DriverCmdOptionFlag struct {
-	driver_flag_name string
-	value            string
-}
-
-type Driver struct {
-	DriverType    string                      // driver type name
-	InstanceName  string                      // Instance name.
-	Name          string                      // Name of driver to load Yaml.Name is the real internal driver name.
-	cmds          map[string]DriverCmdOptions // List of flags per commands
-	plugin        goforjj.PluginDef           // Plugin Data
-	InfraRepo     bool                        // True if this driver instance is the one hosting the infra repository.
-	FlagFile      string                      // Path to the predefined plugin or generic forjj plugin flag file.
-	ForjjFlagFile bool                        // true if the flag_file is set by forjj.
-	app_request   bool                        // true if the driver is loaded by a apps create/update/maintain task (otherwise requested by Repos or flows request.)
-	Runtime       *goforjj.YamlPluginRuntime  // Reference to the plugin runtime information given by the plugin yaml file.
-	// When a driver is initially loaded, it will be saved here, and used it as ref every where.
-	// So we are sure that :
-	// - any change in plugin is not failing a running environment.
-	// - If no plugin is referenced from cli, we can start it without loading it from the plugin.yaml.
-	// - We can manage plugins versions and update when needed or requested.
-}
-
-// DriverModel: Structure used as template context. The way to get it: Driver.Model()
-type DriverModel struct {
-	InstanceName string
-	Name         string
-}
-
-// DriverOptions: List of maintain drivers options required by each plugin.
-type DriverOptions struct {
-	driver_type string
-	Options     map[string]goforjj.PluginOption // List of options with helps given by the plugin through create/update phase.
-}
-
-type DriversOptions struct {
-	Drivers map[string]DriverOptions // List of options for each drivers
-}
-
 type Forj struct {
 	// Collections of fields regarding flags given
 	drivers_list DriversList // List of drivers passed to the command line argument from --app.
@@ -82,8 +38,8 @@ type Forj struct {
 
 	//flags_loaded map[string]string // key/values for flags loaded. Used when doing a create AND maintain at the same time (create case)
 
-	drivers         map[string]*Driver // List of drivers data/flags/... per instance name (key)
-	drivers_options DriversOptions     // forjj-maintain.yml See infra-maintain.go
+	drivers         map[string]*drivers.Driver // List of drivers data/flags/... per instance name (key)
+	drivers_options drivers.DriversOptions     // forjj-maintain.yml See infra-maintain.go
 
 	cli *cli.ForjCli // ForjCli data
 	app *kingpin.Application
@@ -91,8 +47,8 @@ type Forj struct {
 	//	CurrentCommand clier.CmdClauser // Current Command
 	//	CurrentObject  clier.CmdClauser // Current Object
 
-	CurrentPluginDriver *Driver // Driver executing
-	InfraPluginDriver   *Driver // Driver used by upstream
+	CurrentPluginDriver *drivers.Driver // Driver executing
+	InfraPluginDriver   *drivers.Driver // Driver used by upstream
 
 	// Forjj Core values, saved at create time, updated at update time. maintain should save also.
 
@@ -188,9 +144,9 @@ func (a *Forj) init() {
 	u, _ = url.Parse("https://github.com/forj-oss/forjj-flows/raw/master")
 	a.FlowRepo_uri = u
 
-	a.drivers = make(map[string]*Driver)
+	a.drivers = make(map[string]*drivers.Driver)
 	//a.Actions = make(map[string]*ActionOpts)
-	a.o.Drivers = make(map[string]*Driver)
+	a.o.Drivers = make(map[string]*drivers.Driver)
 
 	// ACTIONS ************
 	// Create kingpin actions layer in kingpin.
@@ -409,13 +365,13 @@ func (a *Forj) getInternalData(param string) (result string) {
 		}
 	case "source-mount": // where the plugin has source mounted in the container
 		if a.CurrentPluginDriver != nil {
-			result = a.CurrentPluginDriver.plugin.SourceMount
+			result = a.CurrentPluginDriver.Plugin.SourceMount
 		} else {
 			gotrace.Trace("Warning. source-mount requested outside plugin context.")
 		}
 	case "workspace-mount": // where the plugin has source mounted to the container from caller
 		if a.CurrentPluginDriver != nil {
-			result = a.CurrentPluginDriver.plugin.WorkspaceMount
+			result = a.CurrentPluginDriver.Plugin.WorkspaceMount
 		} else {
 			gotrace.Trace("Warning. workspace-mount requested outside plugin context.")
 		}
@@ -428,7 +384,7 @@ func (a *Forj) getInternalData(param string) (result string) {
 //
 // Build the list of plugin shell parameters for dedicated action.
 // It will be created as a Hash of values
-func (a *Forj) GetDriversActionsParameter(d *Driver, flag_name string) (string, bool) {
+func (a *Forj) GetDriversActionsParameter(d *drivers.Driver, flag_name string) (string, bool) {
 	forjj_regexp, _ := regexp.Compile("forjj-(.*)")
 	forjj_interpret, _ := regexp.Compile(`\{\{.*\}\}`)
 
