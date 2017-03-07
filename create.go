@@ -77,7 +77,7 @@ func (a *Forj) Create() error {
 		}
 
 		// Save forjj-options.yml
-		a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
+		a.SaveForge(fmt.Sprintf("Organization %s updated.", a.w.Organization))
 
 		// Push if exist and automatic task is still enabled.
 		if a.w.Infra.Exist && !*a.no_maintain {

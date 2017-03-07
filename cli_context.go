@@ -44,8 +44,8 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// Load Workspace information if found
 	a.w.Load()
 
-	// Load Global Forjj options from infra repo, if found.
-	a.LoadForjjOptions()
+	// Load Forjfile from infra repo, if found.
+	a.LoadForge()
 
 	// Set organization name to use.
 	// The organisation name can be defined from Forjfile or cli and will stored in the workspace and the Forjfile in infra repo

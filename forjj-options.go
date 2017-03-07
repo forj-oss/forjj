@@ -3,16 +3,13 @@ package main
 import (
 	"fmt"
 	"github.com/forj-oss/forjj-modules/trace"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"os"
-	"path"
 	"forjj/drivers"
 	"forjj/git"
+	"forjj/forjfile"
 )
 
 const (
-	forjj_options_file = "forjj-options.yml"
+	forjj_options_file = "Forjfile.yml"
 )
 
 // This data structure is going to be saved in the infra repository anytime a global update is done.
@@ -60,24 +57,12 @@ func (a *Forj) SetDefault(action string) {
 	}
 }
 
-// Initialize Forjj options
-// At least, the infra repo must exists.
-func (o *ForjjOptions) Init() {
-	if o.Drivers == nil {
-		o.Drivers = make(map[string]*drivers.Driver)
+func (a *Forj) SaveForge(CommitMsg string) error {
+	if err := a.f.Save(); err != nil {
+		return fmt.Errorf("Unable to write '%s'. %s", forjfile.File_name, err)
 	}
 
-	if o.Defaults == nil {
-		o.Defaults = make(map[string]string)
-	}
-}
-
-func (o *ForjjOptions) SaveForjjOptions(CommitMsg string) error {
-	if err := o.Save(forjj_options_file); err != nil {
-		return fmt.Errorf("Unable to write '%s'. %s", forjj_options_file, err)
-	}
-
-	git.Do("add", forjj_options_file)
+	git.Do("add", forjfile.File_name)
 
 	if err := git.Commit(CommitMsg, false); err != nil {
 		return fmt.Errorf("Unable to commit the organization update. %s", err)
@@ -86,45 +71,13 @@ func (o *ForjjOptions) SaveForjjOptions(CommitMsg string) error {
 	return nil
 }
 
-func (f *ForjjOptions) Save(file string) error {
-	yaml_data, err := yaml.Marshal(f)
-	if err != nil {
-		return err
-	}
-
-	if err := ioutil.WriteFile(file, yaml_data, 0644); err != nil {
-		return err
-	}
-	gotrace.Trace("File name saved: %s", file)
-	return nil
-}
-
-// LoadForjjOptions loads the forjj options definitions from the LoadContext().
-func (a *Forj) LoadForjjOptions() error {
-	a.o.Init()
+// LoadForge loads the forjj options definitions from the LoadContext().
+func (a *Forj) LoadForge() (err error) {
 	// Read definition file from repo.
-	file := path.Clean(path.Join(a.w.Path(), a.w.Infra.Name, forjj_options_file))
-
-	if _, err := os.Stat(file); err != nil {
-		gotrace.Trace("No '%s' to load.", file)
-		return nil // Nothing to read.
+	if err = a.f.SetPath(a.w.InfraPath()) ; err != nil {
+		return
 	}
 
-	return a.o.LoadFile(file)
-}
-
-func (fp *ForjjOptions) LoadFile(file string) error {
-	yaml_data, err := ioutil.ReadFile(file)
-	if err != nil {
-		return fmt.Errorf("Unable to read '%s'. %s", drivers_data_options_file, err)
-	}
-
-	if err := yaml.Unmarshal(yaml_data, fp); err != nil {
-		return fmt.Errorf("Unable to decode the required plugin options from yaml format for maintain phase. %s.", err)
-	}
-	return nil
-}
-
-func (fo *ForjjOptions) update_options() {
+	_, err = a.f.Load()
 	return
 }

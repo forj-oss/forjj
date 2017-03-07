@@ -3,13 +3,13 @@ import:
 - package: github.com/alecthomas/kingpin
   repo: https://github.com/clarsonneur/kingpin
   version: get-commands-from-context
-- package: github.com/kr/text
 - package: github.com/kvz/logstreamer
 - package: github.com/forj-oss/goforjj
 - package: github.com/forj-oss/forjj-modules
   subpackages:
   - trace
   - cli
+  - cli/kingpinCli
 - package: golang.org/x/net
   subpackages:
   - proxy

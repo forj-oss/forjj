@@ -144,7 +144,7 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 			log.Printf("As the upstream service already exists, forjj has only fetched your workspace infra repository from '%s'.", a.w.Infra.GetOrigin())
 
 			// Then re-apply cli default options and repos back to the existing restored code.
-			a.LoadForjjOptions()
+			a.LoadForge()
 
 			// Build Managed Forjj Repos list in memory.
 			err = a.BuildReposList(action)

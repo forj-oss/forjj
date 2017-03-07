@@ -72,7 +72,7 @@ func (a *Forj) Update() error {
 		}
 	}
 
-	a.o.update_options()
+	// a.o.update_options()
 
 	// Save&add forjj-repos, save&add forjj-options & then commit
 	defer func() {
@@ -85,7 +85,7 @@ func (a *Forj) Update() error {
 		}
 
 		// Save forjj-options.yml
-		a.o.SaveForjjOptions(fmt.Sprintf("Organization %s updated.", a.w.Organization))
+		a.SaveForge(fmt.Sprintf("Organization %s updated.", a.w.Organization))
 		log.Printf("As soon as you are happy with your fixes, do a git push to submit your collection of fixes related to '%s' to your team.", a.Branch)
 	}()
 

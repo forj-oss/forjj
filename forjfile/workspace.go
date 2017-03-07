@@ -54,6 +54,16 @@ func (w *Workspace) SetFrom(aWorkspace WorkspaceStruct) {
 	w.WorkspaceStruct = aWorkspace
 }
 
+// InfraPath Return the path which contains the workspace.
+// As the workspace is in the root or the infra repository, that
+// path is then the Infra path.
+// Note: The infra name is the repository name, ie the upstream
+// repo name. This name is not necessarily the base name of the
+// Infra path, because we can clone to a different name.
+func (w *Workspace) InfraPath() string {
+	return w.workspace_path
+}
+
 // Path Provide the workspace absolute path
 func (w *Workspace) Path() string {
 	return path.Clean(path.Join(w.workspace_path, w.workspace))
