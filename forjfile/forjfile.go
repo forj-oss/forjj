@@ -73,7 +73,7 @@ type AppStruct struct {
 	More map[string]string `yaml:",inline"`
 }
 
-const forj_file_name = "Forjfile"
+const File_name = "Forjfile"
 
 func (a *AppStruct) UnmarshalYAML(unmarchal func(interface{}) error) error {
 	var app struct {
@@ -135,12 +135,22 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 }
 
 // Load : Load Forjfile stored in a Repository.
-func Load(aPath string) (f *Forge, loaded bool, err error) {
+func (f *Forge)Load() (loaded bool, err error) {
 	var (
 		yaml_data []byte
 		file string
 	)
 
+	if f.infra_path != "" {
+		if _, err = os.Stat(f.infra_path); err != nil {
+			return
+		}
+	}
+
+	aPath := path.Join(f.infra_path, File_name)
+	if _, err = os.Stat(aPath); err != nil {
+		return
+	}
 	if fi, d, e := loadFile(aPath) ; e != nil {
 		err = e
 		return
@@ -149,14 +159,11 @@ func Load(aPath string) (f *Forge, loaded bool, err error) {
 		file = fi
 	}
 
-	f = new(Forge)
-
 	if e := yaml.Unmarshal(yaml_data, f) ; e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
 	}
 	loaded = true
-	fmt.Printf("%#v\n", f)
 	return
 }
 
@@ -170,7 +177,7 @@ func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
 	}
 
 	// TODO: interpret ~ to $HOME and get it from path.Home()
-	file = path.Join(forj_path, forj_file_name)
+	file = path.Join(forj_path, File_name)
 	if fi, e := os.Stat(file) ; e != nil {
 		if forj_path != "." {
 			err = e
