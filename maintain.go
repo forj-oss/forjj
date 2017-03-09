@@ -38,7 +38,7 @@ func (a *Forj) do_maintain() error {
 	}
 
 	// Loop on instances to maintain them
-	for instance, _ := range a.o.Drivers {
+	for instance, _ := range a.drivers {
 		if err := a.do_driver_maintain(instance); err != nil {
 			return fmt.Errorf("Unable to maintain requested resources of %s. %s", instance, err)
 		}

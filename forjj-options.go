@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/forj-oss/forjj-modules/trace"
-	"forjj/drivers"
 	"forjj/git"
 	"forjj/forjfile"
 )
@@ -15,7 +14,7 @@ const (
 // This data structure is going to be saved in the infra repository anytime a global update is done.
 type ForjjOptions struct {
 	Defaults map[string]string
-	Drivers  map[string]*drivers.Driver
+	//Drivers  map[string]*drivers.Driver
 }
 
 func (a *Forj) GetUniqDriverName(driverType string) (od string) {

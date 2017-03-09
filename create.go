@@ -98,7 +98,7 @@ func (a *Forj) Create() error {
 				return fmt.Errorf("Failed to create '%s' source files. %s", instance, err)
 			}
 			log.Printf("Warning. %s", err)
-			a.o.Drivers[instance] = d // Keep driver info in the forjj options
+			//a.o.Drivers[instance] = d // Keep driver info in the forjj options
 			continue
 		}
 
@@ -111,7 +111,7 @@ func (a *Forj) Create() error {
 			return fmt.Errorf("Failed to commit '%s' source files. %s", instance, err)
 		}
 
-		a.o.Drivers[instance] = d // Keep driver info in the forjj options
+		//a.o.Drivers[instance] = d // Keep driver info in the forjj options
 	}
 
 	// TODO: Implement the flow requested

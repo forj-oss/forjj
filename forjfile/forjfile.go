@@ -8,6 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"forjj/utils"
 	"github.com/forj-oss/forjj-modules/trace"
+	"os/user"
 )
 
 type ForjfileTmpl struct {
@@ -53,7 +54,8 @@ type ForjSettingsStructTmpl struct {
 }
 
 type UserStruct struct {
-	Email string
+	Role string
+	More map[string]string `yaml:",inline"`
 }
 
 type GroupStruct struct {
@@ -279,4 +281,56 @@ func SaveTmpl(aPath string, f *Forge) error {
 
 func (f *ForjSettingsStruct) MarshalYAML() (interface{}, error) {
 	return f.ForjSettingsStructTmpl, nil
+}
+
+func (f *Forge) Get(object, instance, key string) (value string, found bool) {
+	switch object {
+	case "infra":
+		return f.Infra.Get(key)
+	case "user":
+		if user, found := f.Forj.Users[instance] ; found {
+			return user.Get(key)
+		}
+	case "group":
+		if group, found := f.Forj.Groups[instance]; found {
+			return group.Get(key)
+		}
+	case "app":
+		if app, found := f.Apps[instance] ; found {
+			return app.Get(key)
+		}
+	case "repo":
+		if repo, found := f.Repos[instance]; found {
+			return repo.Get(key)
+		}
+	default:
+		return f.Forj.Get(object, instance, key)
+	}
+	return
+}
+
+func (f *Forge) Set(object, name, key, value string) {
+	switch object {
+	case "infra":
+		f.Infra.Set(key, value)
+	case "user":
+		if user, found := f.Forj.Users[name]; found {
+			user.Set(key, value)
+		}
+	case "group":
+		if group, found := f.Forj.Groups[name]; found {
+			group.Set(key, value)
+		}
+	case "app":
+		if app, found := f.Apps[name]; found {
+			app.Set(key, value)
+		}
+	case "repo":
+		if repo, found := f.Repos[name]; found {
+			repo.Set(key, value)
+		}
+	default:
+		f.Forj.Set(object, name, key, value)
+
+	}
 }

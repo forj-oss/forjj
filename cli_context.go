@@ -126,15 +126,17 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		}
 	}
 
-	if v := a.cli.GetAction(cr_act).GetBoolAddr("no-maintain"); v != nil {
+	if v := a.cli.GetAction(cr_act).GetBoolAddr(no_maintain_f); v != nil {
 		a.no_maintain = v
 	}
 
 	// Load drivers from repository
 	a.prepare_registered_drivers()
 
+	// TODO: Provide a caching feature if we keep loading from internet.
+	gotrace.Trace("Loading drivers...")
 	// Add drivers listed by the cli.
-	for instance, d := range a.o.Drivers {
+	for instance, d := range a.drivers {
 		gotrace.Trace("Loading '%s'", instance)
 		if err := a.load_driver_options(instance); err != nil {
 			log.Printf("Unable to load plugin information for instance '%s'. %s", instance, err)

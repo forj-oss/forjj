@@ -39,7 +39,7 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 	d := a.CurrentPluginDriver
 
 	// Add ref to this driver in the forjj infra repo
-	a.o.Drivers[instance] = d
+	//a.o.Drivers[instance] = d
 
 	// check flag for create
 	if err := d.CheckFlagBefore(instance, action); err != nil {
@@ -235,10 +235,6 @@ func (a *Forj) DriverGet(instance string) (d *drivers.Driver) {
 		return
 	}
 
-	if d, found = a.o.Drivers[instance]; !found {
-		a.drivers[instance] = drivers.NewDriver(d.Name, d.DriverType, d.InstanceName, false)
-		return
-	}
 	return nil
 }
 

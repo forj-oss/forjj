@@ -128,7 +128,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 
 	gotrace.Trace("Setting create/update/maintain flags from plugin type '%s' (%s)", service_type, d.Plugin.Yaml.Name)
 	for command, flags := range d.Plugin.Yaml.Tasks {
-		id.set_task_flags(command, flags)
+		id.set_task_flags(command, flags) // *****************************
 	}
 
 	// Create an object or enhance an existing one.
@@ -136,7 +136,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 	// Then add fields, define actions and create flags.
 	gotrace.Trace("Setting Objects...")
 	for object_name, object_det := range d.Plugin.Yaml.Objects {
-		new := id.determine_object(object_name, &object_det)
+		new := id.determine_object(object_name, &object_det)// *****************************
 
 		// Determine which actions can be configured for drivers object flags.
 		id.prepare_actions_list()
@@ -144,7 +144,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 		gotrace.Trace("Object '%s': Adding fields", object_name)
 		// Adding fields to the object.
 		for flag_name, flag_det := range object_det.Flags {
-			if id.add_object_fields(flag_name, &flag_det, id.validActions) {
+			if id.add_object_fields(flag_name, &flag_det, id.validActions) {// *****************************
 				object_det.Flags[flag_name] = flag_det
 			}
 		}
@@ -158,7 +158,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			}
 
 			for flag_name, flag_det := range group_det.Flags {
-				if id.add_object_fields(group_name+"-"+flag_name, &flag_det, default_actions) {
+				if id.add_object_fields(group_name+"-"+flag_name, &flag_det, default_actions) {// *****************************
 					object_det.Groups[group_name].Flags[flag_name] = flag_det
 				}
 			}
@@ -178,7 +178,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 		gotrace.Trace("Object '%s': Adding Object Action flags...", object_name)
 		// Adding flags to object actions
 		for flag_name, flag_dets := range object_det.Flags {
-			id.add_object_actions_flags(flag_name, flag_dets, id.validActions)
+			id.add_object_actions_flags(flag_name, flag_dets, id.validActions)// *****************************
 		}
 		gotrace.Trace("Object '%s': Adding Object Action groups flags", object_name)
 		for group_name, group_det := range object_det.Groups {
@@ -187,7 +187,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 				default_actions = group_det.Actions
 			}
 			for flag_name, flag_det := range group_det.Flags {
-				id.add_object_actions_flags(group_name+"-"+flag_name, flag_det, default_actions)
+				id.add_object_actions_flags(group_name+"-"+flag_name, flag_det, default_actions)// *****************************
 			}
 		}
 
