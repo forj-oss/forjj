@@ -77,12 +77,12 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	// Setting infra repository name
 	i_o := c.GetObject(infra)
-	if f, found, isDefault, _ := c.GetStringValue(infra, "", infra_f); found {
+	if f, found, isDefault, _ := c.GetStringValue(infra, "", infra_upstream_f); found {
 		if isDefault {
 			if a.w.Organization != "" {
 				// Set the 'infra' default flag value
-				i_o.SetParamOptions(infra_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
-				f, _, _, _ = c.GetStringValue(infra, "", infra_f)
+				i_o.SetParamOptions(infra_upstream_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
+				f, _, _, _ = c.GetStringValue(infra, "", infra_upstream_f)
 			}
 		}
 

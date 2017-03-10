@@ -13,7 +13,7 @@ For details on Forjj, visit https://github.com/forj-oss/forjj
 But FORJJ is not DevOps if you do not help your teams to do DevOps (DevOps Culture).
 `
 	forjj_debug_help      = "debug mode activated"
-	forjj_infra_name_help = "Infra repository name. By default, the name is '<Organization>-infra'. It is the Infra repo cloned directory name as well. Warning! You cannot update it on an existing workspace."
+	forjj_infra_name_help = "Upstream infra repository name. By default, the name is '<Organization>-infra'."
 	forjj_orga_name_help  = "Organization name. By default, the name is given by the workspace directory name. Warning! You cannot update it on an existing workspace"
 	forjj_creds_help      = "Credentials file. Used by plugins to collect credentials information. If you set driver credential flag on plugins, your workspace will collect them in your workspace 'forjj-creds.yml'."
 

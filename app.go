@@ -93,12 +93,14 @@ const (
 )
 
 const (
-	debug_f          = "debug"
-	infra_f          = "infra"
-	infra_path_f     = "infra-path"
-	infra_upstream_f = "infra-upstream"
+	infra_path_f     = "infra-path"        // Path where infra repository gets cloned.
+	infra_upstream_f = "infra-upstream"    // Name of the infra repository in upstream system (github for example)
 	cred_f           = "credentials-file"
-	orga_f           = "organization"
+	orga_f           = "organization"      // Organization name for the Forge. Could be used to set upstream organization.
+	// create flags
+	forjfile_f       = "forjfile"          // Path where the Forjfile template resides.
+	ssh_dir_f        = "ssh-dir"
+	no_maintain_f    = "no-maintain"
 )
 
 //
@@ -118,17 +120,18 @@ func (a *Forj) init() {
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
 	opts_infra_path := cli.Opts().Envar("FORJJ_INFRA").Short('W')
+	opts_forjfile := cli.Opts().Short('f').Default(".")
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 
-	version := "forjj V0.0.1 (POC)"
+	version := "forjj V0.0.1 Alpha"
 	if build_branch != "master" {
 		version += fmt.Sprintf(" branch %s - %s - %s", build_branch, build_date, build_commit)
 	}
 
-	a.app.Version(version).Author("Christophe Larsonneur <christophe.larsonneur@hpe.com>")
+	a.app.Version(version).Author("Christophe Larsonneur <clarsonneur@gmail.com>")
 	// kingpin is driven by cli module.
-	a.cli = cli.NewForjCli(kingpinCli.New(a.app))
+	a.cli = cli.NewForjCli(kingpinCli.New(a.app, "forjj"))
 
 	a.cli.ParseAfterHook(a.ParseContext)
 	// Regular filter for lists
@@ -147,7 +150,7 @@ func (a *Forj) init() {
 
 	a.drivers = make(map[string]*drivers.Driver)
 	//a.Actions = make(map[string]*ActionOpts)
-	a.o.Drivers = make(map[string]*drivers.Driver)
+	//a.o.Drivers = make(map[string]*drivers.Driver)
 
 	// ACTIONS ************
 	// Create kingpin actions layer in kingpin.
@@ -269,14 +272,12 @@ func (a *Forj) init() {
 	if a.cli.NewObject(infra, "the global settings", true).
 		Single().
 		AddField(cli.String, infra_path_f, infra_path_help, "#w", nil).
-		AddField(cli.String, infra_f, forjj_infra_name_help, "#w", nil).
-		AddField(cli.String, infra_upstream_f, "Infra repository upstream instance name.", "#w", nil).
+		AddField(cli.String, infra_upstream_f, forjj_infra_name_help, "#w", nil).
 		AddField(cli.String, "flow", default_flow_help, "#w", nil).
 		DefineActions(chg_act).
 		OnActions().
 		AddFlag(infra_path_f, opts_infra_path).
-		AddFlag(infra_f, opts_infra_repo).
-		AddFlag(infra_upstream_f, nil).
+		AddFlag(infra_upstream_f, opts_infra_repo).
 		AddFlag("flow", nil) == nil {
 		log.Printf("infra: %s", a.cli.GetObject(infra).Error())
 	}
@@ -299,8 +300,9 @@ func (a *Forj) init() {
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --infra-repo ...
 		AddActionFlagsFromObjectAction(infra, chg_act).
-		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil).
-		AddFlag(cli.Bool, "no-maintain", create_no_maintain_help, nil) == nil {
+		AddFlag(cli.String, ssh_dir_f, create_ssh_dir_help, nil).
+		AddFlag(cli.String, forjfile_f, create_forjfile_help, opts_forjfile).
+		AddFlag(cli.Bool, no_maintain_f, create_no_maintain_help, nil) == nil {
 		log.Printf("action create: %s", a.cli.Error())
 	}
 
