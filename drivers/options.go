@@ -52,11 +52,19 @@ func (d *DriversOptions) GetDriversMaintainParameters(plugin_args map[string]str
 	}
 }
 
+func (d *DriverOptions) HasValue(option_name string) (value string, found bool) {
+	if o, f := d.Options[option_name]; f {
+		value = o.Value
+		found = f
+	}
+	return
+}
+
 // Set options on a new flag created.
 //
 // It currently assigns defaults or required.
 //
-func (d *DriverOptions) SetFlagOptions(option_name string, params *goforjj.YamlFlagOptions) (opts *cli.ForjOpts) {
+func (d *DriverOptions) SetFlagOptions(option_name string, params *goforjj.YamlFlagOptions, has_value func(flag string) (string, bool)) (opts *cli.ForjOpts) {
 	if params == nil {
 		return
 	}
@@ -64,21 +72,21 @@ func (d *DriverOptions) SetFlagOptions(option_name string, params *goforjj.YamlF
 	var preloaded_data bool
 	opts = cli.Opts()
 
-	if d != nil {
-		if option_value, found := d.Options[option_name]; found && option_value.Value != "" {
-			// Do not set flag in any case as required or with default, if a value has been set in the driver loaded options (creds-forjj.yml)
-			preloaded_data = true
-			if params.Secure {
-				// We do not set a secure data as default in kingpin default flags to avoid displaying them from forjj help.
-				gotrace.Trace("Option value found for '%s' : -- set as hidden default value. --", option_name)
-				// The data will be retrieved by
-			} else {
-				gotrace.Trace("Option value found for '%s' : %s -- Default value. --", option_name, option_value.Value)
-				// But here, we can show through kingpin default what was loaded.
-				opts.Default(option_value.Value)
-			}
+	// Identify if the flag is set outside cli (forjj-creds or Forjfile or ...)
+	if option_value, found := has_value(option_name); found && (option_value != "") {
+		// Do not set flag in any case as required or with default, if a value has been set in the driver loaded options (creds-forjj.yml)
+		preloaded_data = true
+		if params.Secure {
+			// We do not set a secure data as default in kingpin default flags to avoid displaying them from forjj help.
+			gotrace.Trace("Option value found for '%s' : -- set as hidden default value. --", option_name)
+			// The data will be retrieved by
+		} else {
+			gotrace.Trace("Option value found for '%s' : %s -- Default value. --", option_name, option_value)
+			// But here, we can show through kingpin default what was loaded.
+			opts.Default(option_value)
 		}
 	}
+
 
 	if !preloaded_data {
 		// No preloaded data from forjj-creds.yaml (or equivalent files) -- Normal plugin driver set up

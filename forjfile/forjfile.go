@@ -8,23 +8,28 @@ import (
 	"gopkg.in/yaml.v2"
 	"forjj/utils"
 	"github.com/forj-oss/forjj-modules/trace"
-	"os/user"
 )
 
+// ForjfileTmpl is the Memory expansion of an external Forjfile (used to create a Forge)
 type ForjfileTmpl struct {
 	Workspace WorkspaceStruct `yaml:"local-settings"` // See workspace.go
 	Forge `yaml:",inline"`
 }
 
+// Forge is the Memory expand of a repository Forjfile.
 type Forge struct {
 	updated bool
 	updated_msg string
-	Forj ForjStruct
+	infra_path string // Infra path used to create/save/load Forjfile
+
+	ForjSettings ForjSettingsStruct `yaml:"forj-settings"`
 	Infra RepoStruct
 	Repos map[string]RepoStruct `yaml:"repositories"`
 	Apps map[string]AppStruct `yaml:"applications"`
-	Instances map[string]map[string]map[string]string `yaml:",inline"`
-	infra_path string // Infra path used to create/save/load Forjfile
+	Users map[string]UserStruct
+	Groups map[string]GroupStruct
+	// Collection of Object/Name/Keys=values
+	More map[string]map[string]map[string]string `yaml:",inline"`
 }
 
 type WorkspaceStruct struct {
@@ -36,69 +41,8 @@ type WorkspaceStruct struct {
 	More                   map[string]string `yaml:",inline"`
 }
 
-type ForjStruct struct {
-	Settings ForjSettingsStruct
-	Users map[string]UserStruct
-	Groups map[string]GroupStruct
-	More map[string]map[string]map[string]string `yaml:",inline"`
-}
-
-type ForjSettingsStruct struct {
-	is_template bool
-	Organization string
-	ForjSettingsStructTmpl `yaml:",inline"`
-}
-
-type ForjSettingsStructTmpl struct {
-	More map[string]string `yaml:",inline"`
-}
-
-type UserStruct struct {
-	Role string
-	More map[string]string `yaml:",inline"`
-}
-
-type GroupStruct struct {
-	Members []string
-}
-
-type RepoStruct struct {
-	Name string
-	Upstream string
-	More map[string]string `yaml:",inline"`
-}
-
-type AppStruct struct {
-	name string
-	Type string
-	Driver string
-	More map[string]string `yaml:",inline"`
-}
 
 const File_name = "Forjfile"
-
-func (a *AppStruct) UnmarshalYAML(unmarchal func(interface{}) error) error {
-	var app struct {
-		name string
-		Type string
-		Driver string
-		More map[string]string `yaml:",inline"`
-	}
-
-	if err := unmarchal(&app); err != nil {
-		return err
-	}
-	if app.Type == "" {
-		return fmt.Errorf("Application type value is required.")
-	}
-
-	*a = app
-	return nil
-}
-
-func (a *AppStruct)Name() string {
-	return a.name
-}
 
 // TODO: Load multiple templates that will be merged.
 
@@ -125,13 +69,7 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 		return
 	}
 	// Setting defaults
-	for name, app := range f.Apps {
-		app.name = name
-		if app.Driver == "" {
-			app.Driver = name
-		}
-		f.Apps[name] = app
-	}
+	f.Forge.set_defaults()
 	loaded = true
 	return
 }
@@ -165,8 +103,40 @@ func (f *Forge)Load() (loaded bool, err error) {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
 	}
+
+	f.set_defaults()
 	loaded = true
 	return
+}
+
+func (f *Forge)set_defaults() {
+	if f.Apps != nil {
+		for name, app := range f.Apps {
+			app.name = name
+			if app.Driver == "" {
+				app.Driver = name
+			}
+			f.Apps[name] = app
+			app.set_forge(f)
+		}
+	}
+	if f.Repos != nil {
+		for _, repo := range f.Repos {
+			repo.set_forge(f)
+		}
+	}
+	if f.Users != nil {
+		for _, user := range f.Users {
+			user.set_forge(f)
+		}
+	}
+	if f.Groups != nil {
+		for _, group := range f.Groups {
+			group.set_forge(f)
+		}
+	}
+	f.Infra.set_forge(f)
+	f.ForjSettings.set_forge(f)
 }
 
 func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
@@ -207,14 +177,14 @@ func (f *Forge)SetFromTemplate(ft *ForjfileTmpl) {
 
 // Initialize the forge. (Forjfile in repository infra)
 func (f *Forge)Init() {
-	if f.Forj.Groups == nil {
-		f.Forj.Groups = make(map[string]GroupStruct)
+	if f.Groups == nil {
+		f.Groups = make(map[string]GroupStruct)
 	}
-	if f.Forj.Users == nil {
-		f.Forj.Users = make(map[string]UserStruct)
+	if f.Users == nil {
+		f.Users = make(map[string]UserStruct)
 	}
-	if f.Forj.More == nil {
-		f.Forj.More = make(map[string]map[string]map[string]string)
+	if f.More == nil {
+		f.More = make(map[string]map[string]map[string]string)
 	}
 
 	if f.Infra.More == nil {
@@ -229,9 +199,6 @@ func (f *Forge)Init() {
 		f.Apps = make(map[string]AppStruct)
 	}
 
-	if f.Instances == nil {
-		f.Instances = make(map[string]map[string]map[string]string)
-	}
 }
 
 func (f *Forge) SetPath(infraPath string) error {
@@ -275,36 +242,55 @@ func (f *Forge) save(file string) error {
 func SaveTmpl(aPath string, f *Forge) error {
 	forge := new(Forge)
 	*forge = *f
-	forge.Forj.Settings.is_template = true
+	forge.ForjSettings.is_template = true
 	return forge.save(aPath)
 }
 
-func (f *ForjSettingsStruct) MarshalYAML() (interface{}, error) {
-	return f.ForjSettingsStructTmpl, nil
-}
-
-func (f *Forge) Get(object, instance, key string) (value string, found bool) {
+func (f *Forge) Get(object, instance, key string) (string, bool) {
 	switch object {
 	case "infra":
 		return f.Infra.Get(key)
 	case "user":
-		if user, found := f.Forj.Users[instance] ; found {
+		if f.Users == nil {
+			return "", false
+		}
+		if user, found := f.Users[instance] ; found {
 			return user.Get(key)
 		}
 	case "group":
-		if group, found := f.Forj.Groups[instance]; found {
+		if f.Groups == nil {
+			return "", false
+		}
+		if group, found := f.Groups[instance]; found {
 			return group.Get(key)
 		}
 	case "app":
+		if f.Apps == nil {
+			return "", false
+		}
 		if app, found := f.Apps[instance] ; found {
 			return app.Get(key)
 		}
 	case "repo":
+		if f.Repos == nil {
+			return "", false
+		}
 		if repo, found := f.Repos[instance]; found {
 			return repo.Get(key)
 		}
+	case "settings":
+		return f.ForjSettings.Get(key)
 	default:
-		return f.Forj.Get(object, instance, key)
+		return f.get(object, instance, key)
+	}
+	return "", false
+}
+
+func (f *Forge) get(object, instance, key string)(value string, found bool)  {
+	if obj, f1 := f.More[object] ; f1 {
+		if instance, f2 := obj[instance] ; f2 {
+			value, found = instance[key]
+		}
 	}
 	return
 }
@@ -314,23 +300,85 @@ func (f *Forge) Set(object, name, key, value string) {
 	case "infra":
 		f.Infra.Set(key, value)
 	case "user":
-		if user, found := f.Forj.Users[name]; found {
+		if f.Users == nil {
+			f.Users = make(map[string]UserStruct)
+		}
+		if user, found := f.Users[name]; found {
 			user.Set(key, value)
+		} else {
+			newuser := UserStruct{}
+			newuser.set_forge(f)
+			f.Users[name] = newuser
 		}
 	case "group":
-		if group, found := f.Forj.Groups[name]; found {
+		if f.Groups == nil {
+			f.Groups = make(map[string]GroupStruct)
+		}
+		if group, found := f.Groups[name]; found {
 			group.Set(key, value)
+		} else {
+			newgroup := GroupStruct{}
+			newgroup.set_forge(f)
+			f.Groups[name] = newgroup
 		}
 	case "app":
+		if f.Apps == nil {
+			f.Apps = make(map[string]AppStruct)
+		}
 		if app, found := f.Apps[name]; found {
 			app.Set(key, value)
+		} else {
+			newapp := AppStruct{}
+			newapp.set_forge(f)
+			f.Apps[name] = newapp
 		}
 	case "repo":
+		if f.Repos == nil {
+			f.Repos = make(map[string]RepoStruct)
+		}
 		if repo, found := f.Repos[name]; found {
 			repo.Set(key, value)
+		} else {
+			newrepo := RepoStruct{}
+			newrepo.set_forge(f)
+			f.Repos[name] = newrepo
 		}
 	default:
-		f.Forj.Set(object, name, key, value)
-
+		f.set(object, name, key, value)
 	}
+}
+
+func (f *Forge) set(object, instance, key, value string)  {
+	var object_d map[string]map[string]string
+	var instance_d map[string]string
+
+	if o, found := f.More[object] ; found && o != nil {
+		object_d = o
+	} else {
+		f.updated = true
+		object_d = make(map[string]map[string]string)
+	}
+	if i, found := object_d[instance] ; found && i != nil {
+		instance_d = i
+	} else {
+		f.updated = true
+		instance_d = make(map[string]string)
+		object_d[instance] = instance_d
+	}
+	if v, found := instance_d[key] ; found && v != value {
+		instance_d[key] = value
+		f.updated = true
+	}
+}
+
+func (f *Forge) IsDirty() bool {
+	return f.updated
+}
+
+func (f *Forge) dirty() {
+	f.updated = true
+}
+
+func (f *Forge) Saved() {
+	f.updated = false
 }

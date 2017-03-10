@@ -51,17 +51,16 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// The organisation name can be defined from Forjfile or cli and will stored in the workspace and the Forjfile in infra repo
 	// As soon as a workspace is defined (from a repo clone) the organization name could not be changed.
 	if a.w.Organization == "" {
-		if v := a.f.Forj.Settings.Organization ; v != "" {
+		if v, found := a.f.Get("settings", "", "organization") ; found {
 			a.w.Organization = v
 		}
 		if v, found, _, _ := c.GetStringValue(workspace, "", orga_f); found && v != "" {
 			a.w.Organization = v
 		}
 	} else {
-		if a.w.Organization != a.f.Forj.Settings.Organization {
-			gotrace.Warning("Sorry, but you cannot update the organization name. The Forjfile will be updated.")
-			a.f.Dirty(fmt.Sprintf("Cannot update the organization name. Updated back to '%s'", a.w.Organization))
-			a.f.Forj.Settings.Organization = a.w.Organization
+		if v, found := a.f.Get("settings", "", "organization") ; found && a.w.Organization != v {
+			gotrace.Warning("Sorry, but you cannot update the organization name. The Forjfile will be updated back to '%s'", a.w.Organization)
+			a.f.Set("settings", "", "organization", a.w.Organization)
 		}
 
 	}

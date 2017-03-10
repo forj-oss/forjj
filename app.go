@@ -167,7 +167,7 @@ func (a *Forj) init() {
 	// OBJECTS ************
 	// Create Object layer in kingpin on top of each actions.
 	// ex: forjj add repo
-	if a.cli.NewObject(workspace, "any forjj workspace parameters", true).
+	if a.cli.NewObject(workspace, "any forjj workspace parameters", "internal").
 		Single().
 		AddField(cli.String, "docker-exe-path", docker_exe_path_help, "#w", nil).
 		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w", nil).
@@ -183,7 +183,7 @@ func (a *Forj) init() {
 		log.Printf("Workspace : %s", a.cli.GetObject(workspace).Error())
 	}
 
-	if a.cli.NewObject(repo, "a GIT repository", false).
+	if a.cli.NewObject(repo, "a GIT repository", "object-scope").
 		AddKey(cli.String, "name", repo_name_help, "#w", nil).
 		AddField(cli.String, "instance", repo_instance_name_help, "#w", nil).
 		AddField(cli.String, "flow", repo_flow_help, "#w", nil).
@@ -224,7 +224,7 @@ func (a *Forj) init() {
 		log.Printf("repo: to_remove list: %s", a.cli.GetObject(repo).Error())
 	}
 
-	if a.cli.NewObject(app, "an application driver", false).
+	if a.cli.NewObject(app, "an application driver", "instance-scope").
 		AddKey(cli.String, "name", app_name_help, "#w", nil).
 		AddField(cli.String, "type", app_type_help, "#w", nil).
 		AddField(cli.String, "driver", app_driver_help, "#w", nil).
@@ -269,7 +269,7 @@ func (a *Forj) init() {
 	}
 
 	// infra - Mostly built by plugins or other objects list with update action only.
-	if a.cli.NewObject(infra, "the global settings", true).
+	if a.cli.NewObject(infra, "the global settings", "internal").
 		Single().
 		AddField(cli.String, infra_path_f, infra_path_help, "#w", nil).
 		AddField(cli.String, infra_upstream_f, forjj_infra_name_help, "#w", nil).
@@ -283,7 +283,7 @@ func (a *Forj) init() {
 	}
 
 	// Flow - Not fully defined.
-	if a.cli.NewObject(flow, "flow over applications", true).NoFields().
+	if a.cli.NewObject(flow, "flow over applications", "internal").NoFields().
 		DefineActions(add_act, rem_act, list_act) == nil {
 		log.Printf("infra: %s", a.cli.GetObject(flow).Error())
 	}
