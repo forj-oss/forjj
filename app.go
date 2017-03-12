@@ -58,6 +58,7 @@ type Forj struct {
 	ContribRepo_uri      *url.URL // URL to github raw files for plugin files.
 	RepotemplateRepo_uri *url.URL // URL to github raw files for RepoTemplates.
 	FlowRepo_uri         *url.URL // URL to github raw files for Flows.
+	appMapEntries        map[string]AppMapEntry
 	no_maintain          *bool    // At create time. true to not start maintain task at the end of create.
 	// TODO: enhance infra README.md with a template.
 
@@ -94,7 +95,8 @@ const (
 
 const (
 	infra_path_f     = "infra-path"        // Path where infra repository gets cloned.
-	infra_upstream_f = "infra-upstream"    // Name of the infra repository in upstream system (github for example)
+	infra_name_f     = "infra-name"        // Name of the infra repository in upstream system
+	infra_upstream_f = "infra-upstream"    // Name of the infra upstream service instance name (github for example)
 	cred_f           = "credentials-file"
 	orga_f           = "organization"      // Organization name for the Forge. Could be used to set upstream organization.
 	// create flags
@@ -272,12 +274,14 @@ func (a *Forj) init() {
 	if a.cli.NewObject(infra, "the global settings", "internal").
 		Single().
 		AddField(cli.String, infra_path_f, infra_path_help, "#w", nil).
-		AddField(cli.String, infra_upstream_f, forjj_infra_name_help, "#w", nil).
+		AddField(cli.String, infra_name_f, forjj_infra_name_help, "#w", nil).
+		AddField(cli.String, infra_upstream_f, forjj_infra_upstream_help, "#w", nil).
 		AddField(cli.String, "flow", default_flow_help, "#w", nil).
 		DefineActions(chg_act).
 		OnActions().
 		AddFlag(infra_path_f, opts_infra_path).
-		AddFlag(infra_upstream_f, opts_infra_repo).
+		AddFlag(infra_name_f, opts_infra_repo).
+		AddFlag(infra_upstream_f, nil).
 		AddFlag("flow", nil) == nil {
 		log.Printf("infra: %s", a.cli.GetObject(infra).Error())
 	}
@@ -334,6 +338,11 @@ func (a *Forj) init() {
 
 	_, err := exec.LookPath("git")
 	kingpin.FatalIfError(err, "Unable to find 'git' command. Ensure it available in your PATH and retry.\n")
+
+	// Add Forjfile/cli mapping for simple forj data getter
+	a.AddMap(orga_f, workspace, "", orga_f, "settings", "", orga_f)
+	a.AddMap(infra_name_f, infra, "", infra_name_f, infra, "", "name")
+	a.AddMap(infra_upstream_f, infra, "", infra_upstream_f, infra, "", "upstream")
 }
 
 // LoadInternalData()

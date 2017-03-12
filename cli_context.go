@@ -48,58 +48,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	a.LoadForge()
 
 	// Set organization name to use.
-	// The organisation name can be defined from Forjfile or cli and will stored in the workspace and the Forjfile in infra repo
-	// As soon as a workspace is defined (from a repo clone) the organization name could not be changed.
-	if a.w.Organization == "" {
-		if v, found := a.f.Get("settings", "", "organization") ; found {
-			a.w.Organization = v
-		}
-		if v, found, _, _ := c.GetStringValue(workspace, "", orga_f); found && v != "" {
-			a.w.Organization = v
-		}
-	} else {
-		if v, found := a.f.Get("settings", "", "organization") ; found && a.w.Organization != v {
-			gotrace.Warning("Sorry, but you cannot update the organization name. The Forjfile will be updated back to '%s'", a.w.Organization)
-			a.f.Set("settings", "", "organization", a.w.Organization)
-		}
-
-	}
-
-	if a.w.Organization != "" {
-		log.Printf("Organization : '%s'", a.w.Organization)
-		c.GetObject(workspace).SetParamOptions(orga_f, cli.Opts().Default(a.w.Organization))
-	} else {
-		if a.w.Error() == nil {
-			a.w.SetError(fmt.Errorf("No organization defined."))
-		}
+	if err := a.set_organization_name() ; err != nil {
+		return err, false
 	}
 
 	// Setting infra repository name
-	i_o := c.GetObject(infra)
-	if f, found, isDefault, _ := c.GetStringValue(infra, "", infra_upstream_f); found {
-		if isDefault {
-			if a.w.Organization != "" {
-				// Set the 'infra' default flag value
-				i_o.SetParamOptions(infra_upstream_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
-				f, _, _, _ = c.GetStringValue(infra, "", infra_upstream_f)
-			}
-		}
-
-		// Set the infra repo name to use
-		// Can be set only the first time
-		if a.w.Infra.Name == "" {
-			// Get infra name from the flag
-			a.w.Infra.Name = f
-		} else {
-			if f != a.w.Infra.Name && !isDefault {
-				fmt.Print("Warning!!! You cannot update the Infra repository name in an existing workspace.\n")
-			}
-		}
-	} else {
-		if a.w.Organization != "" {
-			// Use the default setting.
-			a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
-		}
+	if err := a.set_infra_name() ; err != nil {
+		return err, false
 	}
 
 	gotrace.Trace("Infrastructure repository defined : %s (organization: %s)", a.w.Infra.Name, a.w.Organization)
@@ -152,6 +107,72 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
 	}
 	return nil, true
+}
+
+func (a *Forj) set_infra_name() error {
+	// Setting default if the organization is defined.
+	if a.w.Organization != "" {
+		// Set the 'infra' default flag value in cli
+		a.cli.GetObject(infra).
+			SetParamOptions(infra_name_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
+	}
+
+	infra_name, found, err := a.GetPrefs(infra_name_f)
+	if err != nil {
+		return err
+	}
+
+	if found {
+		// Set the infra repo name to use
+		// Can be set only the first time
+		if a.w.Infra.Name == "" {
+			// Get infra name from the flag
+			a.w.Infra.Name = infra_name
+			return a.SetPrefs(infra_name_f, a.w.Infra.Name) // Forjfile update
+		}
+		if infra_name != a.w.Infra.Name && a.w.Organization != "" {
+			gotrace.Warning("You cannot update the Infra repository name from '%s' to '%s'.", a.w.Infra.Name, infra_name)
+		}
+		return nil
+	}
+	// Default infra-name
+	if a.w.Organization != "" {
+		// Use the default setting.
+		a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
+		err = a.SetPrefs(infra_name_f, a.w.Infra.Name) // Forjfile update
+	}
+	return err
+}
+
+// set_organization_name Define the Organization name to use
+// The organisation name can be defined from Forjfile or cli and will be stored in the workspace and the Forjfile in infra repo
+// As soon as a workspace is defined (from a repo clone) the organization name could not be changed.
+func (a *Forj) set_organization_name() error {
+	orga, found, err := a.GetPrefs(orga_f)
+	if err != nil {
+		return err
+	}
+	if a.w.Organization == "" {
+		if found && orga != "" {
+			a.w.Organization = orga
+		}
+	} else {
+		if found && a.w.Organization != orga {
+			gotrace.Warning("Sorry, but you cannot update the organization name. The Forjfile will be updated back to '%s'", a.w.Organization)
+		}
+	}
+	if a.w.Organization != "" {
+		if err := a.SetPrefs(orga_f, a.w.Organization) ; err != nil {
+			return err
+		}
+		log.Printf("Organization : '%s'", a.w.Organization)
+		a.cli.GetObject(workspace).SetParamOptions(orga_f, cli.Opts().Default(a.w.Organization))
+	} else {
+		if a.w.Error() == nil {
+			a.w.SetError(fmt.Errorf("No organization defined. Use --organization or add 'organization' to your Forjfile under 'forj-settings')"))
+		}
+	}
+	return nil
 }
 
 // Initialize the workspace environment required by Forjj to work.

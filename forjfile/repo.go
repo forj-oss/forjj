@@ -1,10 +1,12 @@
 package forjfile
 
 type RepoStruct struct {
-	forge    *Forge
-	Name     string
-	Upstream string
-	More     map[string]string `yaml:",inline"`
+	forge       *Forge
+	Name        string
+	Upstream    string `yaml:"upstream-app"`
+	GitRemote   string `yaml:"git-remote"`
+	remote      string // Git remote string to use/set
+	More        map[string]string `yaml:",inline"`
 }
 
 func (r *RepoStruct)Get(field string) (value string, found bool) {
@@ -13,6 +15,10 @@ func (r *RepoStruct)Get(field string) (value string, found bool) {
 		return r.Name, (r.Name != "")
 	case "upstream":
 		return r.Upstream, (r.Upstream != "")
+	case "git-remote":
+		return r.GitRemote, (r.GitRemote != "")
+	case "remote":
+		return r.remote, (r.remote != "")
 	default:
 		value, found = r.More[field]
 	}
@@ -29,6 +35,16 @@ func (r *RepoStruct)Set(field, value string) {
 	case "upstream":
 		if r.Upstream != value {
 			r.Upstream = value
+			r.forge.dirty()
+		}
+	case "git-remote":
+		if r.GitRemote != value {
+			r.GitRemote = value
+			r.forge.dirty()
+		}
+	case "remote":
+		if r.remote != value {
+			r.remote = value
 			r.forge.dirty()
 		}
 	default:

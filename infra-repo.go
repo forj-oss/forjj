@@ -12,6 +12,7 @@ import (
 // Used by create/update actions only.
 // In case of create a commit must be created but the push will be possible only when the upstream will be created through maintain step.
 // If the repo already exist from the upstream, it will be simply restored.
+// TODO: Revisit this function to integrate workspace changes.
 func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra bool) {
 	defer gotrace.Trace("Exiting ensure_infra_exists")
 

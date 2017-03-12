@@ -12,12 +12,13 @@ For details on Forjj, visit https://github.com/forj-oss/forjj
 'Infrastructure as Code' is part of DevOps (automation). FORJJ can help you create/update/maintain your DevOps solution.
 But FORJJ is not DevOps if you do not help your teams to do DevOps (DevOps Culture).
 `
-	forjj_debug_help      = "debug mode activated"
-	forjj_infra_name_help = "Upstream infra repository name. By default, the name is '<Organization>-infra'."
-	forjj_orga_name_help  = "Organization name. By default, the name is given by the workspace directory name. Warning! You cannot update it on an existing workspace"
-	forjj_creds_help      = "Credentials file. Used by plugins to collect credentials information. If you set driver credential flag on plugins, your workspace will collect them in your workspace 'forjj-creds.yml'."
+	forjj_debug_help          = "debug mode activated"
+	forjj_infra_name_help     = "Upstream infra repository name. By default, the name is '<Organization>-infra'."
+	forjj_infra_upstream_help = "Required. Infra upstream instance name. Set 'none' if you do not want any upstream connected."
+	forjj_orga_name_help      = "Organization name. By default, the name is given by the workspace directory name. Warning! You cannot update it on an existing workspace"
+	forjj_creds_help          = "Credentials file. Used by plugins to collect credentials information. If you set driver credential flag on plugins, your workspace will collect them in your workspace 'forjj-creds.yml'."
 
-	create_action_help    = "Create your Software factory.\n"
+	create_action_help        = "Create your Software factory.\n"
 
 	create_orga_help        = "organization workspace used to store repositories locally or in docker volume."
 	create_ssh_dir_help     = "PATH to a git ssh keys directory. It will be mounted as local path '/home/devops/.ssh' in the container."

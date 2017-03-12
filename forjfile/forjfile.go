@@ -23,13 +23,18 @@ type Forge struct {
 	infra_path string // Infra path used to create/save/load Forjfile
 
 	ForjSettings ForjSettingsStruct `yaml:"forj-settings"`
-	Infra RepoStruct
+	Infra InfraRepoStruct
 	Repos map[string]RepoStruct `yaml:"repositories"`
 	Apps map[string]AppStruct `yaml:"applications"`
 	Users map[string]UserStruct
 	Groups map[string]GroupStruct
 	// Collection of Object/Name/Keys=values
 	More map[string]map[string]map[string]string `yaml:",inline"`
+}
+
+type InfraRepoStruct struct {
+	Name string
+	RepoStruct
 }
 
 type WorkspaceStruct struct {
@@ -249,6 +254,9 @@ func SaveTmpl(aPath string, f *Forge) error {
 func (f *Forge) Get(object, instance, key string) (string, bool) {
 	switch object {
 	case "infra":
+		if key == "name" && f.Infra.Name != "" {
+			return f.Infra.Name, true
+		}
 		return f.Infra.Get(key)
 	case "user":
 		if f.Users == nil {

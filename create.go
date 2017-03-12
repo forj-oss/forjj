@@ -6,6 +6,7 @@ import (
 	"log"
 	"forjj/drivers"
 	"forjj/git"
+	"strings"
 )
 
 // Create the Solution source code with validated parameters.
@@ -145,7 +146,7 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
 			a.w.Driver = d.Name
 			gotrace.Trace("Infra Plugin driver identified and referenced.")
 		} else {
-			gotrace.Trace("Infra '%s' Plugin driver not found.", a.w.Instance, a.w.Instance)
+			gotrace.Warning("Infra '%s' Plugin driver not found.", a.w.Instance)
 		}
 	}()
 
@@ -153,13 +154,10 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
 
 	// Requested to change the infra instance name from the cli
 	var instance_requested string
-	if i, found, _, err := a.cli.GetStringValue(infra, "", infra_upstream_f) ; err != nil {
+
+	instance_requested, _, err = a.GetPrefs(infra_upstream_f)
+	if err != nil {
 		return fmt.Errorf("Unable to define your INFRA upstream. %s", err)
-	} else {
-		if !found {
-			return fmt.Errorf("INFRA upstream not defined.")
-		}
-		instance_requested = i
 	}
 
 	if instance_requested != "" && a.w.Instance != instance_requested {
@@ -167,38 +165,52 @@ func (a *Forj) define_infra_upstream(action string) (err error) {
 		case a.w.Instance == "none" || a.w.Instance == "":
 			a.w.Instance = instance_requested
 		default:
-			log.Printf("Unable to migrate your infra-repository to a different instance. Not yet implemented. Migrating to '%s' is ignored.", instance_requested)
+			log.Printf("Unable to migrate your infra-repository to a different instance. " +
+				"Not yet implemented. Migrating to '%s' is ignored.", instance_requested)
 		}
 	}
 
 	// Inform user selected NO UPSTREAM and exit.
 	if instance_requested == "none" && a.w.Instance == "none" {
-		gotrace.Trace("No upstream instance configured as requested by --infra-upstream none")
+		gotrace.Trace("No upstream instance configured as requested by '--infra-upstream none' " +
+			"or Forjfile (infra/upstream-app:none)")
+		err = a.SetPrefs(infra_upstream_f, a.w.Instance) // Forjfile updated
 		return
 	}
 
 	// Instance name is identified. Exiting.
 	if a.w.Instance != "" {
 		gotrace.Trace("Infra repository instance used: %s", a.w.Instance)
+		err = a.SetPrefs(infra_upstream_f, a.w.Instance) // Forjfile updated
 		return
 	}
 
 	// No upstream instance selected. Trying to get one from the list of drivers requested (--apps)
+	gotrace.Info("You did not specified any upstream application for your forge infra repository. " +
+		"Forjj is trying to get it from the list of drivers you defined.")
 	upstreams := []*drivers.Driver{}
+	instances := []string{}
 	for _, dv := range a.drivers {
 		if dv.DriverType == "upstream" {
 			upstreams = append(upstreams, dv)
+			instances = append(instances, dv.InstanceName)
 		}
 	}
 
 	if len(upstreams) > 1 {
-		err = fmt.Errorf("Multiple usptream drivers has been defined in your environment (cli/workspace). You must use --infra-upstream to select the appropriate upstream for your Infra repository or 'none' if you do not want any upstream for your Infra repository.")
+		err = fmt.Errorf("Multiple usptream drivers has been defined in your environment (%s). " +
+			"You must use --infra-upstream (or Forjfile:/infra/upstreams-app) to select the appropriate upstream " +
+			"for your Infra repository or 'none' " +
+			"if you do not want any upstream for your Infra repository.", strings.Join(instances, ", "))
 		return
 	}
 
 	if len(upstreams) == 1 {
 		a.w.Instance = upstreams[0].InstanceName
+		gotrace.Trace("Selected by default '%s' as upstream instance to connect '%s' repo", a.w.Instance, a.w.Infra.Name)
+		return a.SetPrefs(infra_upstream_f, a.w.Instance) // Forjfile updated
 	}
-	gotrace.Trace("Selected by default '%s' as upstream instance to connect '%s' repo", a.w.Instance, a.w.Infra.Name)
-	return
+
+	return fmt.Errorf("No 'upstream' application defined. At least one upstream application is required, " +
+		"or set 'none' to --infra-upstream (or Forjfile:/infra/upstreams-app)")
 }
