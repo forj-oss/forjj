@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/forj-oss/forjj-modules/trace"
-	"log"
+	//"github.com/forj-oss/forjj-modules/trace"
+	//"log"
 	"regexp"
 )
 
@@ -12,7 +12,7 @@ import (
 // Workspace data has been initialized or loaded.
 // forjj-options has been initialized or loaded
 func (a *Forj) Update() error {
-	if _, err := a.w.Check_exist(); err != nil {
+/*	if _, err := a.w.Check_exist(); err != nil {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
@@ -117,7 +117,7 @@ func (a *Forj) Update() error {
 	}
 
 	// TODO: Implement flow_close() to close the create task
-	// flow_close()
+	// flow_close()*/
 	return nil
 }
 

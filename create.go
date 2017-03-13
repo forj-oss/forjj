@@ -7,7 +7,81 @@ import (
 	"forjj/drivers"
 	"forjj/git"
 	"strings"
+	"path/filepath"
+	"io/ioutil"
+	"path"
 )
+
+//  initial_commit is called by infra.Create to create the initial commit with any needed files.
+func (a *Forj) initial_commit() (files []string, err error) {
+	files = []string{}
+
+	if files, err = a.create_basic_README(files) ; err != nil {
+		return files, err
+	}
+
+	if files, err = a.save_Forfile(files) ; err != nil {
+		return files, err
+	}
+
+	if files, err = a.create_gitignore_files(files) ; err != nil {
+		return files, err
+	}
+
+	return
+}
+
+// TODO: Ensure .forj-workspace is already set and set it is needed.
+
+
+func (a *Forj) create_gitignore_files(files []string) (new_files []string, err error) {
+	file_name := ".gitignore"
+	gotrace.Trace("Generating %s", file_name)
+	data := []byte(fmt.Sprintf("# Forjj workspace\n%s\n", Workspace_Name))
+	err = a.create_source_text_file(file_name, data)
+	if err != nil {
+		return
+	}
+	new_files = append(files, file_name)
+	return
+
+}
+
+func (a *Forj) save_Forfile(files []string) (new_files []string, err error) {
+	if a.f.IsDirty() {
+		err = a.f.Save()
+	}
+	if err != nil {
+		return
+	}
+	new_files = append(files, a.f.Forjfile_name())
+	return
+}
+
+func (a *Forj) create_basic_README(files []string) (new_files []string, err error) {
+	file_name := "README.md"
+	gotrace.Trace("Generating %s", file_name)
+	data := []byte(fmt.Sprint("FYI: This Repository has been created by forjj\n"))
+	err = a.create_source_text_file(file_name, data)
+	if err != nil {
+		return
+	}
+	new_files = append(files, file_name)
+	return
+}
+
+func (a *Forj) create_source_text_file(file string, data []byte) error {
+	var file_abs string
+	if f, err := filepath.Abs(path.Join(a.i.Path(), file)) ; err != nil {
+		return fmt.Errorf("Unable to create '%s'. %s\n", file_abs, err)
+	} else {
+		file_abs = f
+	}
+	if err := ioutil.WriteFile(file_abs, data, 0644); err != nil {
+		return fmt.Errorf("Unable to create '%s'. %s\n", file_abs, err)
+	}
+	return nil
+}
 
 // Create the Solution source code with validated parameters.
 // The first time, an empty repo gets at least created with one README.md or a repotemplate code.
@@ -23,62 +97,69 @@ func (a *Forj) Create() error {
 		return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
 	}
 
-	if a.w.Instance == "" {
-		return fmt.Errorf("Unable to determine the upstream for your infra repository.\nIf you do not want any upstream, use --infra-upstream none.\nIf you want to connect to an upstream, at least use --apps upstream:<upstream_driver>[:<instance_name>]. If you have several upstreams, you will need to add the --infra-upstream <instance_name>.")
-	}
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
 	// save infra repository location in the workspace.
 	defer a.w.Save()
 
-	if err, aborted, new_infra := a.ensure_infra_exists("create"); err != nil {
-		if !aborted {
-			return fmt.Errorf("Failed to ensure infra exists. %s", err)
-		}
-		log.Printf("Warning. %s", err)
-	} else {
-		if d, found := a.drivers[a.w.Instance]; new_infra && found {
-			gotrace.Trace("New infra '%s' created. Need to connect it to the upstream.", a.w.Infra.Name)
-			// New infra = new commits. Must maintain. Maintain will push because the upstream connection did not exist.
+	// In create use case, a repository should not exist. If it exists one, we need an extra option to force using
+	// it.
 
-			// TODO: Repotemplates to help creating a the first commit (README.md at least)
-			if e := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "", "", a.infra_readme); e != nil {
-				return fmt.Errorf("%s\n%s", err, e)
-			}
-
-			if d.HasNoFiles() {
-				return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' upstream requires to commit at least one file.", a.w.Instance)
-			}
-			// Commiting source code.
-			if err := a.do_driver_commit(d); err != nil {
-				return fmt.Errorf("Failed to commit '%s' source files. %s", a.w.Instance, err)
-			}
-			if err := a.do_driver_maintain(a.w.Instance); err != nil {
-				// This will create/configure the upstream service
-				// The commit will be pushed if the local repo upstream is inexistent. Which is the case of a new infra.
-				return err
-			}
-			gotrace.Trace("The new infra is NOW connected to the upstream.")
-		}
+	// Then it commit initial files to the Infra repo.
+	// TODO: Add force option. Currently, forced to false.
+	if err := a.i.Create(a.f.InfraPath(), a.initial_commit, false) ; err != nil {
+		return fmt.Errorf("Failed to create your infra repository. %s", err)
 	}
 
-	// Now, we are in the infra repo root directory and at least, the 1st commit exist and connected to an upstream.
+	//if err, aborted, new_infra := a.ensure_infra_exists("create"); err != nil {
+	//	if !aborted {
+	//		return fmt.Errorf("Failed to ensure infra exists. %s", err)
+	//	}
+	//	log.Printf("Warning. %s", err)
+	//} else {
+	//	if d, found := a.drivers[a.w.Instance]; new_infra && found {
+	//		gotrace.Trace("New infra '%s' created. Need to connect it to the upstream.", a.w.Infra.Name)
+	//		// New infra = new commits. Must maintain. Maintain will push because the upstream connection did not exist.
+	//
+	//		// TODO: Repotemplates to help creating a the first commit (README.md at least)
+	//		if e := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "", "", a.infra_readme); e != nil {
+	//			return fmt.Errorf("%s\n%s", err, e)
+	//		}
+	//
+	//		if d.HasNoFiles() {
+	//			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' upstream requires to commit at least one file.", a.w.Instance)
+	//		}
+	//		// Commiting source code.
+	//		if err := a.do_driver_commit(d); err != nil {
+	//			return fmt.Errorf("Failed to commit '%s' source files. %s", a.w.Instance, err)
+	//		}
+	//		if err := a.do_driver_maintain(a.w.Instance); err != nil {
+	//			// This will create/configure the upstream service
+	//			// The commit will be pushed if the local repo upstream is inexistent. Which is the case of a new infra.
+	//			return err
+	//		}
+	//		gotrace.Trace("The new infra is NOW connected to the upstream.")
+	//	}
+	//}
 
-	// TODO: flow_start to execute instructions before creating source code for new apps in appropriate branch. Possible if a flow is already implemented otherwise git must stay in master branch
+	// Now, we are in the infra repo root directory and at least, the 1st commit exist
+
+	// TODO: flow_start to execute instructions before creating source code for new apps in appropriate branch.
+	// Possible if a flow is already implemented otherwise git must stay in master branch
 	// flow_start()
 
 	defer func() {
 		// Save forjj-repos.yml
-		if err := a.RepoCodeSave(); err != nil {
-			log.Printf("%s", err)
-		}
+		//if err := a.RepoCodeSave(); err != nil {
+		//	log.Printf("%s", err)
+		//}
 
 		if err := a.SaveForjjPluginsOptions(); err != nil {
 			log.Printf("%s", err)
 		}
 
 		// Save forjj-options.yml
-		a.SaveForge(fmt.Sprintf("Organization %s updated.", a.w.Organization))
+		//a.SaveForge(fmt.Sprintf("Organization %s updated.", a.w.Organization))
 
 		// Push if exist and automatic task is still enabled.
 		if a.w.Infra.Exist && !*a.no_maintain {
@@ -88,18 +169,13 @@ func (a *Forj) Create() error {
 		}
 	}()
 
-	// Loop on drivers requested like jenkins classified as ci type.
+	// Loop on drivers requested like github or jenkins
 	for instance, d := range a.drivers {
-		if instance == a.w.Instance || !d.AppRequest() {
-			continue // Do not try to create infra-upstream twice or create from a non requested app (--apps)
-		}
-
 		if err, aborted := a.do_driver_task("create", instance); err != nil {
 			if !aborted {
 				return fmt.Errorf("Failed to create '%s' source files. %s", instance, err)
 			}
 			log.Printf("Warning. %s", err)
-			//a.o.Drivers[instance] = d // Keep driver info in the forjj options
 			continue
 		}
 
@@ -107,12 +183,31 @@ func (a *Forj) Create() error {
 			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' %s requires to commit at least one file.", a.w.Instance, d.DriverType)
 		}
 
-		// Commiting source code.
+		if d.DriverType == "upstream" {
+			// Update git remote and 'master' branch to infra repository.
+			var infra_name string
+			if i, found, err := a.GetPrefs(infra_name_f) ; err != nil {
+				return err
+			} else {
+				if !found {
+					continue
+				}
+				infra_name = i
+			}
+			if r, found := d.Plugin.Result.Data.Repos[infra_name] ; found {
+				for name, remote := range r.Remotes {
+					a.i.EnsureGitRemote(name, remote)
+				}
+				for branch, remote := range r.BranchConnect {
+					a.i.EnsureBranchConnected(branch, remote)
+				}
+			}
+		}
+
+		// Committing source code.
 		if err := a.do_driver_commit(d); err != nil {
 			return fmt.Errorf("Failed to commit '%s' source files. %s", instance, err)
 		}
-
-		//a.o.Drivers[instance] = d // Keep driver info in the forjj options
 	}
 
 	// TODO: Implement the flow requested
@@ -129,6 +224,8 @@ func (a *Forj) Create() error {
 // - Forj.w.Instance        : Instance name
 // - Forj.InfraPluginDriver : Driver details
 // - Forj.w.Driver          : Driver name
+//
+// If something is wrong an error is returned. So, at least `a.w.Instance` and the Forjfile gets updated and non-empty.
 func (a *Forj) define_infra_upstream(action string) (err error) {
 	// Identify list of upstream instances
 	gotrace.Trace("Identifying the infra Plugin driver...")

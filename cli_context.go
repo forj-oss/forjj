@@ -11,6 +11,8 @@ import (
 	"path"
 )
 
+const Workspace_Name = ".forj-workspace"
+
 // ParseContext : Load cli context to adapt the list of options/flags from the driver definition.
 //
 // It will
@@ -45,7 +47,9 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	a.w.Load()
 
 	// Load Forjfile from infra repo, if found.
-	a.LoadForge()
+	if err := a.LoadForge() ; err != nil {
+		gotrace.Warning("%s", err)
+	}
 
 	// Set organization name to use.
 	if err := a.set_organization_name() ; err != nil {
@@ -190,10 +194,10 @@ func (a *Forj) setWorkspace() {
 			gotrace.Error("%s", e)
 			return
 		} else {
-			workspace_path = path.Join(pwd, ".forj-workspace")
+			workspace_path = path.Join(pwd, Workspace_Name)
 		}
 	} else {
-		if p, err := utils.Abs(path.Join(infra_path, ".forj-workspace")); err == nil {
+		if p, err := utils.Abs(path.Join(infra_path, Workspace_Name)); err == nil {
 			workspace_path = p
 		}
 		gotrace.Trace("Using workspace '%s'", workspace_path)

@@ -3,7 +3,7 @@ package forjfile
 import "fmt"
 
 type AppStruct struct {
-	forge *Forge
+	forge *ForgeYaml
 	name   string
 	AppYamlStruct `yaml:",inline"`
 }
@@ -50,6 +50,14 @@ func (a *AppStruct)Get(flag string) (value string, found bool) {
 	}
 }
 
+func (r *AppStruct)SetHandler(from func(field string)(string, bool), keys...string) {
+	for _, key := range keys {
+		if v, found := from(key) ; found {
+			r.Set(key, v)
+		}
+	}
+}
+
 func (a *AppStruct)Set(flag, value string) {
 	switch flag {
 	case "name":
@@ -65,6 +73,6 @@ func (a *AppStruct)Set(flag, value string) {
 	return
 }
 
-func (g *AppStruct) set_forge(f *Forge) {
+func (g *AppStruct) set_forge(f *ForgeYaml) {
 	g.forge = f
 }

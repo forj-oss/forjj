@@ -1,7 +1,7 @@
 package forjfile
 
 type UserStruct struct {
-	forge *Forge
+	forge *ForgeYaml
 	Role string
 	More map[string]string `yaml:",inline"`
 }
@@ -16,6 +16,14 @@ func (u *UserStruct) Get(field string) (value string, found bool) {
 		value, found = u.More[field]
 	}
 	return
+}
+
+func (r *UserStruct)SetHandler(from func(field string)(string, bool), keys...string) {
+	for _, key := range keys {
+		if v, found := from(key) ; found {
+			r.Set(key, v)
+		}
+	}
 }
 
 func (u *UserStruct) Set(field, value string) {
@@ -37,6 +45,6 @@ func (u *UserStruct) Set(field, value string) {
 	return
 }
 
-func (r *UserStruct)set_forge(f *Forge) {
+func (r *UserStruct)set_forge(f *ForgeYaml) {
 	r.forge = f
 }

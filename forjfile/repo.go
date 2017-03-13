@@ -1,36 +1,52 @@
 package forjfile
 
 type RepoStruct struct {
-	forge       *Forge
-	Name        string
-	Upstream    string `yaml:"upstream-app"`
-	GitRemote   string `yaml:"git-remote"`
-	remote      string // Git remote string to use/set
-	More        map[string]string `yaml:",inline"`
+	name         string
+	forge        *ForgeYaml
+	Upstream     string `yaml:"upstream-app"`
+	GitRemote    string `yaml:"git-remote"`
+	remote       string // Git remote string to use/set
+	Title        string
+	Flow         string
+	RepoTemplate string `yaml:"repo-template"`
+	More         map[string]string `yaml:",inline"`
 }
 
 func (r *RepoStruct)Get(field string) (value string, found bool) {
 	switch field {
 	case "name":
-		return r.Name, (r.Name != "")
+		return r.name, (r.name != "")
 	case "upstream":
 		return r.Upstream, (r.Upstream != "")
 	case "git-remote":
 		return r.GitRemote, (r.GitRemote != "")
 	case "remote":
 		return r.remote, (r.remote != "")
+	case "title":
+		return r.Title, (r.Title != "")
+	case "flow":
+		return r.Flow, (r.Flow != "")
+	case "repo-template":
+		return r.RepoTemplate, (r.RepoTemplate != "")
 	default:
 		value, found = r.More[field]
 	}
 	return
 }
 
+func (r *RepoStruct)SetHandler(from func(field string)(string, bool), keys...string) {
+	for _, key := range keys {
+		if v, found := from(key) ; found {
+			r.Set(key, v)
+		}
+	}
+}
+
 func (r *RepoStruct)Set(field, value string) {
 	switch field {
 	case "name":
-		if r.Name != value {
-			r.Name = value
-			r.forge.dirty()
+		if r.name != value {
+			r.name = value
 		}
 	case "upstream":
 		if r.Upstream != value {
@@ -47,6 +63,21 @@ func (r *RepoStruct)Set(field, value string) {
 			r.remote = value
 			r.forge.dirty()
 		}
+	case "repo-template":
+		if r.RepoTemplate != value {
+			r.RepoTemplate = value
+			r.forge.dirty()
+		}
+	case "title":
+		if r.Title != value {
+			r.Title = value
+			r.forge.dirty()
+		}
+	case "flow":
+		if r.Flow != value {
+			r.Flow = value
+			r.forge.dirty()
+		}
 	default:
 		if r.More == nil {
 			r.More = make(map[string]string)
@@ -58,6 +89,6 @@ func (r *RepoStruct)Set(field, value string) {
 	}
 }
 
-func (r *RepoStruct)set_forge(f *Forge) {
+func (r *RepoStruct)set_forge(f *ForgeYaml) {
 	r.forge = f
 }

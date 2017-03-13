@@ -7,7 +7,6 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"forjj/utils"
@@ -136,6 +135,7 @@ func (w *Workspace) Load() error {
 
 	_, err := os.Stat(fjson)
 	if os.IsNotExist(err) {
+		gotrace.Trace("'%s' not found. Workspace data not loaded.", fjson)
 		return nil
 	}
 	if err != nil {
@@ -149,8 +149,8 @@ func (w *Workspace) Load() error {
 	}
 
 	if err := json.Unmarshal(djson, &w); err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Unable to load '%s'. %s", fjson, err)
 	}
-	gotrace.Trace("File '%s' loaded.", fjson)
+	gotrace.Trace("Workspace data loaded from '%s'.", fjson)
 	return nil
 }

@@ -3,7 +3,7 @@ package forjfile
 import "strings"
 
 type GroupStruct struct {
-	forge *Forge
+	forge *ForgeYaml
 	Role string
 	Members []string
 	More map[string]string `yaml:",inline"`
@@ -90,8 +90,16 @@ func removeSliceString(s []string, i int) []string {
     return s[:len(s)-1]
 }
 
-func (g *GroupStruct) set_forge(f *Forge) {
+func (g *GroupStruct) set_forge(f *ForgeYaml) {
 	g.forge = f
+}
+
+func (r *GroupStruct)SetHandler(from func(field string)(string, bool), keys...string) {
+	for _, key := range keys {
+		if v, found := from(key) ; found {
+			r.Set(key, v)
+		}
+	}
 }
 
 func (g *GroupStruct) Set(field, value string) {

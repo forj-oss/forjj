@@ -76,10 +76,16 @@ func Commit(msg string, errorIfEmpty bool) error {
 }
 
 // GitPush Push latest commits
-func GitPush() error {
+func Push() error {
 	if Do("push") > 0 {
 		return fmt.Errorf("Unable to push commits.")
 	}
 	return nil
 }
 
+func Add(files []string) int {
+	cmd := make([]string, 1, len(files) + 1)
+	cmd[0] = "add"
+	cmd = append(cmd, files...)
+	return Do(cmd...)
+}

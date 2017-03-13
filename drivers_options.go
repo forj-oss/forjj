@@ -31,7 +31,7 @@ func (a *Forj) load_driver_options(instance_name string) error {
 
 // prepare_registered_drivers get the list of drivers identified in the Repository (Forjfile) and prepare it (Driver).
 func (a *Forj) prepare_registered_drivers() error {
-	for _, app := range a.f.Apps {
+	for _, app := range a.f.Apps() {
 		a.add_defined_driver(app)
 	}
 	return nil

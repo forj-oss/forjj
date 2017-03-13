@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/forj-oss/forjj-modules/trace"
 	"forjj/git"
-	"forjj/forjfile"
+	//"forjj/forjfile"
 )
 
 const (
@@ -58,10 +58,10 @@ func (a *Forj) SetDefault(action string) {
 
 func (a *Forj) SaveForge(CommitMsg string) error {
 	if err := a.f.Save(); err != nil {
-		return fmt.Errorf("Unable to write '%s'. %s", forjfile.File_name, err)
+		return fmt.Errorf("Unable to write '%s'. %s", a.f.Forjfile_name(), err)
 	}
 
-	git.Do("add", forjfile.File_name)
+	git.Do("add", a.f.Forjfile_name())
 
 	if err := git.Commit(CommitMsg, false); err != nil {
 		return fmt.Errorf("Unable to commit the organization update. %s", err)
@@ -73,7 +73,7 @@ func (a *Forj) SaveForge(CommitMsg string) error {
 // LoadForge loads the forjj options definitions from the LoadContext().
 func (a *Forj) LoadForge() (err error) {
 	// Read definition file from repo.
-	if err = a.f.SetPath(a.w.InfraPath()) ; err != nil {
+	if err = a.f.SetInfraPath(a.w.InfraPath()) ; err != nil {
 		return
 	}
 

@@ -89,7 +89,7 @@ func (id *initDriverObjectFlags) task_has_value(flag string) (value string, foun
 	if found {
 		return
 	}
-	return id.a.f.ForjSettings.Get(flag)
+	return id.a.f.Get("settings", "", flag)
 }
 
 // determine_object identify an existing object or create a new one with a key if not single.

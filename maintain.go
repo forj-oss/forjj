@@ -19,7 +19,7 @@ func (a *Forj) Maintain() error {
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-	if _, err := a.local_repo_exist(a.w.Infra.Name); err != nil {
+/*	if _, err := a.local_repo_exist(a.w.Infra.Name); err != nil {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
@@ -28,15 +28,11 @@ func (a *Forj) Maintain() error {
 	// Load drivers from forjj-options.yml
 	// loop from options/Repos and keep them in a.drivers
 
-	return a.do_maintain()
+	return a.do_maintain()*/
+	return nil
 }
 
 func (a *Forj) do_maintain() error {
-	// Read Repos list from infra-repo/forjj-repos.yaml
-	if err := a.RepoCodeLoad(); err != nil {
-		return err
-	}
-
 	// Loop on instances to maintain them
 	for instance, _ := range a.drivers {
 		if err := a.do_driver_maintain(instance); err != nil {
@@ -70,9 +66,9 @@ func (a *Forj) do_driver_maintain(instance string) error {
 	// Loop on upstream repositories to ensure it exists with at least a README.md file.
 
 	// Ensure we are back to the infra repository.
-	defer os.Chdir(a.RepoPath(a.w.Infra.Name))
+	defer os.Chdir(a.i.Path())
 
-	for name, repo := range a.drivers[instance].Plugin.Result.Data.Repos {
+	/*for name, repo := range a.drivers[instance].Plugin.Result.Data.Repos {
 		log.Printf("Maintaining local repo '%s'", name)
 		if err := a.ensure_local_repo_initialized(name); err != nil {
 			return err
@@ -92,7 +88,7 @@ func (a *Forj) do_driver_maintain(instance string) error {
 				return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance)
 			}
 		}
-	}
+	}*/
 
 	return nil
 }

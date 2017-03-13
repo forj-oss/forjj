@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"forjj/forjfile"
 	"forjj/drivers"
+	"forjj/repo"
 )
 
 // TODO: Support multiple contrib sources.
@@ -64,10 +65,12 @@ type Forj struct {
 
 	infra_readme string // Initial infra repo README.md text.
 
-	f forjfile.Forge      // Forge Data stored in the Repository (Loaded from Forjfile)
-	w forjfile.Workspace  // Data structure to stored in the workspace. See workspace.go
-	o ForjjOptions // Data structured stored in the root of the infra repo. See forjj-options.go
-	r ReposList    // Collection of Repositories managed. Data structured stored in the root of the infra repo. See repos.go
+	f forjfile.Forge           // Forge Data stored in the Repository (Loaded from Forjfile)
+	w forjfile.Workspace       // Data structure to stored in the workspace. See workspace.go
+	o ForjjOptions             // Data structured stored in the root of the infra repo. See forjj-options.go
+	r ReposList                // Collection of Repositories managed. Data structured stored in the root of the infra repo. See repos.go
+
+	i repository.GitRepoStruct // Infra Repository management.
 }
 
 /*const (
@@ -103,6 +106,7 @@ const (
 	forjfile_f       = "forjfile"          // Path where the Forjfile template resides.
 	ssh_dir_f        = "ssh-dir"
 	no_maintain_f    = "no-maintain"
+	message_f        = "message"
 )
 
 //
@@ -122,7 +126,8 @@ func (a *Forj) init() {
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
 	opts_infra_path := cli.Opts().Envar("FORJJ_INFRA").Short('W')
-	opts_forjfile := cli.Opts().Short('f').Default(".")
+	opts_forjfile := cli.Opts().Short('f').Default("./Forjfile")
+	opts_message := cli.Opts().Short('m')
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 
@@ -277,11 +282,13 @@ func (a *Forj) init() {
 		AddField(cli.String, infra_name_f, forjj_infra_name_help, "#w", nil).
 		AddField(cli.String, infra_upstream_f, forjj_infra_upstream_help, "#w", nil).
 		AddField(cli.String, "flow", default_flow_help, "#w", nil).
+		AddField(cli.String, message_f, create_message_help, "#w", opts_message).
 		DefineActions(chg_act).
 		OnActions().
 		AddFlag(infra_path_f, opts_infra_path).
 		AddFlag(infra_name_f, opts_infra_repo).
 		AddFlag(infra_upstream_f, nil).
+		AddFlag(message_f, nil).
 		AddFlag("flow", nil) == nil {
 		log.Printf("infra: %s", a.cli.GetObject(infra).Error())
 	}

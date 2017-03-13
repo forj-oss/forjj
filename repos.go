@@ -20,13 +20,8 @@ func (a *Forj) BuildReposList(action string) error {
 	// Set forjj-options defaults for new repositories.
 	a.SetDefault(action)
 
-	// Read Repos list from infra-repo/forjj-repos.yaml
-	if err := a.RepoCodeLoad(); err != nil {
-		return err
-	}
-
 	// Add cli repos list.
-	a.AddReposFromCli(action)
+	a.AddReposFromCli()
 
 	return nil
 }
@@ -115,13 +110,26 @@ func NumReposDisplay(num int) string {
 
 // Function to update Forjj Repos list. Use RepodSave to Save it as code ie in forjj-repos.yml.
 // NOTE: a repo can be only created. Never updated or deleted. A repo has his own lifecycle not managed by forjj.
-func (a *Forj) AddReposFromCli(action string) {
-	gotrace.Trace("Forjj managed %s.", NumReposDisplay(len(a.r.Repos)))
+func (a *Forj) AddReposFromCli() {
+	gotrace.Trace("Forjj managed %s.", NumReposDisplay(a.f.ObjectLen("repo")))
 
 	cli_repos := a.cli.GetObjectValues("repo")
-	a.r.UpdateFromList(cli_repos, a.o.Defaults)
-	gotrace.Trace("Now, Forjj manages %s. cli added %s.",
-		NumReposDisplay(len(a.r.Repos)), NumReposDisplay(len(cli_repos)))
+	for name, repo := range cli_repos {
+		//
+		a.f.SetHandler("repo", name,
+			func (key string) (string, bool) {
+				v := repo.GetString(key)
+				if v == "" {
+					v, _ = a.f.Get("repo", name, key)
+				}
+				return v, (v != "")
+			},
+			repo.Keys() ...,
+		)
+	}
+
+	gotrace.Trace("Now, Forjj manages %s. including cli added %s.",
+		NumReposDisplay(a.f.ObjectLen("repo")), NumReposDisplay(len(cli_repos)))
 }
 
 // RepoCodeSave Function to save forjj list of Repositories.

@@ -24,6 +24,7 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps (DevOps Cultu
 	create_ssh_dir_help     = "PATH to a git ssh keys directory. It will be mounted as local path '/home/devops/.ssh' in the container."
 	create_no_maintain_help = "Do not instantiate at create time. (except infra upstream)"
 	create_forjfile_help    = "Create your Forge from a Forjfile path. Default is ."
+	create_message_help     = "Commit message to apply."
 
 	infra_path_help         = "Path to your Forge infra repository. You can set it through FORJJ_INFRA as well."
 	docker_exe_path_help    = "Path to a static docker binary used when a forjj plugin service container requires DooD (Docker out of Docker) capability."
