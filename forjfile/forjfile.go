@@ -100,6 +100,8 @@ func (f *Forge)Load() (loaded bool, err error) {
 		file string
 	)
 
+	if ! f.Init() { return false, fmt.Errorf("Forge is nil.") }
+
 	if f.infra_path != "" {
 		if _, err = os.Stat(f.infra_path); err != nil {
 			return
@@ -115,9 +117,6 @@ func (f *Forge)Load() (loaded bool, err error) {
 		file = fi
 	}
 
-	if f.yaml == nil {
-		f.Init()
-	}
 	if e := yaml.Unmarshal(yaml_data, f.yaml) ; e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
@@ -154,20 +153,19 @@ func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
 }
 
 func (f *Forge)SetFromTemplate(ft *ForjfileTmpl) {
-	if f == nil {
-		return
-	}
-	f.Init()
+	if !f.Init() { return }
+
 	*f.yaml = ft.ForgeYaml
 }
 
-func (f *Forge)Init() {
+func (f *Forge)Init() bool {
 	if f == nil {
-		return
+		return false
 	}
 	if f.yaml == nil {
 		f.yaml = new(ForgeYaml)
 	}
+	return true
 }
 
 func (f *Forge) SetInfraPath(infraPath string) error {
@@ -201,7 +199,7 @@ func (f *Forge) Save() error {
 }
 
 func (f *Forge) save(file string) error {
-	f.Init()
+	if ! f.Init() { return fmt.Errorf("Forge is nil.") }
 	yaml_data, err := yaml.Marshal(f.yaml)
 	if err != nil {
 		return err
@@ -229,8 +227,67 @@ func SaveTmpl(aPath string, f *Forge) error {
 	return forge.save(aPath)
 }
 
+func (f *Forge) GetInstances(object string) (ret []string) {
+	if ! f.Init() { return nil }
+	ret = []string{}
+	switch object {
+	case "user":
+		if f.yaml.Users == nil { return }
+
+		ret = make([]string, len(f.yaml.Users))
+		iCount := 0
+		for user := range f.yaml.Users {
+			ret[iCount] = user
+			iCount++
+		}
+		return
+	case "group":
+		if f.yaml.Groups == nil { return }
+
+		ret = make([]string, len(f.yaml.Groups))
+		iCount := 0
+		for group := range f.yaml.Groups {
+			ret[iCount] = group
+			iCount++
+		}
+		return
+	case "app":
+		if f.yaml.Apps == nil { return }
+
+		ret = make([]string, len(f.yaml.Apps))
+		iCount := 0
+		for app := range f.yaml.Apps {
+			ret[iCount] = app
+			iCount++
+		}
+		return
+	case "repo":
+		if f.yaml.Repos == nil { return }
+
+		ret = make([]string, len(f.yaml.Repos))
+		iCount := 0
+		for repo := range f.yaml.Repos {
+			ret[iCount] = repo
+			iCount++
+		}
+		return
+	case "infra", "settings":
+		return
+	default:
+		if instances, found := f.yaml.More[object] ; found {
+			ret = make([]string, len(instances))
+			iCount := 0
+			for instance := range instances {
+				ret[iCount] = instance
+				iCount++
+			}
+		}
+	}
+	return
+}
+
 func (f *Forge) Get(object, instance, key string) (string, bool) {
-	f.Init()
+	if ! f.Init() { return "", false }
 	switch object {
 	case "infra":
 		if key == "name" && f.yaml.Infra.Name != "" {
@@ -272,8 +329,9 @@ func (f *Forge) Get(object, instance, key string) (string, bool) {
 	}
 	return "", false
 }
+
 func (f *Forge) ObjectLen(object string) (int) {
-	f.Init()
+	if ! f.Init() { return 0 }
 	switch object {
 	case "infra":
 		return 1
@@ -308,9 +366,8 @@ func (f *Forge) ObjectLen(object string) (int) {
 	return 0
 }
 
-
 func (f *Forge) get(object, instance, key string)(value string, found bool)  {
-	f.Init()
+	if ! f.Init() { return "", false }
 	if obj, f1 := f.yaml.More[object] ; f1 {
 		if instance, f2 := obj[instance] ; f2 {
 			value, found = instance[key]
@@ -320,7 +377,7 @@ func (f *Forge) get(object, instance, key string)(value string, found bool)  {
 }
 
 func (f *Forge) SetHandler(object, name string, from func(key string) (string, bool), keys ...string) {
-	f.Init()
+	if ! f.Init() { return }
 	switch object {
 	case "infra":
 		f.yaml.Infra.SetHandler(from, keys...)
@@ -373,6 +430,13 @@ func (f *Forge) SetHandler(object, name string, from func(key string) (string, b
 	}
 }
 
+func (f *Forge) Remove(object, name, key string) {
+	from := func(string) (string, bool) {
+		return "", true
+	}
+	f.SetHandler(object, name, from, key)
+}
+
 func (f *Forge) Set(object, name, key, value string) {
 	from := func(string) (string, bool) {
 		return value, (value != "")
@@ -384,7 +448,7 @@ func (f *Forge) setHandler(object, instance string, from func(key string) (strin
 	var object_d map[string]map[string]string
 	var instance_d map[string]string
 
-	f.Init()
+	if ! f.Init() { return }
 
 	if o, found := f.yaml.More[object] ; found && o != nil {
 		object_d = o
@@ -414,21 +478,20 @@ func (f *Forge) setHandler(object, instance string, from func(key string) (strin
 	}
 }
 
-
 func (f *Forge) IsDirty() bool {
-	f.Init()
+	if ! f.Init() { return false }
 
 	return f.yaml.updated
 }
 
 func (f *Forge) Saved() {
-	f.Init()
+	if ! f.Init() { return }
 
 	f.yaml.updated = false
 }
 
 func (f *Forge) Apps() (map[string]AppStruct) {
-	f.Init()
+	if ! f.Init() { return nil }
 
 	return f.yaml.Apps
 }
@@ -466,23 +529,27 @@ func (f *ForgeYaml)set_defaults() {
 			if app.Driver == "" {
 				app.Driver = name
 			}
-			f.Apps[name] = app
 			app.set_forge(f)
+			f.Apps[name] = app
 		}
 	}
 	if f.Repos != nil {
-		for _, repo := range f.Repos {
+		for name, repo := range f.Repos {
+			repo.name = name
 			repo.set_forge(f)
+			f.Repos[name] = repo
 		}
 	}
 	if f.Users != nil {
-		for _, user := range f.Users {
+		for name, user := range f.Users {
 			user.set_forge(f)
+			f.Users[name] = user
 		}
 	}
 	if f.Groups != nil {
-		for _, group := range f.Groups {
+		for name, group := range f.Groups {
 			group.set_forge(f)
+			f.Groups[name] = group
 		}
 	}
 	f.Infra.set_forge(f)

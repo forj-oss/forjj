@@ -260,7 +260,13 @@ func (i *GitRepoStruct) is_creatable() (creatable bool) {
 		i.err = fmt.Errorf("%s is not a valid git repository work tree.", i.path)
 		return
 	}
-	i.err = fmt.Errorf("'%s' already exist and can't be created a second time.\n", i.path)
+	i.err = fmt.Errorf("'%s' already exist and can't be created a second time.\n" +
+		"You have 2 options:\n" +
+		"- Create somewhere else:\n" +
+		"  You can set FORJJ_INFRA to point to a new directory to create or change to a directory(cd) " +
+		"which will both become your infra repository.\n" +
+		"- If the repository is your infra repository, you can update it with `forjj add/update/remove/...`\n" +
+		"\nMore details with forjj --help or documentation.", i.path)
 	return
 }
 

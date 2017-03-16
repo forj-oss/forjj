@@ -10,8 +10,8 @@ import (
 
 func (a *Forj)LoadForjfile() error {
 	aPath := ""
-	if v, found, _, err := a.cli.GetStringValue("_app","forjj", forjfile_f) ; err != nil {
-		return fmt.Errorf("Unable to find '%s' flag from '%s' action. %s", forjfile_f, cr_act, err)
+	if v, found, _, err := a.cli.GetStringValue("_app","forjj", forjfile_path_f) ; err != nil {
+		return fmt.Errorf("Unable to find '%s' flag from '%s' action. %s", forjfile_path_f, cr_act, err)
 	} else {
 		if found {
 			aPath = v

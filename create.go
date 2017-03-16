@@ -89,6 +89,7 @@ func (a *Forj) create_source_text_file(file string, data []byte) error {
 // Workspace data has been initialized or loaded.
 // forjj-options has been initialized or loaded
 func (a *Forj) Create() error {
+	a.ScanAndSetObjectData()
 	if !*a.no_maintain {
 		log.Printf("CREATE: Automatic git push and forjj maintain enabled.")
 	}
@@ -99,8 +100,6 @@ func (a *Forj) Create() error {
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-	// save infra repository location in the workspace.
-	defer a.w.Save()
 
 	// In create use case, a repository should not exist. If it exists one, we need an extra option to force using
 	// it.
@@ -109,6 +108,11 @@ func (a *Forj) Create() error {
 	// TODO: Add force option. Currently, forced to false.
 	if err := a.i.Create(a.f.InfraPath(), a.initial_commit, false) ; err != nil {
 		return fmt.Errorf("Failed to create your infra repository. %s", err)
+	}
+
+	// As soon as the InfraPath gets created (or re-used) we can use the workspace in it.
+	if err := a.w.RequireWorkspacePath() ; err != nil {
+		return err
 	}
 
 	//if err, aborted, new_infra := a.ensure_infra_exists("create"); err != nil {
@@ -149,12 +153,10 @@ func (a *Forj) Create() error {
 	// flow_start()
 
 	defer func() {
-		// Save forjj-repos.yml
-		//if err := a.RepoCodeSave(); err != nil {
-		//	log.Printf("%s", err)
-		//}
+		// save infra repository location in the workspace.
+		a.w.Save()
 
-		if err := a.SaveForjjPluginsOptions(); err != nil {
+		if err := a.s.Save(); err != nil {
 			log.Printf("%s", err)
 		}
 

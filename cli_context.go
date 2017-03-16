@@ -6,9 +6,9 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 	"log"
 	"net/url"
-	"forjj/utils"
-	"os"
 	"path"
+	"os"
+	"path/filepath"
 )
 
 const Workspace_Name = ".forj-workspace"
@@ -41,7 +41,10 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	}
 
 	// Define workspace
-	a.setWorkspace() // failure test exit is made after parse time.
+	if err := a.setWorkspace() ; err != nil {
+		// failure test exit is made after parse time.
+		return err, false
+	}
 
 	// Load Workspace information if found
 	a.w.Load()
@@ -76,12 +79,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		a.RepotemplateRepo_uri = v
 	}
 
-	// Read forjj infra file and the options --file given, defined by create/update driver flags settings saved or not
-	// This load Maintain context required by plugins. Maintain has limited flags to provide at runtime. Everything, except credentials should be stored in the infra-repo and workspace. Credentials is given with the --file option in yaml format.
-	if file_desc, err := a.cli.GetAppStringValue(cred_f); err == nil {
-		if err := a.LoadForjjPluginsOptions(file_desc); err != nil {
-			gotrace.Trace("Warning! Options files were not loaded. %s", err)
-		}
+	if file_desc, err := a.cli.GetAppStringValue(cred_f); err == nil && file_desc != "" {
+		a.s.SetFile(file_desc)
+	} else {
+		a.s.SetPath(a.w.Path())
+	}
+	if err := a.s.Load(); err != nil {
+		gotrace.Warning("Credential file were not loaded. %s", err)
 	}
 
 	if v := a.cli.GetAction(cr_act).GetBoolAddr(no_maintain_f); v != nil {
@@ -180,7 +184,7 @@ func (a *Forj) set_organization_name() error {
 }
 
 // Initialize the workspace environment required by Forjj to work.
-func (a *Forj) setWorkspace() {
+func (a *Forj) setWorkspace() error {
 	a.w.Init()
 
 	infra_path, found, _, err := a.cli.GetStringValue(infra, "", infra_path_f)
@@ -191,19 +195,18 @@ func (a *Forj) setWorkspace() {
 	}
 	if !found {
 		if pwd, e := os.Getwd() ; err != nil {
-			gotrace.Error("%s", e)
-			return
+			return e
 		} else {
 			workspace_path = path.Join(pwd, Workspace_Name)
 		}
 	} else {
-		if p, err := utils.Abs(path.Join(infra_path, Workspace_Name)); err == nil {
+		if p, err := filepath.Abs(path.Join(infra_path, Workspace_Name)); err == nil {
 			workspace_path = p
 		}
 		gotrace.Trace("Using workspace '%s'", workspace_path)
 	}
 
-	a.w.SetPath(workspace_path)
+	return a.w.SetPath(workspace_path)
 }
 
 // set_from_urlflag initialize a URL structure from a flag given.

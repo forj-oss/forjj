@@ -74,19 +74,12 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 
 // task_has_value will determine which default value to add to a cli flag.
 // It is called in the context of a plugin `task_flags`
-// It is searching in creds (drivers.DriverOptions) and in Forjfile (forjfile.Forge)
+// It is searching in creds (creds.YamlSecure) and in Forjfile (forjfile.Forge)
 //
 // If a value is found in both creds and Forjfile, creds is chosen.
-//
-// In Forjfile, a task flag is set in forj/settings.
-//
-// If the driver task is defined for create/update or maintain, the Forjfile flag name is prefixed by the <task>
-// Ex: driver: task_flags/create/myflag => Forjfile: forj/settings/create-myflag
-// If the driver task is defined for common (ie all tasks), the Forjfile flag name is the driver flag name
-// Ex: driver: task_flags/common/myflag => Forjfile: forj/settings/myflag
 func (id *initDriverObjectFlags) task_has_value(flag string) (value string, found bool) {
-	value, found = id.d_opts.HasValue(flag)
-	if found {
+	value, found = id.a.s.Get(id.object_name, id.object_instance_name, flag)
+	if found { // Any credential data are simply ignored
 		return
 	}
 	return id.a.f.Get("settings", "", flag)

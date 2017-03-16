@@ -246,22 +246,132 @@ func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action
 	}
 }
 
+func (a *Forj)moveSecureAppData(flag_name string) {
+	if v, found := a.f.Get("settings", "", flag_name) ; found {
+		a.s.SetForjValue(flag_name, v)
+		a.f.Remove("settings", "", flag_name)
+		gotrace.Trace("Moving secure flag data '%s' from Forjfile to creds.yaml", flag_name)
+	}
+	a.copyCliData(flag_name)
+}
+
+func (a *Forj)copyCliData(flag_name string) {
+	if v, error := a.cli.GetAppStringValue(flag_name) ; error == nil {
+		gotrace.Trace("Setting Forjfile flag '%s' from cli")
+		a.s.SetForjValue(flag_name, v)
+	}
+}
+
+func (a *Forj)moveSecureObjectData(object_name, flag_name string) {
+	cli_obj := a.cli.GetObject(object_name)
+	if cli_obj == nil {
+		return
+	}
+	instances := make(map[string]int)
+	if cli_obj.IsSingle() {
+		instances[object_name] = 0
+	} else {
+		for _, instance := range cli_obj.GetInstances() {
+			instances[instance] = 0
+		}
+		for _, instance := range a.f.GetInstances(object_name){
+			instances[instance] = 0
+		}
+	}
+	for instance := range instances {
+		if v, found := a.f.Get(object_name, instance, flag_name) ; found {
+			a.s.SetObjectValue(object_name, instance, flag_name, v)
+			a.f.Remove(object_name, instance, flag_name)
+			gotrace.Trace("Moving secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
+				object_name, instance, flag_name)
+		}
+		if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found {
+			a.s.SetObjectValue(object_name, instance, flag_name, v)
+			gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
+		}
+	}
+
+}
+
+func (a *Forj)copyCliObjectData(object_name, flag_name string) {
+	cli_obj := a.cli.GetObject(object_name)
+	if cli_obj == nil {
+		return
+	}
+	instances := make(map[string]int)
+	if cli_obj.IsSingle() {
+		instances[object_name] = 0
+	} else {
+		for _, instance := range cli_obj.GetInstances() {
+			instances[instance] = 0
+		}
+		for _, instance := range a.f.GetInstances(object_name){
+			instances[instance] = 0
+		}
+	}
+	for instance := range instances {
+		if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found {
+			a.f.Set(object_name, instance, flag_name, v)
+			gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
+		}
+	}
+
+}
+
+// ScanAndSetObjectData scan each object defined in loaded plugins:
+// - move Forjfile creds to creds.yml
+// - copy cli creds data to creds.yml
+// - copy cli non creds data to Forjfile
+func (a *Forj)ScanAndSetObjectData() {
+	for _, driver := range a.drivers {
+		for _, task := range driver.Plugin.Yaml.Tasks {
+			for flag_name, flag := range task {
+				if !flag.Options.Secure {
+					a.copyCliData(flag_name)
+					continue
+				}
+				a.moveSecureAppData(flag_name)
+			}
+		}
+
+		for object_name, obj := range driver.Plugin.Yaml.Objects {
+			for flag2_name, flag := range obj.Flags {
+				if ! flag.Options.Secure {
+					a.copyCliObjectData(object_name, flag2_name)
+					continue
+				}
+				a.moveSecureObjectData(object_name, flag2_name)
+			}
+		}
+	}
+}
+
 // GetObjectsData build the list of Object required by the plugin provided from the cli flags.
 func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, action string) {
 	// Loop on each plugin object
-	for object_name := range d.Plugin.Yaml.Objects {
+	for object_name, Obj := range d.Plugin.Yaml.Objects {
 		for instance_name, instance_data := range a.cli.GetObjectValues(object_name) {
 			ia := make(goforjj.InstanceActions)
 			keys := make(goforjj.ActionKeys)
-			for key := range instance_data.Attrs() {
-				if key == "action" {
-					continue
+
+			for key, flag := range Obj.FlagsRange(instance_data.Attrs()["action"].(string)) {
+				var value string
+				if flag.Options.Secure {
+					// From creds.yml
+					if v, found := a.s.Get(object_name, instance_name, key) ; !found {
+						continue
+					} else {
+						value = v
+					}
+				} else {
+					// From Forjfile
+					if v, found := a.f.Get(object_name, instance_name, key) ; !found {
+						continue
+					} else {
+						value = v
+					}
 				}
-				if _, found, err := instance_data.Get(key); !found {
-					gotrace.Trace("%s", err)
-					continue
-				}
-				keys.AddKey(key, instance_data.GetString(key))
+				keys.AddKey(key, value)
 			}
 			if action == maint_act {
 				// Everything is sent as "setup" action

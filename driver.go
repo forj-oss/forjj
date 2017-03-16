@@ -162,11 +162,11 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	log.Print("-------------------------------------------")
 	log.Printf("Running %s on %s...", action, instance_name)
 
-	if err := d.Plugin.PluginInit(a.w.Name()); err != nil {
+	if err := d.Plugin.PluginInit(a.w.Organization + "_" + instance_name); err != nil {
 		return err, false
 	}
 
-	d.Plugin.PluginSetSource(path.Join(a.w.Path(), a.w.Infra.Name, "apps", d.DriverType))
+	d.Plugin.PluginSetSource(path.Join(a.i.Path(), "apps", d.DriverType))
 	d.Plugin.PluginSetWorkspace(a.w.Path())
 	d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
 	if v, found, _, _ := a.cli.GetStringValue(workspace, "", "docker-exe-path"); found && v != "" {
@@ -186,7 +186,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	d.Plugin.Yaml.Runtime.Docker.Env["https_proxy"] = "$https_proxy"
 	d.Plugin.Yaml.Runtime.Docker.Env["no_proxy"] = "$no_proxy"
 
-	if err := d.Plugin.PluginStartService(a.w.Organization + "_" + instance_name); err != nil {
+	if err := d.Plugin.PluginStartService(); err != nil {
 		return err, false
 	}
 

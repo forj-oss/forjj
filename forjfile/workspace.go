@@ -36,20 +36,46 @@ type Workspace struct {
 }*/
 
 func (w *Workspace)Init() {
+	if w == nil {
+		return
+	}
 	w.Infra = goforjj.NewRepo()
 }
 
-func (w *Workspace) SetPath(Workspace_path string) {
+func (w *Workspace) SetPath(Workspace_path string) error {
+	if w == nil {
+		return fmt.Errorf("Workspace object nil.")
+	}
 	if Workspace_path == "" {
-		return
+		return fmt.Errorf("Workspace path not defined.")
 	}
 	Workspace_path, _ = utils.Abs(path.Clean(Workspace_path))
 	w.workspace_path = path.Dir(Workspace_path)
 	w.workspace = path.Base(Workspace_path)
 	gotrace.Trace("Use workspace : %s (%s / %s)", w.Path(), w.workspace_path, w.workspace)
+	return nil
+}
+
+func (w *Workspace) RequireWorkspacePath() error {
+	if w.workspace == "" {
+		return fmt.Errorf("Workspace path not defined.")
+	}
+	aPath := w.Path()
+	if _, err := os.Stat(aPath) ; err != nil {
+		if err = os.Mkdir(aPath, 0755) ; err != nil {
+			return fmt.Errorf("Unable to create Workspace path '%s'. %s", aPath, err)
+		}
+		gotrace.Trace("Workspace path '%s' has been created.", aPath)
+		return nil
+	}
+	gotrace.Trace("Workspace path '%s' has been re-used.", aPath)
+	return nil
 }
 
 func (w *Workspace) SetFrom(aWorkspace WorkspaceStruct) {
+	if w == nil {
+		return
+	}
 	w.WorkspaceStruct = aWorkspace
 }
 
@@ -60,22 +86,37 @@ func (w *Workspace) SetFrom(aWorkspace WorkspaceStruct) {
 // repo name. This name is not necessarily the base name of the
 // Infra path, because we can clone to a different name.
 func (w *Workspace) InfraPath() string {
+	if w == nil {
+		return ""
+	}
 	return w.workspace_path
 }
 
 // Path Provide the workspace absolute path
 func (w *Workspace) Path() string {
+	if w == nil {
+		return ""
+	}
+
 	return path.Clean(path.Join(w.workspace_path, w.workspace))
 }
 
 // Name Provide the workspace Name
 func (w *Workspace) Name() string {
+	if w == nil {
+		return ""
+	}
+
 	return w.workspace
 }
 
 // Ensure workspace path exists. So, if missing, it will be created.
 // The current path (pwd) is moved to the existing workspace path.
 func (w *Workspace) Ensure_exist() (string, error) {
+	if w == nil {
+		return "", fmt.Errorf("Workspace is nil.")
+	}
+
 	w_path := w.Path()
 	_, err := os.Stat(w_path)
 	if os.IsNotExist(err) {
@@ -89,6 +130,9 @@ func (w *Workspace) Ensure_exist() (string, error) {
 
 // Check if a workspace exist or not
 func (w *Workspace) Check_exist() (bool, error) {
+	if w == nil {
+		return false, fmt.Errorf("Workspace is nil.")
+	}
 	w_path := w.Path()
 	_, err := os.Stat(w_path)
 	if os.IsNotExist(err) {
@@ -99,6 +143,9 @@ func (w *Workspace) Check_exist() (bool, error) {
 }
 
 func (w *Workspace) Save() {
+	if w == nil {
+		return
+	}
 	var djson []byte
 
 	workspace_path, err := w.Ensure_exist()
@@ -116,10 +163,16 @@ func (w *Workspace) Save() {
 }
 
 func (w *Workspace) Error() error {
+	if w == nil {
+		return fmt.Errorf("Workspace is nil.")
+	}
 	return w.error
 }
 
 func (w *Workspace) SetError(err error) error{
+	if w == nil {
+		return fmt.Errorf("Workspace is nil.")
+	}
 	w.error = err
 	return w.error
 }
@@ -127,6 +180,9 @@ func (w *Workspace) SetError(err error) error{
 // Load workspace information from the forjj.json
 // Workspace path is get from forjj and set kept in the workspace as reference for whole forjj thanks to a.w.Path()
 func (w *Workspace) Load() error {
+	if w == nil {
+		return fmt.Errorf("Workspace is nil.")
+	}
 	if w.workspace_path == "" || w.workspace == "" {
 		return fmt.Errorf("Invalid workspace. name or path are empty.")
 	}

@@ -17,6 +17,8 @@ func (a *Forj) Maintain() error {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
+	a.ScanAndSetObjectData()
+
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
 /*	if _, err := a.local_repo_exist(a.w.Infra.Name); err != nil {

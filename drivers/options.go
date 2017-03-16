@@ -41,16 +41,16 @@ func (d *DriversOptions) AddForjjPluginOptions(name string, options map[string]g
 // Currently this function add all values for all drivers to the args. So, we need to:
 // TODO: Revisit how args are built for drivers, when flow will be introduced.
 // We may need to select which one is required for each driver to implement the flow. TBD
-func (d *DriversOptions) GetDriversMaintainParameters(plugin_args map[string]string, action string) {
-	for n, v := range d.Drivers {
-		for k, o := range v.Options {
-			if o.Value == "" {
-				gotrace.Trace("Instance '%s' parameter '%s' has no value.", n, k)
-			}
-			plugin_args[k] = o.Value
-		}
-	}
-}
+//func (d *DriversOptions) GetDriversMaintainParameters(plugin_args map[string]string, action string) {
+//	for n, v := range d.Drivers {
+//		for k, o := range v.Options {
+//			if o.Value == "" {
+//				gotrace.Trace("Instance '%s' parameter '%s' has no value.", n, k)
+//			}
+//			plugin_args[k] = o.Value
+//		}
+//	}
+//}
 
 func (d *DriverOptions) HasValue(option_name string) (value string, found bool) {
 	if o, f := d.Options[option_name]; f {
@@ -79,7 +79,7 @@ func (d *DriverOptions) SetFlagOptions(option_name string, params *goforjj.YamlF
 		if params.Secure {
 			// We do not set a secure data as default in kingpin default flags to avoid displaying them from forjj help.
 			gotrace.Trace("Option value found for '%s' : -- set as hidden default value. --", option_name)
-			// The data will be retrieved by
+			// The data will be retrieved by creds submodule
 		} else {
 			gotrace.Trace("Option value found for '%s' : %s -- Default value. --", option_name, option_value)
 			// But here, we can show through kingpin default what was loaded.

@@ -16,6 +16,7 @@ import (
 	"forjj/forjfile"
 	"forjj/drivers"
 	"forjj/repo"
+	"forjj/creds"
 )
 
 // TODO: Support multiple contrib sources.
@@ -67,6 +68,7 @@ type Forj struct {
 
 	f forjfile.Forge           // Forge Data stored in the Repository (Loaded from Forjfile)
 	w forjfile.Workspace       // Data structure to stored in the workspace. See workspace.go
+	s creds.YamlSecure         // credential file support.
 	o ForjjOptions             // Data structured stored in the root of the infra repo. See forjj-options.go
 	r ReposList                // Collection of Repositories managed. Data structured stored in the root of the infra repo. See repos.go
 
@@ -103,7 +105,8 @@ const (
 	cred_f           = "credentials-file"
 	orga_f           = "organization"      // Organization name for the Forge. Could be used to set upstream organization.
 	// create flags
-	forjfile_f       = "forjfile"          // Path where the Forjfile template resides.
+	forjfile_path_f  = "forjfile-path"     // Path where the Forjfile template resides.
+	forjfile_f       = "forjfile-name"     // Name of the forjfile where the Forjfile template resides.
 	ssh_dir_f        = "ssh-dir"
 	no_maintain_f    = "no-maintain"
 	message_f        = "message"
@@ -126,7 +129,7 @@ func (a *Forj) init() {
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
 	opts_infra_path := cli.Opts().Envar("FORJJ_INFRA").Short('W')
-	opts_forjfile := cli.Opts().Short('f').Default("./Forjfile")
+	opts_forjfile := cli.Opts().Short('F').Default(".")
 	opts_message := cli.Opts().Short('m')
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
@@ -312,7 +315,8 @@ func (a *Forj) init() {
 		// ex: forjj create --infra-repo ...
 		AddActionFlagsFromObjectAction(infra, chg_act).
 		AddFlag(cli.String, ssh_dir_f, create_ssh_dir_help, nil).
-		AddFlag(cli.String, forjfile_f, create_forjfile_help, opts_forjfile).
+	// TODO: Support for a different Forjfile name. (using forjfile_name_f constant)
+		AddFlag(cli.String, forjfile_path_f, create_forjfile_help, opts_forjfile).
 		AddFlag(cli.Bool, no_maintain_f, create_no_maintain_help, nil) == nil {
 		log.Printf("action create: %s", a.cli.Error())
 	}
