@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"path"
 	"os"
-	"path/filepath"
+	"forjj/utils"
 )
 
 const Workspace_Name = ".forj-workspace"
@@ -200,7 +200,7 @@ func (a *Forj) setWorkspace() error {
 			workspace_path = path.Join(pwd, Workspace_Name)
 		}
 	} else {
-		if p, err := filepath.Abs(path.Join(infra_path, Workspace_Name)); err == nil {
+		if p, err := utils.Abs(path.Join(infra_path, Workspace_Name)); err == nil {
 			workspace_path = p
 		}
 		gotrace.Trace("Using workspace '%s'", workspace_path)

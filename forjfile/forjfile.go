@@ -62,14 +62,19 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 		yaml_data []byte
 	)
 
-	forj_path := path.Clean(aPath)
+	var forj_path string
+	forj_path, err = utils.Abs(aPath) ; if err != nil { return }
 	if  forj_path != "." {
-		if _, err = os.Stat(forj_path) ; err != nil {
+		if fi, e := os.Stat(forj_path) ; err != nil {
+			err = e
 			return
+		} else {
+			if !fi.Mode().IsDir() {
+				return f, loaded, fmt.Errorf("'%s' must be a path to '%s'.", aPath, file_name)
+			}
 		}
 	}
 
-	// TODO: interpret ~ to $HOME and get it from path.Home()
 	file := path.Join(forj_path, file_name)
 
 	if fi, d, e := loadFile(file) ; e != nil {
@@ -130,9 +135,9 @@ func (f *Forge)Load() (loaded bool, err error) {
 
 
 func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
-	file = path.Clean(aPath)
+	file, err = utils.Abs(aPath)
+	if err != nil { return }
 
-	// TODO: interpret ~ to $HOME and get it from path.Home()
 	if fi, e := os.Stat(file) ; e == nil {
 		if ! fi.Mode().IsRegular() {
 			err = fmt.Errorf("%s must be a regular file.", file)
