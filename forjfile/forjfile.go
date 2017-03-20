@@ -91,6 +91,14 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
 	}
+
+	// Copy the infra repo in list of repositories, tagged as infra.
+	if f.Infra.Name != "" {
+		var infra_repo RepoStruct
+		infra_repo.SetFromInfra(f.Infra)
+		f.Repos[f.Infra.Name] = infra_repo
+	}
+
 	// Setting defaults
 	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
 	f.ForgeYaml.set_defaults()
@@ -125,6 +133,13 @@ func (f *Forge)Load() (loaded bool, err error) {
 	if e := yaml.Unmarshal(yaml_data, f.yaml) ; e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
+	}
+
+	// Copy the infra repo in list of repositories, tagged as infra.
+	if f.yaml.Infra.Name != "" {
+		var infra_repo RepoStruct
+		infra_repo.SetFromInfra(f.yaml.Infra)
+		f.yaml.Repos[f.yaml.Infra.Name] = infra_repo
 	}
 
 	f.yaml.set_defaults()

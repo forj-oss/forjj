@@ -350,11 +350,11 @@ func (a *Forj)ScanAndSetObjectData() {
 func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, action string) {
 	// Loop on each plugin object
 	for object_name, Obj := range d.Plugin.Yaml.Objects {
-		for instance_name, instance_data := range a.cli.GetObjectValues(object_name) {
-			ia := make(goforjj.InstanceActions)
-			keys := make(goforjj.ActionKeys)
+		for _, instance_name := range a.f.GetInstances(object_name) {
 
-			for key, flag := range Obj.FlagsRange(instance_data.Attrs()["action"].(string)) {
+			keys := make(goforjj.InstanceKeys)
+
+			for key, flag := range Obj.FlagsRange("setup") {
 				var value string
 				if flag.Options.Secure {
 					// From creds.yml
@@ -371,15 +371,9 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 						value = v
 					}
 				}
-				keys.AddKey(key, value)
+				keys[key] = value
 			}
-			if action == maint_act {
-				// Everything is sent as "setup" action
-				ia.AddAction("setup", keys)
-			} else {
-				ia.AddAction(instance_data.GetString("action"), keys)
-			}
-			r.AddObjectActions(object_name, instance_name, ia)
+			r.AddObjectActions(object_name, instance_name, keys)
 		}
 	}
 }

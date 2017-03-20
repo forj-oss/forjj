@@ -1,5 +1,5 @@
 hash: 3f8f777e11527ce63c26f3a961787911ca4e8bac4392b0f0923b5e58a422dfd2
-updated: 2017-03-16T12:53:08.410974751Z
+updated: 2017-03-20T12:37:47.738140501Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -20,7 +20,7 @@ imports:
   - cli/kingpinCli
   - trace
 - name: github.com/forj-oss/goforjj
-  version: 6069a0a69fb50c412c998a26e5a32ab50875d542
+  version: 76aa8547c2899b9af34f06efc2094da404c4d578
 - name: github.com/kr/text
   version: 7cafcd837844e784b526369c9bce262804aebc60
 - name: github.com/kvz/logstreamer
@@ -36,7 +36,7 @@ imports:
 - name: github.com/parnurzeal/gorequest
   version: ea779001e09326d30d455dbf37bc0d08c49941a2
 - name: github.com/pkg/errors
-  version: bfd5150e4e41705ded2129ec33379de1cb90b513
+  version: ff09b135c25aae272398c51a07235b90a75aa4f0
 - name: golang.org/x/net
   version: a6577fac2d73be281a500b310739095313165611
   subpackages:

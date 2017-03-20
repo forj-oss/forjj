@@ -2,6 +2,7 @@ package forjfile
 
 type RepoStruct struct {
 	name         string
+	is_infra     bool
 	forge        *ForgeYaml
 	Upstream     string `yaml:"upstream-app"`
 	GitRemote    string `yaml:"git-remote"`
@@ -10,6 +11,26 @@ type RepoStruct struct {
 	Flow         string
 	RepoTemplate string `yaml:"repo-template"`
 	More         map[string]string `yaml:",inline"`
+}
+
+func (r *RepoStruct)SetFromInfra(infra InfraRepoStruct) {
+	*r = infra.RepoStruct
+	r.is_infra = true
+}
+
+func (r *RepoStruct)SetToInfra(infra *RepoStruct) {
+	*infra = *r
+	infra.is_infra = false // Unset it to ensure data is saved in yaml
+}
+
+func (r *RepoStruct) MarshalYAML() (interface{}, error) {
+	if r.is_infra {
+		// If a Repo is identified infra. do not save it.
+		// This is used to save infra under `infra` section and NOT under `repositories/{repository}`
+		return nil, nil
+
+	}
+	return r, nil
 }
 
 func (r *RepoStruct)Get(field string) (value string, found bool) {
