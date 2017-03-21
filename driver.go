@@ -26,8 +26,6 @@ const (
 // if exist in create, fails and ask to abort
 // If ! exist in update, fails
 func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool) {
-	gotrace.Trace("Entering...")
-	defer gotrace.Trace("Exiting...")
 	if action != "create" && action != "update" {
 		return fmt.Errorf("Internal error: Invalid action '%s'. Supports only 'create' and 'update'.", action), false
 	}

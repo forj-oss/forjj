@@ -27,19 +27,14 @@ type Forge struct {
 type ForgeYaml struct {
 	updated bool
 	ForjSettings ForjSettingsStruct `yaml:"forj-settings"`
-	Infra InfraRepoStruct
-	Repos map[string]RepoStruct `yaml:"repositories"`
-	Apps map[string]AppStruct `yaml:"applications"`
-	Users map[string]UserStruct
-	Groups map[string]GroupStruct
+	Infra *RepoStruct
+	Repos map[string]*RepoStruct `yaml:"repositories"`
+	Apps map[string]*AppStruct `yaml:"applications"`
+	Users map[string]*UserStruct
+	Groups map[string]*GroupStruct
 	// Collection of Object/Name/Keys=values
 	More map[string]map[string]map[string]string `yaml:",inline"`
 
-}
-
-type InfraRepoStruct struct {
-	Name string
-	RepoStruct `yaml:",inline"`
 }
 
 type WorkspaceStruct struct {
@@ -92,18 +87,30 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 		return
 	}
 
-	// Copy the infra repo in list of repositories, tagged as infra.
-	if f.Infra.Name != "" {
-		var infra_repo RepoStruct
-		infra_repo.SetFromInfra(f.Infra)
-		f.Repos[f.Infra.Name] = infra_repo
-	}
-
 	// Setting defaults
 	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
 	f.ForgeYaml.set_defaults()
 	loaded = true
 	return
+}
+
+func (f *Forge)SetInfraAsRepo() {
+	// Copy the infra repo in list of repositories, tagged as infra.
+	var repo *RepoStruct
+	if v, found := f.yaml.Infra.More["name"] ; found && v != "" {
+		f.yaml.Infra.name = v
+	}
+
+	if f.yaml.Infra.name == "" || f.yaml.Infra.name == "none" {
+		return
+	}
+	if r, found_repo := f.yaml.Repos[f.yaml.Infra.name]; found_repo {
+		repo = r
+	} else {
+		repo = new(RepoStruct)
+		f.yaml.Repos[f.yaml.Infra.name] = repo
+	}
+	repo.setFromInfra(f.yaml.Infra)
 }
 
 // Load : Load Forjfile stored in a Repository.
@@ -133,13 +140,6 @@ func (f *Forge)Load() (loaded bool, err error) {
 	if e := yaml.Unmarshal(yaml_data, f.yaml) ; e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
-	}
-
-	// Copy the infra repo in list of repositories, tagged as infra.
-	if f.yaml.Infra.Name != "" {
-		var infra_repo RepoStruct
-		infra_repo.SetFromInfra(f.yaml.Infra)
-		f.yaml.Repos[f.yaml.Infra.Name] = infra_repo
 	}
 
 	f.yaml.set_defaults()
@@ -310,8 +310,13 @@ func (f *Forge) Get(object, instance, key string) (string, bool) {
 	if ! f.Init() { return "", false }
 	switch object {
 	case "infra":
-		if key == "name" && f.yaml.Infra.Name != "" {
-			return f.yaml.Infra.Name, true
+		if key == "name" {
+			if v, found := f.yaml.Infra.More["name"] ; found && v != "" {
+				return v, true
+			}
+			if f.yaml.Infra.name != "" {
+				return f.yaml.Infra.name, true
+			}
 		}
 		return f.yaml.Infra.Get(key)
 	case "user":
@@ -403,47 +408,47 @@ func (f *Forge) SetHandler(object, name string, from func(key string) (string, b
 		f.yaml.Infra.SetHandler(from, keys...)
 	case "user":
 		if f.yaml.Users == nil {
-			f.yaml.Users = make(map[string]UserStruct)
+			f.yaml.Users = make(map[string]*UserStruct)
 		}
 		if user, found := f.yaml.Users[name]; found {
 			user.SetHandler(from, keys...)
 		} else {
 			newuser := UserStruct{}
 			newuser.set_forge(f.yaml)
-			f.yaml.Users[name] = newuser
+			f.yaml.Users[name] = &newuser
 		}
 	case "group":
 		if f.yaml.Groups == nil {
-			f.yaml.Groups = make(map[string]GroupStruct)
+			f.yaml.Groups = make(map[string]*GroupStruct)
 		}
 		if group, found := f.yaml.Groups[name]; found {
 			group.SetHandler(from, keys...)
 		} else {
 			newgroup := GroupStruct{}
 			newgroup.set_forge(f.yaml)
-			f.yaml.Groups[name] = newgroup
+			f.yaml.Groups[name] = &newgroup
 		}
 	case "app":
 		if f.yaml.Apps == nil {
-			f.yaml.Apps = make(map[string]AppStruct)
+			f.yaml.Apps = make(map[string]*AppStruct)
 		}
 		if app, found := f.yaml.Apps[name]; found {
 			app.SetHandler(from, keys...)
 		} else {
 			newapp := AppStruct{}
 			newapp.set_forge(f.yaml)
-			f.yaml.Apps[name] = newapp
+			f.yaml.Apps[name] = &newapp
 		}
 	case "repo":
 		if f.yaml.Repos == nil {
-			f.yaml.Repos = make(map[string]RepoStruct)
+			f.yaml.Repos = make(map[string]*RepoStruct)
 		}
 		if repo, found := f.yaml.Repos[name]; found {
 			repo.SetHandler(from, keys...)
 		} else {
 			newrepo := RepoStruct{}
 			newrepo.set_forge(f.yaml)
-			f.yaml.Repos[name] = newrepo
+			f.yaml.Repos[name] = &newrepo
 		}
 	default:
 		f.setHandler(object, name, from, keys...)
@@ -510,7 +515,7 @@ func (f *Forge) Saved() {
 	f.yaml.updated = false
 }
 
-func (f *Forge) Apps() (map[string]AppStruct) {
+func (f *Forge) Apps() (map[string]*AppStruct) {
 	if ! f.Init() { return nil }
 
 	return f.yaml.Apps
@@ -519,10 +524,10 @@ func (f *Forge) Apps() (map[string]AppStruct) {
 // Initialize the forge. (Forjfile in repository infra)
 func (f *ForgeYaml)Init() {
 	if f.Groups == nil {
-		f.Groups = make(map[string]GroupStruct)
+		f.Groups = make(map[string]*GroupStruct)
 	}
 	if f.Users == nil {
-		f.Users = make(map[string]UserStruct)
+		f.Users = make(map[string]*UserStruct)
 	}
 	if f.More == nil {
 		f.More = make(map[string]map[string]map[string]string)
@@ -533,11 +538,11 @@ func (f *ForgeYaml)Init() {
 	}
 
 	if f.Repos == nil {
-		f.Repos = make(map[string]RepoStruct)
+		f.Repos = make(map[string]*RepoStruct)
 	}
 
 	if f.Apps == nil {
-		f.Apps = make(map[string]AppStruct)
+		f.Apps = make(map[string]*AppStruct)
 	}
 
 }

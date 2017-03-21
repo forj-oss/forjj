@@ -206,7 +206,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 }
 
 
-func (a *Forj) add_defined_driver(app forjfile.AppStruct) error {
+func (a *Forj) add_defined_driver(app *forjfile.AppStruct) error {
 	if _, found := a.drivers[app.Name()]; !found {
 		driver := new(drivers.Driver)
 		driver.InstanceName = app.Name()

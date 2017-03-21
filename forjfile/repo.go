@@ -13,12 +13,13 @@ type RepoStruct struct {
 	More         map[string]string `yaml:",inline"`
 }
 
-func (r *RepoStruct)SetFromInfra(infra InfraRepoStruct) {
-	*r = infra.RepoStruct
+func (r *RepoStruct)setFromInfra(infra *RepoStruct) {
+	*r = *infra
+	delete(r.More, "name")
 	r.is_infra = true
 }
 
-func (r *RepoStruct)SetToInfra(infra *RepoStruct) {
+func (r *RepoStruct)setToInfra(infra *RepoStruct) {
 	*infra = *r
 	infra.is_infra = false // Unset it to ensure data is saved in yaml
 }

@@ -118,6 +118,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 }
 
 func (a *Forj) set_infra_name() error {
+	defer a.f.SetInfraAsRepo()
 	// Setting default if the organization is defined.
 	if a.w.Organization != "" {
 		// Set the 'infra' default flag value in cli
@@ -141,7 +142,7 @@ func (a *Forj) set_infra_name() error {
 		if infra_name != a.w.Infra.Name && a.w.Organization != "" {
 			gotrace.Warning("You cannot update the Infra repository name from '%s' to '%s'.", a.w.Infra.Name, infra_name)
 		}
-		return nil
+		return a.SetPrefs(infra_name_f, a.w.Infra.Name)
 	}
 	// Default infra-name
 	if a.w.Organization != "" {
