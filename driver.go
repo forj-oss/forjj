@@ -12,6 +12,7 @@ import (
 	"forjj/utils"
 	"forjj/git"
 	"path"
+	"os"
 )
 
 const (
@@ -175,9 +176,11 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	}
 
 	d.Plugin.Yaml.Runtime.Docker.Env["LOGNAME"] = "$LOGNAME"
-	d.Plugin.Yaml.Runtime.Docker.Env["http_proxy"] = "$http_proxy"
-	d.Plugin.Yaml.Runtime.Docker.Env["https_proxy"] = "$https_proxy"
-	d.Plugin.Yaml.Runtime.Docker.Env["no_proxy"] = "$no_proxy"
+	if v := os.Getenv("http_proxy") ; v != "" {
+		d.Plugin.Yaml.Runtime.Docker.Env["http_proxy"] = v
+		d.Plugin.Yaml.Runtime.Docker.Env["https_proxy"] = v
+		d.Plugin.Yaml.Runtime.Docker.Env["no_proxy"] = os.Getenv("no_proxy")
+	}
 
 	if err := d.Plugin.PluginStartService(); err != nil {
 		return err, false
