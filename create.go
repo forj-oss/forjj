@@ -115,37 +115,6 @@ func (a *Forj) Create() error {
 		return err
 	}
 
-	//if err, aborted, new_infra := a.ensure_infra_exists("create"); err != nil {
-	//	if !aborted {
-	//		return fmt.Errorf("Failed to ensure infra exists. %s", err)
-	//	}
-	//	log.Printf("Warning. %s", err)
-	//} else {
-	//	if d, found := a.drivers[a.w.Instance]; new_infra && found {
-	//		gotrace.Trace("New infra '%s' created. Need to connect it to the upstream.", a.w.Infra.Name)
-	//		// New infra = new commits. Must maintain. Maintain will push because the upstream connection did not exist.
-	//
-	//		// TODO: Repotemplates to help creating a the first commit (README.md at least)
-	//		if e := a.ensure_local_repo_synced(a.w.Infra.Name, "master", "", "", a.infra_readme); e != nil {
-	//			return fmt.Errorf("%s\n%s", err, e)
-	//		}
-	//
-	//		if d.HasNoFiles() {
-	//			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' upstream requires to commit at least one file.", a.w.Instance)
-	//		}
-	//		// Commiting source code.
-	//		if err := a.do_driver_commit(d); err != nil {
-	//			return fmt.Errorf("Failed to commit '%s' source files. %s", a.w.Instance, err)
-	//		}
-	//		if err := a.do_driver_maintain(a.w.Instance); err != nil {
-	//			// This will create/configure the upstream service
-	//			// The commit will be pushed if the local repo upstream is inexistent. Which is the case of a new infra.
-	//			return err
-	//		}
-	//		gotrace.Trace("The new infra is NOW connected to the upstream.")
-	//	}
-	//}
-
 	// Now, we are in the infra repo root directory and at least, the 1st commit exist
 
 	// TODO: flow_start to execute instructions before creating source code for new apps in appropriate branch.
@@ -158,16 +127,6 @@ func (a *Forj) Create() error {
 
 		if err := a.s.Save(); err != nil {
 			log.Printf("%s", err)
-		}
-
-		// Save forjj-options.yml
-		//a.SaveForge(fmt.Sprintf("Organization %s updated.", a.w.Organization))
-
-		// Push if exist and automatic task is still enabled.
-		if a.w.Infra.Exist && !*a.no_maintain {
-			git.Do("push")
-		} else {
-			gotrace.Trace("No final push: infra is marked as inexistent.")
 		}
 	}()
 
@@ -184,27 +143,6 @@ func (a *Forj) Create() error {
 		if d.HasNoFiles() {
 			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' %s requires to commit at least one file.", a.w.Instance, d.DriverType)
 		}
-
-		//if d.DriverType == "upstream" {
-		//	// Update git remote and 'master' branch to infra repository.
-		//	var infra_name string
-		//	if i, found, err := a.GetPrefs(infra_name_f) ; err != nil {
-		//		return err
-		//	} else {
-		//		if !found {
-		//			continue
-		//		}
-		//		infra_name = i
-		//	}
-		//	if r, found := d.Plugin.Result.Data.Repos[infra_name] ; found {
-		//		for name, remote := range r.Remotes {
-		//			a.i.EnsureGitRemote(name, remote)
-		//		}
-		//		for branch, remote := range r.BranchConnect {
-		//			a.i.EnsureBranchConnected(branch, remote)
-		//		}
-		//	}
-		//}
 
 		// Committing source code.
 		if err := a.do_driver_add(d); err != nil {
