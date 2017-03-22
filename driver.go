@@ -80,8 +80,8 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 	return
 }
 
-// do driver commit
-func (a *Forj) do_driver_commit(d *drivers.Driver) error {
+// do driver add files
+func (a *Forj) do_driver_add(d *drivers.Driver) error {
 	if len(d.Plugin.Result.Data.Files) == 0 {
 		gotrace.Trace("No files to add/commit returned by the driver.")
 		return nil
@@ -100,13 +100,8 @@ func (a *Forj) do_driver_commit(d *drivers.Driver) error {
 		if len(status.Untracked) > 0 {
 			log.Print("Following files created by the plugin are not controlled by the plugin. You must fix it manually and contact the plugin maintainer to fix this issue.")
 			log.Printf("files: %s", strings.Join(status.Untracked, ", "))
-			return fmt.Errorf("Unable to commit. Uncontrolled files found.")
+			return fmt.Errorf("Unable to complete commit process. '%d' Uncontrolled files found.", len(status.Untracked))
 		}
-	}
-
-	// Commit files and drivers options
-	if err := d.GitCommit(); err != nil {
-		return fmt.Errorf("git commit issue. %s", err)
 	}
 	return nil
 }
@@ -219,10 +214,6 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		return err, aborted
 	}
 
-	// store plugins options required at maintain phase from what the plugin returned.
-	if action != "maintain" {
-		a.drivers_options.AddForjjPluginOptions(d.Name, d.Plugin.Result.Data.Options, d.DriverType)
-	}
 	return
 }
 

@@ -185,31 +185,35 @@ func (a *Forj) Create() error {
 			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' %s requires to commit at least one file.", a.w.Instance, d.DriverType)
 		}
 
-		if d.DriverType == "upstream" {
-			// Update git remote and 'master' branch to infra repository.
-			var infra_name string
-			if i, found, err := a.GetPrefs(infra_name_f) ; err != nil {
-				return err
-			} else {
-				if !found {
-					continue
-				}
-				infra_name = i
-			}
-			if r, found := d.Plugin.Result.Data.Repos[infra_name] ; found {
-				for name, remote := range r.Remotes {
-					a.i.EnsureGitRemote(name, remote)
-				}
-				for branch, remote := range r.BranchConnect {
-					a.i.EnsureBranchConnected(branch, remote)
-				}
-			}
-		}
+		//if d.DriverType == "upstream" {
+		//	// Update git remote and 'master' branch to infra repository.
+		//	var infra_name string
+		//	if i, found, err := a.GetPrefs(infra_name_f) ; err != nil {
+		//		return err
+		//	} else {
+		//		if !found {
+		//			continue
+		//		}
+		//		infra_name = i
+		//	}
+		//	if r, found := d.Plugin.Result.Data.Repos[infra_name] ; found {
+		//		for name, remote := range r.Remotes {
+		//			a.i.EnsureGitRemote(name, remote)
+		//		}
+		//		for branch, remote := range r.BranchConnect {
+		//			a.i.EnsureBranchConnected(branch, remote)
+		//		}
+		//	}
+		//}
 
 		// Committing source code.
-		if err := a.do_driver_commit(d); err != nil {
-			return fmt.Errorf("Failed to commit '%s' source files. %s", instance, err)
+		if err := a.do_driver_add(d); err != nil {
+			return fmt.Errorf("Failed to Add '%s' source files. %s", instance, err)
 		}
+	}
+
+	if err := git.Commit("Forge %s created.", true) ; err != nil {
+		return fmt.Errorf("Failed to commit source files. %s", err)
 	}
 
 	// TODO: Implement the flow requested

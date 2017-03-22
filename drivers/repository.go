@@ -7,15 +7,9 @@ import (
 	"forjj/git"
 )
 
-// Commit a Plugin generated files.
-func (d *Driver) GitCommit() error {
-	if git.Do("commit", "-m", d.Plugin.Result.Data.CommitMessage) > 0 {
-		return fmt.Errorf("Unable to commit.")
-	}
-	return nil
-}
 
-// Add Plugins generated files to ready to be commit git space.
+
+// GitAddPluginFiles Add Plugins generated files to ready to be commit git space.
 func (d *Driver) GitAddPluginFiles() error {
 	if d.Plugin.Result == nil {
 		return fmt.Errorf("Strange... The plugin as no result (plugin.Result is nil). Did the plugin '%s' executed?", d.Name)
@@ -30,10 +24,13 @@ func (d *Driver) GitAddPluginFiles() error {
 		return fmt.Errorf("Unable to commit without a commit message.")
 	}
 
+	file_to_add := make([]string, len(d.Plugin.Result.Data.Files))
+	iCount := 0
 	for _, file := range d.Plugin.Result.Data.Files {
-		if i := git.Do("add", path.Join("apps", d.DriverType, file)); i > 0 {
-			return fmt.Errorf("Issue while adding code to git. RC=%d", i)
-		}
+		file_to_add[iCount] = path.Join("apps", d.DriverType, file)
+	}
+	if i := git.Add(file_to_add); i > 0 {
+		return fmt.Errorf("Issue while adding code to git. RC=%d", i)
 	}
 	return nil
 }
