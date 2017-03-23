@@ -28,7 +28,7 @@ type ForgeYaml struct {
 	updated bool
 	ForjSettings ForjSettingsStruct `yaml:"forj-settings"`
 	Infra *RepoStruct
-	Repos map[string]*RepoStruct `yaml:"repositories"`
+	Repos ReposStruct `yaml:"repositories"`
 	Apps map[string]*AppStruct `yaml:"applications"`
 	Users map[string]*UserStruct
 	Groups map[string]*GroupStruct
@@ -106,7 +106,8 @@ func (f *Forge)SetInfraAsRepo() {
 	}
 	if r, found_repo := f.yaml.Repos[f.yaml.Infra.name]; found_repo {
 		repo = r
-	} else {
+	}
+	if repo == nil {
 		repo = new(RepoStruct)
 		f.yaml.Repos[f.yaml.Infra.name] = repo
 	}
@@ -550,6 +551,7 @@ func (f *ForgeYaml)Init() {
 func (f *ForgeYaml)set_defaults() {
 	if f.Apps != nil {
 		for name, app := range f.Apps {
+			if app == nil { continue }
 			app.name = name
 			if app.Driver == "" {
 				app.Driver = name
@@ -560,6 +562,7 @@ func (f *ForgeYaml)set_defaults() {
 	}
 	if f.Repos != nil {
 		for name, repo := range f.Repos {
+			if repo == nil { continue }
 			repo.name = name
 			repo.set_forge(f)
 			f.Repos[name] = repo
@@ -567,12 +570,14 @@ func (f *ForgeYaml)set_defaults() {
 	}
 	if f.Users != nil {
 		for name, user := range f.Users {
+			if user == nil { continue }
 			user.set_forge(f)
 			f.Users[name] = user
 		}
 	}
 	if f.Groups != nil {
 		for name, group := range f.Groups {
+			if group == nil { continue }
 			group.set_forge(f)
 			f.Groups[name] = group
 		}
