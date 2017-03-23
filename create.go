@@ -50,6 +50,8 @@ func (a *Forj) create_gitignore_files(files []string) (new_files []string, err e
 func (a *Forj) save_Forfile(files []string) (new_files []string, err error) {
 	if a.f.IsDirty() {
 		err = a.f.Save()
+	} else {
+		return files, nil
 	}
 	if err != nil {
 		return
@@ -100,6 +102,7 @@ func (a *Forj) Create() error {
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
+	a.DefineDefaultUpstream()
 
 	// In create use case, a repository should not exist. If it exists one, we need an extra option to force using
 	// it.

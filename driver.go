@@ -62,11 +62,6 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 		}
 	}
 
-	// Save Managed repository to forjj options
-	if d.DriverType == "upstream" {
-		a.SaveManagedRepos(d, instance)
-	}
-
 	if aborted {
 		// Do not do any normal GIT tasks as everything already exists
 		// Do not test the flag file as nothing done by the driver. If aborted, we assume the flag file already exists in the existing upstream repo

@@ -351,6 +351,26 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 	// Loop on each plugin object
 	for object_name, Obj := range d.Plugin.Yaml.Objects {
 		for _, instance_name := range a.f.GetInstances(object_name) {
+			if object_name == "repo" {
+				// Determine if the upstream instance is set to this instance.
+				if v, found := a.f.Get(object_name, instance_name, "git-remote"); found && v != "" {
+					continue
+				}
+				repo_upstream := ""
+				if v, found := a.f.Get(object_name, instance_name, "upstream"); !found {
+					if v, found = a.f.Get("settings", "default", "upstream-instance") ; !found {
+						continue
+					}
+					repo_upstream = v
+				} else {
+					repo_upstream = v
+				}
+				if repo_upstream != d.InstanceName {
+					gotrace.Trace("Repo '%s' ignored for driver '%s'. Expect Repo to be managed by '%s'.",
+						instance_name, d.InstanceName, repo_upstream)
+					continue
+				}
+			}
 
 			keys := make(goforjj.InstanceKeys)
 

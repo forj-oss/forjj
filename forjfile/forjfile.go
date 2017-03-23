@@ -87,8 +87,8 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 		return
 	}
 
-	// Setting defaults
 	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
+	// Setting defaults
 	f.ForgeYaml.set_defaults()
 	loaded = true
 	return
@@ -177,6 +177,7 @@ func (f *Forge)SetFromTemplate(ft *ForjfileTmpl) {
 	if !f.Init() { return }
 
 	*f.yaml = ft.ForgeYaml
+	f.yaml.updated = true
 }
 
 func (f *Forge)Init() bool {
@@ -307,6 +308,12 @@ func (f *Forge) GetInstances(object string) (ret []string) {
 	return
 }
 
+func (f *Forge) GetInfraInstance() string {
+	if f == nil { return "" }
+	if f.yaml.Infra == nil { return "" }
+	return f.yaml.Infra.Upstream
+}
+
 func (f *Forge) Get(object, instance, key string) (string, bool) {
 	if ! f.Init() { return "", false }
 	switch object {
@@ -349,7 +356,7 @@ func (f *Forge) Get(object, instance, key string) (string, bool) {
 			return repo.Get(key)
 		}
 	case "settings":
-		return f.yaml.ForjSettings.Get(key)
+		return f.yaml.ForjSettings.Get(instance, key)
 	default:
 		return f.get(object, instance, key)
 	}
@@ -451,6 +458,8 @@ func (f *Forge) SetHandler(object, name string, from func(key string) (string, b
 			newrepo.set_forge(f.yaml)
 			f.yaml.Repos[name] = &newrepo
 		}
+	case "settings":
+		f.yaml.ForjSettings.SetHandler(name, from, keys...)
 	default:
 		f.setHandler(object, name, from, keys...)
 	}
@@ -582,6 +591,7 @@ func (f *ForgeYaml)set_defaults() {
 			f.Groups[name] = group
 		}
 	}
+	if f.Infra == nil { f.Infra = new(RepoStruct) }
 	f.Infra.set_forge(f)
 	f.ForjSettings.set_forge(f)
 }

@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/forj-oss/forjj-modules/trace"
-	"log"
-	"os"
 )
 
 // Call docker to create the Solution source code from scratch with validated parameters.
@@ -61,14 +59,35 @@ func (a *Forj) do_driver_maintain(instance string) error {
 		return fmt.Errorf("Driver issue. %s.", err)
 	}
 
-	if d.DriverType != "upstream" {
-		return nil
+	if a.f.GetInfraInstance() == instance {
+		// Update git remote and 'master' branch to infra repository.
+		var infra_name string
+		if i, found, err := a.GetPrefs(infra_name_f) ; err != nil {
+			return err
+		} else {
+			if !found {
+				return nil
+			}
+			infra_name = i
+		}
+		if r, found := d.Plugin.Result.Data.Repos[infra_name] ; found {
+			for name, remote := range r.Remotes {
+				a.i.EnsureGitRemote(name, remote)
+			}
+			for branch, remote := range r.BranchConnect {
+				a.i.EnsureBranchConnected(branch, remote)
+			}
+		}
 	}
-	log.Printf("%s maintained by %s.\n", NumReposDisplay(len(a.drivers[instance].Plugin.Result.Data.Repos)), instance)
+	return nil
+	//if d.DriverType != "upstream" {
+	//	return nil
+	//}
+	//log.Printf("%s maintained by %s.\n", NumReposDisplay(len(a.drivers[instance].Plugin.Result.Data.Repos)), instance)
 	// Loop on upstream repositories to ensure it exists with at least a README.md file.
 
 	// Ensure we are back to the infra repository.
-	defer os.Chdir(a.i.Path())
+	//defer os.Chdir(a.i.Path())
 
 	/*for name, repo := range a.drivers[instance].Plugin.Result.Data.Repos {
 		log.Printf("Maintaining local repo '%s'", name)
