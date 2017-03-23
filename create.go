@@ -150,7 +150,7 @@ func (a *Forj) Create() error {
 		}
 	}
 
-	if err := git.Commit("Forge %s created.", true) ; err != nil {
+	if err := git.Commit(fmt.Sprintf("Forge '%s' created.", a.w.Organization), true) ; err != nil {
 		return fmt.Errorf("Failed to commit source files. %s", err)
 	}
 
