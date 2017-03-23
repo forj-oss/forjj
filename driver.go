@@ -179,7 +179,9 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	if v := os.Getenv("http_proxy") ; v != "" {
 		d.Plugin.Yaml.Runtime.Docker.Env["http_proxy"] = v
 		d.Plugin.Yaml.Runtime.Docker.Env["https_proxy"] = v
-		d.Plugin.Yaml.Runtime.Docker.Env["no_proxy"] = os.Getenv("no_proxy")
+	}
+	if v := os.Getenv("no_proxy") ; v != "" {
+		d.Plugin.Yaml.Runtime.Docker.Env["no_proxy"] = v
 	}
 
 	if err := d.Plugin.PluginStartService(); err != nil {
