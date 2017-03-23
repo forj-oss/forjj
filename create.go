@@ -104,6 +104,8 @@ func (a *Forj) Create() error {
 
 	a.DefineDefaultUpstream()
 
+	// TODO: Set/clone infra git remote when git-remote is set.
+
 	// In create use case, a repository should not exist. If it exists one, we need an extra option to force using
 	// it.
 
