@@ -252,13 +252,20 @@ func (a *Forj)moveSecureAppData(flag_name string) {
 		a.f.Remove("settings", "", flag_name)
 		gotrace.Trace("Moving secure flag data '%s' from Forjfile to creds.yaml", flag_name)
 	}
-	a.copyCliData(flag_name)
-}
-
-func (a *Forj)copyCliData(flag_name string) {
 	if v, error := a.cli.GetAppStringValue(flag_name) ; error == nil {
 		gotrace.Trace("Setting Forjfile flag '%s' from cli")
 		a.s.SetForjValue(flag_name, v)
+	}
+}
+
+func (a *Forj)copyCliData(flag_name, def_value string) {
+	if v, error := a.cli.GetAppStringValue(flag_name) ; error == nil && v != "" {
+		gotrace.Trace("Setting Forjfile flag '%s' from cli")
+		a.s.SetForjValue(flag_name, v)
+	} else {
+		if def_value != "" {
+			a.s.SetForjValue(flag_name, def_value)
+		}
 	}
 }
 
@@ -293,7 +300,7 @@ func (a *Forj)moveSecureObjectData(object_name, flag_name string) {
 
 }
 
-func (a *Forj)copyCliObjectData(object_name, flag_name string) {
+func (a *Forj)copyCliObjectData(object_name, flag_name, def_value string) {
 	cli_obj := a.cli.GetObject(object_name)
 	if cli_obj == nil {
 		return
@@ -310,9 +317,11 @@ func (a *Forj)copyCliObjectData(object_name, flag_name string) {
 		}
 	}
 	for instance := range instances {
-		if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found {
+		if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found && v != "" {
 			a.f.Set(object_name, instance, flag_name, v)
 			gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
+		} else {
+			if def_value != "" { a.f.Set(object_name, instance, flag_name, def_value) }
 		}
 	}
 
@@ -324,10 +333,11 @@ func (a *Forj)copyCliObjectData(object_name, flag_name string) {
 // - copy cli non creds data to Forjfile
 func (a *Forj)ScanAndSetObjectData() {
 	for _, driver := range a.drivers {
+		// Tasks flags
 		for _, task := range driver.Plugin.Yaml.Tasks {
 			for flag_name, flag := range task {
 				if !flag.Options.Secure {
-					a.copyCliData(flag_name)
+					a.copyCliData(flag_name, flag.Options.Default)
 					continue
 				}
 				a.moveSecureAppData(flag_name)
@@ -335,12 +345,23 @@ func (a *Forj)ScanAndSetObjectData() {
 		}
 
 		for object_name, obj := range driver.Plugin.Yaml.Objects {
+			// Object flags
 			for flag2_name, flag := range obj.Flags {
 				if ! flag.Options.Secure {
-					a.copyCliObjectData(object_name, flag2_name)
+					a.copyCliObjectData(object_name, flag2_name, flag.Options.Default)
 					continue
 				}
 				a.moveSecureObjectData(object_name, flag2_name)
+			}
+			// Object group flags
+			for group_name, group := range obj.Groups {
+				for flag3_name, flag := range group.Flags {
+					if ! flag.Options.Secure {
+						a.copyCliObjectData(object_name, group_name + "-" + flag3_name, flag.Options.Default)
+						continue
+					}
+					a.moveSecureObjectData(object_name, group_name + "-" + flag3_name)
+				}
 			}
 		}
 	}
@@ -350,7 +371,8 @@ func (a *Forj)ScanAndSetObjectData() {
 func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, action string) {
 	// Loop on each plugin object
 	for object_name, Obj := range d.Plugin.Yaml.Objects {
-		for _, instance_name := range a.f.GetInstances(object_name) {
+		Obj_instances := a.f.GetInstances(object_name)
+		for _, instance_name := range Obj_instances {
 			if object_name == "repo" {
 				// Determine if the upstream instance is set to this instance.
 				if v, found := a.f.Get(object_name, instance_name, "git-remote"); found && v != "" {
@@ -374,7 +396,11 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 
 			keys := make(goforjj.InstanceKeys)
 
-			for key, flag := range Obj.FlagsRange("setup") {
+			flags := Obj.FlagsRange("setup")
+			if instance_name == "jenkins" && object_name == "app" && d.InstanceName == "jenkins" {
+				gotrace.Trace("test")
+			}
+			for key, flag := range flags {
 				var value string
 				if flag.Options.Secure {
 					// From creds.yml
