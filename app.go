@@ -303,10 +303,6 @@ func (a *Forj) init() {
 
 	// Enhance create action
 	if a.cli.OnActions(cr_act).
-		// Ex: forjj create --repos "github/myrepo:::My Repo,other_repo:::Another repo"
-		AddActionFlagFromObjectListAction(cr_act, repo, "to_create", add_act).
-		// Ex: forjj create --apps "upstream:github"
-		AddActionFlagFromObjectListAction(cr_act, app, "to_create", add_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, chg_act).
