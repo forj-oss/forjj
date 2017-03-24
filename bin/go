@@ -42,5 +42,10 @@ then
    shift
 fi
 
-eval $BUILD_ENV_DOCKER run --rm -it $MOUNT $PROXY $USER forjj-golang-env $GOBIN $BUILD_FLAGS "$@"
+if [ -t 1 ]
+then
+   TTY="-t"
+fi
+
+eval $BUILD_ENV_DOCKER run --rm -i $TTY $MOUNT $PROXY $USER forjj-golang-env $GOBIN $BUILD_FLAGS "$@"
 
