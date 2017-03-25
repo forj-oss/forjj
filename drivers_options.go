@@ -253,54 +253,38 @@ func (a *Forj)moveSecureAppData(flag_name string) {
 		gotrace.Trace("Moving secure flag data '%s' from Forjfile to creds.yaml", flag_name)
 	}
 	if v, error := a.cli.GetAppStringValue(flag_name) ; error == nil {
-		gotrace.Trace("Setting Forjfile flag '%s' from cli")
+		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
 		a.s.SetForjValue(flag_name, v)
 	}
 }
 
 func (a *Forj)copyCliData(flag_name, def_value string) {
 	if v, error := a.cli.GetAppStringValue(flag_name) ; error == nil && v != "" {
-		gotrace.Trace("Setting Forjfile flag '%s' from cli")
+		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
 		a.s.SetForjValue(flag_name, v)
 	} else {
 		if def_value != "" {
+			gotrace.Trace("Setting Forjfile flag '%s' default value to '%s'", flag_name, def_value)
 			a.s.SetForjValue(flag_name, def_value)
 		}
 	}
 }
 
-func (a *Forj)moveSecureObjectData(object_name, flag_name string) {
-	cli_obj := a.cli.GetObject(object_name)
-	if cli_obj == nil {
-		return
+func (a *Forj)moveSecureObjectData(object_name, instance, flag_name string) {
+	if v, found := a.f.Get(object_name, instance, flag_name) ; found {
+		a.s.SetObjectValue(object_name, instance, flag_name, v)
+		a.f.Remove(object_name, instance, flag_name)
+		gotrace.Trace("Moving secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
+			object_name, instance, flag_name)
 	}
-	instances := make(map[string]int)
-	if cli_obj.IsSingle() {
-		instances[object_name] = 0
-	} else {
-		for _, instance := range cli_obj.GetInstances() {
-			instances[instance] = 0
-		}
-		for _, instance := range a.f.GetInstances(object_name){
-			instances[instance] = 0
-		}
+	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found {
+		a.s.SetObjectValue(object_name, instance, flag_name, v)
+		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
 	}
-	for instance := range instances {
-		if v, found := a.f.Get(object_name, instance, flag_name) ; found {
-			a.s.SetObjectValue(object_name, instance, flag_name, v)
-			a.f.Remove(object_name, instance, flag_name)
-			gotrace.Trace("Moving secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
-				object_name, instance, flag_name)
-		}
-		if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found {
-			a.s.SetObjectValue(object_name, instance, flag_name, v)
-			gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
-		}
-	}
-
 }
 
-func (a *Forj)copyCliObjectData(object_name, flag_name, def_value string) {
+// objectGetInstances returns the merge of instances of an object found in cli and Forjfile
+func (a *Forj)objectGetInstances(object_name string) (ret []string) {
 	cli_obj := a.cli.GetObject(object_name)
 	if cli_obj == nil {
 		return
@@ -312,19 +296,30 @@ func (a *Forj)copyCliObjectData(object_name, flag_name, def_value string) {
 		for _, instance := range cli_obj.GetInstances() {
 			instances[instance] = 0
 		}
-		for _, instance := range a.f.GetInstances(object_name){
+		for _, instance := range a.f.GetInstances(object_name) {
 			instances[instance] = 0
 		}
 	}
+	ret = make([]string, len(instances))
+	i := 0
 	for instance := range instances {
-		if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found && v != "" {
-			a.f.Set(object_name, instance, flag_name, v)
-			gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
-		} else {
-			if def_value != "" { a.f.Set(object_name, instance, flag_name, def_value) }
+		ret[i] = instance
+		i++
+	}
+	return
+}
+
+func (a *Forj)copyCliObjectData(object_name, instance, flag_name, def_value string) {
+	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found && v != "" {
+		a.f.Set(object_name, instance, flag_name, v)
+		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
+	} else {
+		if def_value != "" {
+			a.f.Set(object_name, instance, flag_name, def_value)
+			gotrace.Trace("Setting Forjfile flag '%s/%s:%s' default value to '%s'",
+				object_name, instance, flag_name, def_value)
 		}
 	}
-
 }
 
 // ScanAndSetObjectData scan each object defined in loaded plugins:
@@ -345,26 +340,59 @@ func (a *Forj)ScanAndSetObjectData() {
 		}
 
 		for object_name, obj := range driver.Plugin.Yaml.Objects {
-			// Object flags
-			for flag2_name, flag := range obj.Flags {
-				if ! flag.Options.Secure {
-					a.copyCliObjectData(object_name, flag2_name, flag.Options.Default)
-					continue
-				}
-				a.moveSecureObjectData(object_name, flag2_name)
-			}
-			// Object group flags
-			for group_name, group := range obj.Groups {
-				for flag3_name, flag := range group.Flags {
+			// Instances of Forj objects
+			instances := a.objectGetInstances(object_name)
+			for _, instance_name := range instances {
+				// Do not set app object values for a driver of a different application.
+				if object_name == "app" && instance_name != driver.InstanceName { continue }
+
+				// Do not set repo values not managed by the driver
+				if object_name == "repo" && ! a.IsRepoManaged(driver, object_name, instance_name) { continue }
+
+				// Object flags
+				for flag2_name, flag := range obj.Flags {
 					if ! flag.Options.Secure {
-						a.copyCliObjectData(object_name, group_name + "-" + flag3_name, flag.Options.Default)
+						a.copyCliObjectData(object_name, instance_name, flag2_name, flag.Options.Default)
 						continue
 					}
-					a.moveSecureObjectData(object_name, group_name + "-" + flag3_name)
+					a.moveSecureObjectData(object_name, instance_name, flag2_name)
 				}
+				// Object group flags
+				for group_name, group := range obj.Groups {
+					for flag3_name, flag := range group.Flags {
+						if ! flag.Options.Secure {
+							a.copyCliObjectData(object_name, instance_name, group_name + "-" + flag3_name, flag.Options.Default)
+							continue
+						}
+						a.moveSecureObjectData(object_name, instance_name, group_name + "-" + flag3_name)
+					}
+				}
+
 			}
 		}
 	}
+}
+
+func (a *Forj) IsRepoManaged(d *drivers.Driver, object_name, instance_name string) bool {
+	// Determine if the upstream instance is set to this instance.
+	if v, found := a.f.Get(object_name, instance_name, "git-remote"); found && v != "" {
+		return false
+	}
+	repo_upstream := ""
+	if v, found := a.f.Get(object_name, instance_name, "upstream"); !found {
+		if v, found = a.f.Get("settings", "default", "upstream-instance"); !found {
+			return false
+		}
+		repo_upstream = v
+	} else {
+		repo_upstream = v
+	}
+	if repo_upstream != d.InstanceName {
+		gotrace.Trace("Repo '%s' ignored for driver '%s'. Expect Repo to be managed by '%s'.",
+			instance_name, d.InstanceName, repo_upstream)
+		return false
+	}
+	return true
 }
 
 // GetObjectsData build the list of Object required by the plugin provided from the cli flags.
@@ -373,26 +401,11 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 	for object_name, Obj := range d.Plugin.Yaml.Objects {
 		Obj_instances := a.f.GetInstances(object_name)
 		for _, instance_name := range Obj_instances {
-			if object_name == "repo" {
-				// Determine if the upstream instance is set to this instance.
-				if v, found := a.f.Get(object_name, instance_name, "git-remote"); found && v != "" {
-					continue
-				}
-				repo_upstream := ""
-				if v, found := a.f.Get(object_name, instance_name, "upstream"); !found {
-					if v, found = a.f.Get("settings", "default", "upstream-instance") ; !found {
-						continue
-					}
-					repo_upstream = v
-				} else {
-					repo_upstream = v
-				}
-				if repo_upstream != d.InstanceName {
-					gotrace.Trace("Repo '%s' ignored for driver '%s'. Expect Repo to be managed by '%s'.",
-						instance_name, d.InstanceName, repo_upstream)
-					continue
-				}
-			}
+			// filter on current app
+			if object_name == "app" && instance_name != d.InstanceName { continue }
+
+			// Filter on repo to be supported by the driver instance.
+			if object_name == "repo" && ! a.IsRepoManaged(d, object_name, instance_name) { continue }
 
 			keys := make(goforjj.InstanceKeys)
 

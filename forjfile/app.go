@@ -67,6 +67,7 @@ func (a *AppStruct)Set(flag, value string) {
 	case "driver":
 		a.Driver = value
 	default:
+		if a.More == nil { a.More = make(map[string]string) }
 		a.More[flag] = value
 	}
 	a.forge.dirty()
