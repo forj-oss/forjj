@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/forj-oss/forjj-modules/trace"
+	"forjj/git"
 )
 
 // Call docker to create the Solution source code from scratch with validated parameters.
@@ -75,41 +76,19 @@ func (a *Forj) do_driver_maintain(instance string) error {
 				a.i.EnsureGitRemote(remote, name)
 			}
 			for branch, remote := range r.BranchConnect {
-				a.i.EnsureBranchConnected(branch, remote)
+				status, err := a.i.EnsureBranchConnected(branch, remote)
+				if err != nil { return err }
+				switch status {
+				case "-1" :
+					return fmt.Errorf("Warning! Remote branch is most recent than your local branch. " +
+						"Do a git pull and restart 'forjj maintain'")
+				case "+1" :
+					git.Push()
+				case "-1+1" :
+					return fmt.Errorf("Local and remote branch has diverged. You must fix it before going on.")
+				}
 			}
 		}
 	}
-	return nil
-	//if d.DriverType != "upstream" {
-	//	return nil
-	//}
-	//log.Printf("%s maintained by %s.\n", NumReposDisplay(len(a.drivers[instance].Plugin.Result.Data.Repos)), instance)
-	// Loop on upstream repositories to ensure it exists with at least a README.md file.
-
-	// Ensure we are back to the infra repository.
-	//defer os.Chdir(a.i.Path())
-
-	/*for name, repo := range a.drivers[instance].Plugin.Result.Data.Repos {
-		log.Printf("Maintaining local repo '%s'", name)
-		if err := a.ensure_local_repo_initialized(name); err != nil {
-			return err
-		}
-
-		// TODO: Generate README.md text from template.
-		if err := a.ensure_local_repo_synced(name, "master", "origin", repo.GetOrigin(),
-			fmt.Sprintf("Repository %s created by Forjj.", name)); err != nil {
-			return err
-		}
-
-		if a.InfraPluginDriver == d { // Infra upstream instance case
-			if v, found := d.Plugin.Result.Data.Repos[a.w.Infra.Name]; found {
-				// Saving infra repository information returned to the workspace
-				a.w.Infra = &v
-			} else {
-				return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance)
-			}
-		}
-	}*/
-
 	return nil
 }

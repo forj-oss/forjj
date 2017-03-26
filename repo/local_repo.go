@@ -10,6 +10,7 @@ import (
 	//"strings"
 	"forjj/utils"
 	"forjj/git"
+	"strings"
 )
 
 func (i *GitRepoStruct) Path() string {
@@ -36,14 +37,33 @@ func (i *GitRepoStruct) EnsureInitialized() error {
 	return nil
 }
 
-func (i *GitRepoStruct) EnsureBranchConnected(branch, remote string) error {
+// EnsureBranchConnected create connection between local and remote branch
+// and give a pull/push status
+// And error is returned when branches has diverged.
+func (i *GitRepoStruct) EnsureBranchConnected(branch, remote string) (string, error) {
 	if err := i.use() ; err != nil {
-		return fmt.Errorf("Unable to connect branches. %s", err)
+		return "", fmt.Errorf("Unable to connect branches. %s", err)
 	}
-	if git.Do("branch", "--set-upstream=" + remote, branch) > 0 {
-		return fmt.Errorf("Unable to set url '%s' to branch '%s'", remote, branch)
+	// FIXME: git branch to fix
+	remote_names := strings.Split(remote, "/")
+	if remote_names == nil || len(remote_names) != 2 {
+		return "", fmt.Errorf("GIT Remote string '%s' is invalid. Must be 'RemoteName/BranchName'", remote)
 	}
-	return nil
+
+	if found, err := git.RemoteBranchExist(remote) ; err != nil {
+		return "", err
+	} else {
+		if !found {
+			git.Do("push", "-u", remote_names[0], remote_names[1])
+		} else {
+			if git.Do("branch", "--set-upstream-to=" + remote, branch) > 0 {
+				return "", fmt.Errorf("Unable to set url '%s' to branch '%s'", remote, branch)
+			}
+		}
+	}
+
+	// return Diverge status
+	return git.RemoteStatus(remote)
 }
 
 func (i *GitRepoStruct) CheckOut(branch string) error {

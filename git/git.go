@@ -89,3 +89,57 @@ func Add(files []string) int {
 	cmd = append(cmd, files...)
 	return Do(cmd...)
 }
+
+func Branches() ([]string, error) {
+	v, err := Get("branch") ;
+	if err != nil {
+		return []string{}, err
+	}
+	return strings.Split(v, "\n"), nil
+}
+
+func RemoteBranches() ([]string, error) {
+	v, err := Get("branch", "-r") ;
+	if err != nil {
+		return []string{}, err
+	}
+	return strings.Split(v, "\n"), nil
+}
+
+func RemoteBranchExist(remote string) (bool, error) {
+	if branches, err := RemoteBranches() ; err != nil {
+		return false, err
+	} else {
+		for _, branch := range branches {
+			if branch == remote {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
+func BranchExist(remote string) (bool, error) {
+	if branches, err := Branches() ; err != nil {
+		return false, err
+	} else {
+		for _, branch := range branches {
+			if branch == remote {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
+func RemoteStatus(remote string) (string, error) {
+	var local_rev, remote_rev, base_rev string
+	if v, err := Get("rev-parse", "@") ; err != nil          { return "", err } else { local_rev = v }
+	if v, err := Get("rev-parse", remote) ; err != nil       { return "", err } else { remote_rev = v }
+	if v, err := Get("merge-base", "@", remote) ; err != nil { return "", err } else { base_rev = v }
+
+	if local_rev == remote_rev { return "=", nil }
+	if local_rev == base_rev   { return "-1", nil }
+	if remote_rev == base_rev  { return "+1", nil }
+	return "-1+1", nil
+}
