@@ -403,37 +403,43 @@ func (a *Forj) getInternalData(param string) (result string) {
 //
 // Build the list of plugin shell parameters for dedicated action.
 // It will be created as a Hash of values
-func (a *Forj) GetDriversActionsParameter(d *drivers.Driver, flag_name string) (string, bool) {
-	forjj_regexp, _ := regexp.Compile("forjj-(.*)")
+func (a *Forj) GetDriversActionsParameter(d *drivers.Driver, flag_name string) (value string, found bool) {
 	forjj_interpret, _ := regexp.Compile(`\{\{.*\}\}`)
 
-	forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
-	if forjj_vars == nil {
-		gotrace.Trace("'%s' candidate as parameters.", flag_name)
-		parameter_name := d.InstanceName + "-" + flag_name
-		if v, err := a.cli.GetAppStringValue(parameter_name); err != nil {
-			if forjj_interpret.MatchString(v) {
-				gotrace.Trace("Interpreting '%s' from '%s'", v, parameter_name)
-				// Initialized defaults value from templates
-				var doc bytes.Buffer
-
-				if t, err := template.New("forj-data").Parse(v); err != nil {
-					gotrace.Trace("Unable to interpret Parameter '%s' value '%s'. %s", parameter_name, v, err)
-					return "", false
-				} else {
-					t.Execute(&doc, a.InternalForjData)
-				}
-
-				v = doc.String()
-				gotrace.Trace("'%s' interpreted to '%s'", parameter_name, v)
-			}
-			gotrace.Trace("Set: '%s' <= '%s'", flag_name, v)
-			return v, true
-		} else {
-			gotrace.Trace("%s", err)
-			return "", false
-		}
-	} else {
-		return a.InternalForjData[forjj_vars[1]], true
+	if value, found = a.GetInternalForjData(flag_name) ; found {
+		return
 	}
+	gotrace.Trace("'%s' candidate as parameters.", flag_name)
+	parameter_name := d.InstanceName + "-" + flag_name
+	if v, err := a.cli.GetAppStringValue(parameter_name); err != nil {
+		if forjj_interpret.MatchString(v) {
+			gotrace.Trace("Interpreting '%s' from '%s'", v, parameter_name)
+			// Initialized defaults value from templates
+			var doc bytes.Buffer
+
+			if t, err := template.New("forj-data").Parse(v); err != nil {
+				gotrace.Trace("Unable to interpret Parameter '%s' value '%s'. %s", parameter_name, v, err)
+				return "", false
+			} else {
+				t.Execute(&doc, a.InternalForjData)
+			}
+
+			v = doc.String()
+			gotrace.Trace("'%s' interpreted to '%s'", parameter_name, v)
+		}
+		gotrace.Trace("Set: '%s' <= '%s'", flag_name, v)
+		return v, true
+	} else {
+		gotrace.Trace("%s", err)
+		return
+	}
+}
+
+func (a *Forj) GetInternalForjData(flag_name string) (v string, found bool) {
+	forjj_regexp, _ := regexp.Compile("forjj-(.*)")
+	forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
+	if forjj_vars != nil {
+		v, found = a.InternalForjData[forjj_vars[1]]
+	}
+	return
 }

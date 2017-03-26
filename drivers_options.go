@@ -414,6 +414,10 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 				gotrace.Trace("test")
 			}
 			for key, flag := range flags {
+				if v, found := a.GetInternalForjData(key) ; found {
+					keys[key] = v
+					continue
+				}
 				var value string
 				if flag.Options.Secure {
 					// From creds.yml
