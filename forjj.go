@@ -54,7 +54,10 @@ func main() {
 		log.Print("===========================================")
 		if !*forj_app.no_maintain {
 			log.Print("Source codes are in place. Now, starting instantiating your DevOps Environment services...")
-			forj_app.do_maintain() // This will implement the flow for the infra-repo as well.
+			// This will implement the flow for the infra-repo as well.
+			if err := forj_app.do_maintain() ; err != nil {
+				log.Fatalf("Forjj create instance (maintain) issue. %s", err)
+			}
 		} else {
 			log.Print("Source codes are in place. Now, Please review commits, push and start instantiating your DevOps Environment services with 'forjj maintain' ...")
 		}
