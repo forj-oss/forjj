@@ -55,6 +55,20 @@ func (a *Forj)GetPrefs(field string) (string, bool, error) {
 	return v, found, err
 }
 
+// GetForgePrefs return a value found (or not) from Forjfile
+func (a *Forj)GetForgePrefs(field string) (v string, found bool, _ error) {
+	var entry AppMapEntry
+
+	if e, found := a.appMapEntries[field]; !found {
+		return "", false, fmt.Errorf("Unable to get '%s' from Forjfile/cli mapping. Missing", field)
+	} else {
+		entry = e
+	}
+
+	v, found = a.f.Get(entry.forj_section, entry.forj_instance, entry.forj_field)
+	return
+}
+
 func (a *Forj)SetPrefs(field, value string) error {
 	var entry AppMapEntry
 

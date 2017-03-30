@@ -338,6 +338,7 @@ func (a *Forj) init() {
 	// Enhance Maintain
 	if a.cli.OnActions(maint_act).
 		AddActionFlagsFromObjectAction(workspace, chg_act).
+		AddActionFlagFromObjectAction(infra, chg_act, infra_path_f).
 		AddFlag(cli.String, "file", maintain_option_file, nil) == nil {
 		log.Printf("action maintain: %s", a.cli.Error())
 	}

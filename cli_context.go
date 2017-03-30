@@ -60,7 +60,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	}
 
 	// Setting infra repository name
-	if err := a.set_infra_name() ; err != nil {
+	if err := a.set_infra_name(action) ; err != nil {
 		return err, false
 	}
 
@@ -117,7 +117,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	return nil, true
 }
 
-func (a *Forj) set_infra_name() error {
+func (a *Forj) set_infra_name(action string) (err error) {
 	defer a.f.SetInfraAsRepo()
 	// Setting default if the organization is defined.
 	if a.w.Organization != "" {
@@ -126,7 +126,14 @@ func (a *Forj) set_infra_name() error {
 			SetParamOptions(infra_name_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
 	}
 
-	infra_name, found, err := a.GetPrefs(infra_name_f)
+	var infra_name string
+	var found bool
+
+	if action == maint_act {
+		infra_name, found, err = a.GetForgePrefs(infra_name_f)
+	} else {
+		infra_name, found, err = a.GetPrefs(infra_name_f)
+	}
 	if err != nil {
 		return err
 	}
