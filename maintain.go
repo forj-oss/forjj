@@ -20,7 +20,7 @@ func (a *Forj) Maintain() error {
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-/*	if _, err := a.local_repo_exist(a.w.Infra.Name); err != nil {
+	if  err := a.get_infra_repo(); err != nil {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
@@ -29,8 +29,7 @@ func (a *Forj) Maintain() error {
 	// Load drivers from forjj-options.yml
 	// loop from options/Repos and keep them in a.drivers
 
-	return a.do_maintain()*/
-	return nil
+	return a.do_maintain()
 }
 
 func (a *Forj) do_maintain() error {
@@ -91,4 +90,9 @@ func (a *Forj) do_driver_maintain(instance string) error {
 		}
 	}
 	return nil
+}
+
+// get_infra_repo detect in the path given contains the infra repository.
+func (a *Forj) get_infra_repo() error {
+	return a.i.Use(a.f.InfraPath())
 }
