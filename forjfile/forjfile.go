@@ -105,6 +105,10 @@ func (f *Forge)SetInfraAsRepo() {
 	if f.yaml.Infra.name == "" || f.yaml.Infra.name == "none" {
 		return
 	}
+	if f.yaml.Repos == nil {
+		f.yaml.Repos = make(ReposStruct)
+	}
+
 	if r, found_repo := f.yaml.Repos[f.yaml.Infra.name]; found_repo {
 		repo = r
 	}
@@ -140,7 +144,7 @@ func (f *Forge)Load() (loaded bool, err error) {
 	}
 
 	var forjfile_tmpl ForjfileTmpl
-	if e := yaml.Unmarshal(yaml_data, forjfile_tmpl) ; e != nil {
+	if e := yaml.Unmarshal(yaml_data, &forjfile_tmpl) ; e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
 	}
