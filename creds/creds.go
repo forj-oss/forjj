@@ -4,7 +4,7 @@ import (
 	"path"
 	"io/ioutil"
 	"gopkg.in/yaml.v2"
-	"forjj-modules/trace"
+	"github.com/forj-oss/forjj-modules/trace"
 	"fmt"
 )
 
