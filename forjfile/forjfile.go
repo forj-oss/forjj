@@ -72,6 +72,10 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 
 	file := path.Join(forj_path, file_name)
 
+	if _, e := os.Stat(file); os.IsNotExist(e) {
+		return
+	}
+
 	if fi, d, e := loadFile(file) ; e != nil {
 		err = e
 		return
