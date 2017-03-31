@@ -77,7 +77,7 @@ func (a *Forj) LoadForge() (err error) {
 	}
 
 	if v := a.forjfile_tmpl_path; v != "" && a.w.InfraPath() == v {
-		gotrace.Warning("If your Forfile template has defined local settings and/or credentials data, those data will " +
+		gotrace.Info("If your Forfile template has defined local settings and/or credentials data, those data will " +
 			"be moved to the internal forjj workspace.")
 		return
 	}

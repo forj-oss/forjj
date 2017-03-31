@@ -87,7 +87,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		a.s.SetPath(a.w.Path())
 	}
 	if err := a.s.Load(); err != nil {
-		gotrace.Warning("Credential file were not loaded. %s", err)
+		gotrace.Info("Credential file were not loaded. %s", err)
 	}
 
 	if v := a.cli.GetAction(cr_act).GetBoolAddr(no_maintain_f); v != nil {
