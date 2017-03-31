@@ -56,6 +56,7 @@ type Forj struct {
 
 	InternalForjData     map[string]string
 	creds_file           *string  // Credential file
+	forjfile_tmpl_path   string
 	Branch               string   // Update feature branch name
 	ContribRepo_uri      *url.URL // URL to github raw files for plugin files.
 	RepotemplateRepo_uri *url.URL // URL to github raw files for RepoTemplates.

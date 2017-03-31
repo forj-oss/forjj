@@ -139,11 +139,13 @@ func (f *Forge)Load() (loaded bool, err error) {
 		file = fi
 	}
 
-	if e := yaml.Unmarshal(yaml_data, f.yaml) ; e != nil {
+	var forjfile_tmpl ForjfileTmpl
+	if e := yaml.Unmarshal(yaml_data, forjfile_tmpl) ; e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
 	}
 
+	f.yaml = &forjfile_tmpl.ForgeYaml
 	f.yaml.set_defaults()
 	loaded = true
 	gotrace.Trace("Forge loaded from '%s'.", aPath)

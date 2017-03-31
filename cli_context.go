@@ -30,11 +30,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// Load Forjfile templates in case of 'create' task.
 	if cmds := c.GetCurrentCommand() ; cmds != nil && len(cmds) >= 1 {
 		action = cmds[0].FullCommand()
+	} else {
+		return nil, false
 	}
 	switch action {
 	case "create":
 		// Detect and load a Forjfile template given.
-		if err := a.LoadForjfile() ; err != nil {
+		if err := a.LoadForjfile(action) ; err != nil {
 			a.w.SetError(err)
 			return nil, false
 		}
