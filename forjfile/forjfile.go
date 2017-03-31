@@ -100,6 +100,8 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 
 func (f *Forge)SetInfraAsRepo() {
 	// Copy the infra repo in list of repositories, tagged as infra.
+	if !f.Init() { return }
+
 	var repo *RepoStruct
 
 	if v, found := f.yaml.Infra.More["name"] ; found && v != "" {
@@ -108,9 +110,6 @@ func (f *Forge)SetInfraAsRepo() {
 
 	if f.yaml.Infra.name == "" || f.yaml.Infra.name == "none" {
 		return
-	}
-	if f.yaml.Repos == nil {
-		f.yaml.Repos = make(ReposStruct)
 	}
 
 	if r, found_repo := f.yaml.Repos[f.yaml.Infra.name]; found_repo {
@@ -198,6 +197,28 @@ func (f *Forge)Init() bool {
 	if f.yaml == nil {
 		f.yaml = new(ForgeYaml)
 	}
+	if f.yaml.Infra == nil {
+		f.yaml.Infra = new(RepoStruct)
+	}
+	if f.yaml.Infra.More == nil {
+		f.yaml.Infra.More = make(map[string]string)
+	}
+	if f.yaml.More == nil {
+		f.yaml.More = make(map[string]map[string]map[string]string)
+	}
+	if f.yaml.Apps == nil {
+		f.yaml.Apps = make(map[string]*AppStruct)
+	}
+	if f.yaml.Repos == nil {
+		f.yaml.Repos = make(ReposStruct)
+	}
+	if f.yaml.Groups == nil {
+		f.yaml.Groups = make(map[string]*GroupStruct)
+	}
+	if f.yaml.Users == nil {
+		f.yaml.Users = make(map[string]*UserStruct)
+	}
+
 	return true
 }
 

@@ -70,6 +70,9 @@ func (r *RepoStruct)SetHandler(from func(field string)(string, bool), keys...str
 }
 
 func (r *RepoStruct)Set(field, value string) {
+	if r == nil {
+		return
+	}
 	switch field {
 	case "name":
 		if r.name != value {
