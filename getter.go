@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"forjj-modules/trace"
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 // Used to map between flags (cli) and Forjfile
