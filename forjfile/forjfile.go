@@ -97,6 +97,7 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 func (f *Forge)SetInfraAsRepo() {
 	// Copy the infra repo in list of repositories, tagged as infra.
 	var repo *RepoStruct
+
 	if v, found := f.yaml.Infra.More["name"] ; found && v != "" {
 		f.yaml.Infra.name = v
 	}
@@ -318,7 +319,13 @@ func (f *Forge) Get(object, instance, key string) (string, bool) {
 	if ! f.Init() { return "", false }
 	switch object {
 	case "infra":
+		if f.yaml.Infra == nil {
+			return "", false
+		}
 		if key == "name" {
+			if f.yaml.Infra.More == nil {
+				return "", false
+			}
 			if v, found := f.yaml.Infra.More["name"] ; found && v != "" {
 				return v, true
 			}

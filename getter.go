@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"forjj-modules/trace"
+)
 
 // Used to map between flags (cli) and Forjfile
 
@@ -44,7 +47,8 @@ func (a *Forj)GetPrefs(field string) (string, bool, error) {
 
 	v, found, isdefault, err := a.cli.GetStringValue(entry.cli_obj, entry.cli_instance, entry.cli_field)
     if err != nil {
-		return v, found, err
+		gotrace.Trace("Unable to get data from cli. %s", err)
+		err = nil
 	}
 	if found && !isdefault {
 		return v, found, err
