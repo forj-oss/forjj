@@ -112,7 +112,11 @@ func (id *initDriverObjectFlags) determine_object(object_name string, object_det
 					object_name, flag_key, flag_key)
 			} else {
 				flag_opts := id.d_opts.SetFlagOptions(flag_key, &v.Options, id.d_opts.HasValue)
-				id.obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp, flag_opts)
+				if v.FormatRegexp == "" {
+					id.obj.AddKey(cli.String, flag_key, v.Help, ".*", flag_opts)
+				} else {
+					id.obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp, flag_opts)
+				}
 			}
 			gotrace.Trace("New object '%s' with key '%s'", object_name, flag_key)
 		}
@@ -153,7 +157,12 @@ func (id *initDriverObjectFlags) add_object_fields(flag_name string, flag_det *g
 	}
 
 	if id.is_field_object_scope(flag_det) {
-		id.obj.AddField(cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, nil)
+		if flag_det.FormatRegexp == "" {
+			id.obj.AddField(cli.String, flag_name, flag_det.Help, ".*", nil)
+		} else {
+			id.obj.AddField(cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, nil)
+		}
+
 		gotrace.Trace("Object '%s' field '%s' added.", id.obj.Name(), flag_name)
 	} else {
 		for _, instance_name := range id.obj.GetInstances() {
