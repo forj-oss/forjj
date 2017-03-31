@@ -31,7 +31,7 @@ func (i *GitRepoStruct)Create(repo_path string, initial_commit func() ([]string,
 	}
 
 	if ! i.git_1st_commit_exist("master") {
-		i.git_1st_commit(initial_commit)
+		return i.git_1st_commit(initial_commit)
 	}
 	return nil
 }
