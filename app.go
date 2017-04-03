@@ -122,9 +122,9 @@ func (a *Forj) init() {
 	// Define options
 	opts_required := cli.Opts().Required()
 	//opts_ssh_dir := cli.Opts().Default(fmt.Sprintf("%s/.ssh", os.Getenv("HOME")))
-	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO")
-	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO")
-	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO")
+	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default("https://github.com/forj-oss/forjj-contribs/raw/master")
+	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default("https://github.com/forj-oss/forjj-repotemplates/raw/master")
+	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default("https://github.com/forj-oss/forjj-flows/raw/master")
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
@@ -150,13 +150,6 @@ func (a *Forj) init() {
 	a.cli.AddFieldListCapture("ft", `[A-Za-z0-9_ !:/.-]+`)
 
 	a.cli.AddAppFlag(cli.String, cred_f, forjj_creds_help, opts_creds_file)
-
-	u, _ := url.Parse("https://github.com/forj-oss/forjj-contribs/raw/master")
-	a.ContribRepo_uri = u
-	u, _ = url.Parse("https://github.com/forj-oss/forjj-repotemplates/raw/master")
-	a.RepotemplateRepo_uri = u
-	u, _ = url.Parse("https://github.com/forj-oss/forjj-flows/raw/master")
-	a.FlowRepo_uri = u
 
 	a.drivers = make(map[string]*drivers.Driver)
 	//a.Actions = make(map[string]*ActionOpts)

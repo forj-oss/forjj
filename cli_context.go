@@ -220,27 +220,41 @@ func (a *Forj) setWorkspace() error {
 }
 
 // set_from_urlflag initialize a URL structure from a flag given.
-// If the flag is set and valid, the URL will be stored in the given string address (store).
+// If the flag is set from cli and valid, the URL will be stored in the given string address (store).
 // if the flag has no value, store data is used as default.
 // flag : Application flag value (from cli module)
 //
 // store : string address where this flag will be stored
-func (a *Forj) set_from_urlflag(flag string, store *string) (*url.URL, error) {
-	value, found, _, err := a.cli.GetStringValue(workspace, "", flag)
+func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error) {
+	value, found, def, err := a.cli.GetStringValue(workspace, "", flag)
 	if err != nil {
 		gotrace.Trace("%s", err)
 		return nil, err
 	}
 
-	if ! found {
-		value = *store
-	}
-	if u, err := url.Parse(value); err != nil {
-		return nil, err
-	} else {
-		if u.Scheme == "" {
-			*store = value
+	// cli define an url
+	if found && !def {
+		if u, e = url.Parse(value); e == nil {
+			*store = u.String()
+			return
 		}
-		return u, nil
 	}
+
+	// no cli definition. Use the stored url.
+	if *store != "" {
+		if u, e = url.Parse(*store); e == nil {
+			return
+		}
+	}
+
+	// no cli, neither stored one. Use cli default value if exist.
+	if found && def{
+		if u, e = url.Parse(value); e == nil {
+			*store = u.String()
+			return
+		}
+	}
+
+	// Not found return nil with last error detected
+	return
 }
