@@ -9,5 +9,6 @@ tasks.json
 /vendor
 .glide
 .be-*
+/Forjfile
 .publish_lacws
 forjj

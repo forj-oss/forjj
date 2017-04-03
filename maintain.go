@@ -3,8 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/forj-oss/forjj-modules/trace"
-	"log"
-	"os"
+	"forjj/git"
 )
 
 // Call docker to create the Solution source code from scratch with validated parameters.
@@ -13,13 +12,15 @@ import (
 // But this would be a next version and needs to be validated before this decision is made.
 // Workspace information already loaded by the cli context.
 func (a *Forj) Maintain() error {
-	if _, err := a.w.check_exist(); err != nil {
+	if _, err := a.w.Check_exist(); err != nil {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
+	a.ScanAndSetObjectData()
+
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-	if _, err := a.local_repo_exist(a.w.Infra.Name); err != nil {
+	if  err := a.get_infra_repo(); err != nil {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
@@ -32,13 +33,8 @@ func (a *Forj) Maintain() error {
 }
 
 func (a *Forj) do_maintain() error {
-	// Read Repos list from infra-repo/forjj-repos.yaml
-	if err := a.RepoCodeLoad(); err != nil {
-		return err
-	}
-
 	// Loop on instances to maintain them
-	for instance, _ := range a.o.Drivers {
+	for instance, _ := range a.drivers {
 		if err := a.do_driver_maintain(instance); err != nil {
 			return fmt.Errorf("Unable to maintain requested resources of %s. %s", instance, err)
 		}
@@ -59,40 +55,44 @@ func (a *Forj) do_driver_maintain(instance string) error {
 
 	// Ensure remote upstream exists - calling upstream driver - maintain
 	// This will create/update the upstream service
-	if err, _ := d.driver_do(a, instance, "maintain"); err != nil {
+	if err, _ := a.driver_do(d, instance, "maintain"); err != nil {
 		return fmt.Errorf("Driver issue. %s.", err)
 	}
 
-	if d.DriverType != "upstream" {
-		return nil
-	}
-	log.Printf("%s maintained by %s.\n", NumReposDisplay(len(a.drivers[instance].plugin.Result.Data.Repos)), instance)
-	// Loop on upstream repositories to ensure it exists with at least a README.md file.
-
-	// Ensure we are back to the infra repository.
-	defer os.Chdir(a.RepoPath(a.w.Infra.Name))
-
-	for name, repo := range a.drivers[instance].plugin.Result.Data.Repos {
-		log.Printf("Maintaining local repo '%s'", name)
-		if err := a.ensure_local_repo_initialized(name); err != nil {
+	if a.f.GetInfraInstance() == instance {
+		// Update git remote and 'master' branch to infra repository.
+		var infra_name string
+		if i, found, err := a.GetPrefs(infra_name_f) ; err != nil {
 			return err
+		} else {
+			if !found {
+				return nil
+			}
+			infra_name = i
 		}
-
-		// TODO: Generate README.md text from template.
-		if err := a.ensure_local_repo_synced(name, "master", "origin", repo.GetOrigin(),
-			fmt.Sprintf("Repository %s created by Forjj.", name)); err != nil {
-			return err
-		}
-
-		if a.InfraPluginDriver == d { // Infra upstream instance case
-			if v, found := d.plugin.Result.Data.Repos[a.w.Infra.Name]; found {
-				// Saving infra repository information returned to the workspace
-				a.w.Infra = &v
-			} else {
-				return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance)
+		if r, found := d.Plugin.Result.Data.Repos[infra_name] ; found {
+			for name, remote := range r.Remotes {
+				a.i.EnsureGitRemote(remote, name)
+			}
+			for branch, remote := range r.BranchConnect {
+				status, err := a.i.EnsureBranchConnected(branch, remote)
+				if err != nil { return err }
+				switch status {
+				case "-1" :
+					return fmt.Errorf("Warning! Remote branch is most recent than your local branch. " +
+						"Do a git pull and restart 'forjj maintain'")
+				case "+1" :
+					git.Push()
+				case "-1+1" :
+					return fmt.Errorf("Local and remote branch has diverged. You must fix it before going on.")
+				}
 			}
 		}
 	}
-
 	return nil
+}
+
+// get_infra_repo detect in the path given contains the infra repository.
+func (a *Forj) get_infra_repo() error {
+	return a.i.Use(a.f.InfraPath())
 }

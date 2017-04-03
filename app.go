@@ -6,13 +6,17 @@ import (
 	"github.com/forj-oss/forjj-modules/cli"
 	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
 	"log"
 	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
 	"text/template"
+	"fmt"
+	"forjj/forjfile"
+	"forjj/drivers"
+	"forjj/repo"
+	"forjj/creds"
 )
 
 // TODO: Support multiple contrib sources.
@@ -29,50 +33,6 @@ import (
 //	Cmd      *kingpin.CmdClause             // Command object
 //}
 
-type DriverCmdOptions struct {
-	flags map[string]DriverCmdOptionFlag // list of flags values
-	//    args  map[string]string // list of args values
-}
-
-type DriverCmdOptionFlag struct {
-	driver_flag_name string
-	value            string
-}
-
-type Driver struct {
-	DriverType    string                      // driver type name
-	InstanceName  string                      // Instance name.
-	Name          string                      // Name of driver to load Yaml.Name is the real internal driver name.
-	cmds          map[string]DriverCmdOptions // List of flags per commands
-	plugin        goforjj.PluginDef           // Plugin Data
-	InfraRepo     bool                        // True if this driver instance is the one hosting the infra repository.
-	FlagFile      string                      // Path to the predefined plugin or generic forjj plugin flag file.
-	ForjjFlagFile bool                        // true if the flag_file is set by forjj.
-	app_request   bool                        // true if the driver is loaded by a apps create/update/maintain task (otherwise requested by Repos or flows request.)
-	Runtime       *goforjj.YamlPluginRuntime  // Reference to the plugin runtime information given by the plugin yaml file.
-	// When a driver is initially loaded, it will be saved here, and used it as ref every where.
-	// So we are sure that :
-	// - any change in plugin is not failing a running environment.
-	// - If no plugin is referenced from cli, we can start it without loading it from the plugin.yaml.
-	// - We can manage plugins versions and update when needed or requested.
-}
-
-// DriverModel: Structure used as template context. The way to get it: Driver.Model()
-type DriverModel struct {
-	InstanceName string
-	Name         string
-}
-
-// DriverOptions: List of maintain drivers options required by each plugin.
-type DriverOptions struct {
-	driver_type string
-	Options     map[string]goforjj.PluginOption // List of options with helps given by the plugin through create/update phase.
-}
-
-type DriversOptions struct {
-	Drivers map[string]DriverOptions // List of options for each drivers
-}
-
 type Forj struct {
 	// Collections of fields regarding flags given
 	drivers_list DriversList // List of drivers passed to the command line argument from --app.
@@ -80,8 +40,8 @@ type Forj struct {
 
 	//flags_loaded map[string]string // key/values for flags loaded. Used when doing a create AND maintain at the same time (create case)
 
-	drivers         map[string]*Driver // List of drivers data/flags/... per instance name (key)
-	drivers_options DriversOptions     // forjj-maintain.yml See infra-maintain.go
+	drivers         map[string]*drivers.Driver // List of drivers data/flags/... per instance name (key)
+	drivers_options drivers.DriversOptions     // forjj-maintain.yml See infra-maintain.go
 
 	cli *cli.ForjCli // ForjCli data
 	app *kingpin.Application
@@ -89,25 +49,30 @@ type Forj struct {
 	//	CurrentCommand clier.CmdClauser // Current Command
 	//	CurrentObject  clier.CmdClauser // Current Object
 
-	CurrentPluginDriver *Driver // Driver executing
-	InfraPluginDriver   *Driver // Driver used by upstream
+	CurrentPluginDriver *drivers.Driver // Driver executing
+	InfraPluginDriver   *drivers.Driver // Driver used by upstream
 
 	// Forjj Core values, saved at create time, updated at update time. maintain should save also.
 
 	InternalForjData     map[string]string
 	creds_file           *string  // Credential file
+	forjfile_tmpl_path   string
 	Branch               string   // Update feature branch name
 	ContribRepo_uri      *url.URL // URL to github raw files for plugin files.
 	RepotemplateRepo_uri *url.URL // URL to github raw files for RepoTemplates.
 	FlowRepo_uri         *url.URL // URL to github raw files for Flows.
+	appMapEntries        map[string]AppMapEntry
 	no_maintain          *bool    // At create time. true to not start maintain task at the end of create.
 	// TODO: enhance infra README.md with a template.
 
 	infra_readme string // Initial infra repo README.md text.
 
-	w Workspace    // Data structure to stored in the workspace. See workspace.go
-	o ForjjOptions // Data structured stored in the root of the infra repo. See forjj-options.go
-	r ReposList    // Collection of Repositories managed. Data structured stored in the root of the infra repo. See repos.go
+	f forjfile.Forge           // Forge Data stored in the Repository (Loaded from Forjfile)
+	w forjfile.Workspace       // Data structure to stored in the workspace. See workspace.go
+	s creds.YamlSecure         // credential file support.
+	o ForjjOptions             // Data structured stored in the root of the infra repo. See forjj-options.go
+
+	i repository.GitRepoStruct // Infra Repository management.
 }
 
 /*const (
@@ -134,11 +99,17 @@ const (
 )
 
 const (
-	debug_f          = "debug"
-	infra_f          = "infra"
-	infra_upstream_f = "infra-upstream"
+	infra_path_f     = "infra-path"        // Path where infra repository gets cloned.
+	infra_name_f     = "infra-name"        // Name of the infra repository in upstream system
+	infra_upstream_f = "infra-upstream"    // Name of the infra upstream service instance name (github for example)
 	cred_f           = "credentials-file"
-	orga_f           = "organization"
+	orga_f           = "organization"      // Organization name for the Forge. Could be used to set upstream organization.
+	// create flags
+	forjfile_path_f  = "forjfile-path"     // Path where the Forjfile template resides.
+	forjfile_f       = "forjfile-name"     // Name of the forjfile where the Forjfile template resides.
+	ssh_dir_f        = "ssh-dir"
+	no_maintain_f    = "no-maintain"
+	message_f        = "message"
 )
 
 //
@@ -151,20 +122,28 @@ func (a *Forj) init() {
 	// Define options
 	opts_required := cli.Opts().Required()
 	//opts_ssh_dir := cli.Opts().Default(fmt.Sprintf("%s/.ssh", os.Getenv("HOME")))
-	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO")
-	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO")
-	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO")
+	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default("https://github.com/forj-oss/forjj-contribs/raw/master")
+	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default("https://github.com/forj-oss/forjj-repotemplates/raw/master")
+	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default("https://github.com/forj-oss/forjj-flows/raw/master")
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
-	opts_workspace := cli.Opts().Envar("FORJJ_WORKSPACE").Short('W')
+	opts_infra_path := cli.Opts().Envar("FORJJ_INFRA").Short('W')
+	opts_forjfile := cli.Opts().Short('F').Default(".")
+	opts_message := cli.Opts().Short('m')
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
-	a.app.Version("forjj V0.0.1 (POC)").Author("Christophe Larsonneur <christophe.larsonneur@hpe.com>")
-	// kingpin is driven by cli module.
-	a.cli = cli.NewForjCli(kingpinCli.New(a.app))
 
-	a.cli.ParseHook(a.ParseContext)
+	version := "forjj V0.0.1 Alpha"
+	if build_branch != "master" {
+		version += fmt.Sprintf(" branch %s - %s - %s", build_branch, build_date, build_commit)
+	}
+
+	a.app.Version(version).Author("Christophe Larsonneur <clarsonneur@gmail.com>")
+	// kingpin is driven by cli module.
+	a.cli = cli.NewForjCli(kingpinCli.New(a.app, "forjj"))
+
+	a.cli.ParseAfterHook(a.ParseContext)
 	// Regular filter for lists
 	// Used by list capture function parameter
 	a.cli.AddFieldListCapture("w", `[a-z]+[a-z0-9_-]*`)
@@ -172,16 +151,9 @@ func (a *Forj) init() {
 
 	a.cli.AddAppFlag(cli.String, cred_f, forjj_creds_help, opts_creds_file)
 
-	u, _ := url.Parse("https://github.com/forj-oss/forjj-contribs/raw/master")
-	a.ContribRepo_uri = u
-	u, _ = url.Parse("https://github.com/forj-oss/forjj-repotemplates/raw/master")
-	a.RepotemplateRepo_uri = u
-	u, _ = url.Parse("https://github.com/forj-oss/forjj-flows/raw/master")
-	a.FlowRepo_uri = u
-
-	a.drivers = make(map[string]*Driver)
+	a.drivers = make(map[string]*drivers.Driver)
 	//a.Actions = make(map[string]*ActionOpts)
-	a.o.Drivers = make(map[string]*Driver)
+	//a.o.Drivers = make(map[string]*drivers.Driver)
 
 	// ACTIONS ************
 	// Create kingpin actions layer in kingpin.
@@ -198,16 +170,14 @@ func (a *Forj) init() {
 	// OBJECTS ************
 	// Create Object layer in kingpin on top of each actions.
 	// ex: forjj add repo
-	if a.cli.NewObject(workspace, "any forjj workspace parameters", true).
+	if a.cli.NewObject(workspace, "any forjj workspace parameters", "internal").
 		Single().
-		AddKey(cli.String, workspace, workspace_path_help, "#w", nil).
 		AddField(cli.String, "docker-exe-path", docker_exe_path_help, "#w", nil).
 		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w", nil).
 		AddField(cli.String, "flows-repo", flows_repo_help, "#w", nil).
 		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w", nil).
 		AddField(cli.String, orga_f, forjj_orga_name_help, "#w", nil).
 		DefineActions(chg_act, rem_act).OnActions().
-		AddFlag(workspace, opts_workspace).
 		AddFlag("docker-exe-path", nil).
 		AddFlag("contribs-repo", opts_contribs_repo).
 		AddFlag("flows-repo", opts_flows_repo).
@@ -216,7 +186,7 @@ func (a *Forj) init() {
 		log.Printf("Workspace : %s", a.cli.GetObject(workspace).Error())
 	}
 
-	if a.cli.NewObject(repo, "a GIT repository", false).
+	if a.cli.NewObject(repo, "a GIT repository", "object-scope").
 		AddKey(cli.String, "name", repo_name_help, "#w", nil).
 		AddField(cli.String, "instance", repo_instance_name_help, "#w", nil).
 		AddField(cli.String, "flow", repo_flow_help, "#w", nil).
@@ -257,7 +227,7 @@ func (a *Forj) init() {
 		log.Printf("repo: to_remove list: %s", a.cli.GetObject(repo).Error())
 	}
 
-	if a.cli.NewObject(app, "an application driver", false).
+	if a.cli.NewObject(app, "an application driver", "instance-scope").
 		AddKey(cli.String, "name", app_name_help, "#w", nil).
 		AddField(cli.String, "type", app_type_help, "#w", nil).
 		AddField(cli.String, "driver", app_driver_help, "#w", nil).
@@ -302,39 +272,41 @@ func (a *Forj) init() {
 	}
 
 	// infra - Mostly built by plugins or other objects list with update action only.
-	if a.cli.NewObject(infra, "the global settings", true).
+	if a.cli.NewObject(infra, "the global settings", "internal").
 		Single().
-		AddKey(cli.String, infra_f, forjj_infra_name_help, "#w", nil).
-		AddField(cli.String, infra_upstream_f, "Infra repository upstream instance name.", "#w", nil).
+		AddField(cli.String, infra_path_f, infra_path_help, "#w", nil).
+		AddField(cli.String, infra_name_f, forjj_infra_name_help, "#w", nil).
+		AddField(cli.String, infra_upstream_f, forjj_infra_upstream_help, "#w", nil).
 		AddField(cli.String, "flow", default_flow_help, "#w", nil).
+		AddField(cli.String, message_f, create_message_help, "#w", opts_message).
 		DefineActions(chg_act).
 		OnActions().
-		AddFlag(infra_f, opts_infra_repo).
+		AddFlag(infra_path_f, opts_infra_path).
+		AddFlag(infra_name_f, opts_infra_repo).
 		AddFlag(infra_upstream_f, nil).
+		AddFlag(message_f, nil).
 		AddFlag("flow", nil) == nil {
 		log.Printf("infra: %s", a.cli.GetObject(infra).Error())
 	}
 
 	// Flow - Not fully defined.
-	if a.cli.NewObject(flow, "flow over applications", true).NoFields().
+	if a.cli.NewObject(flow, "flow over applications", "internal").NoFields().
 		DefineActions(add_act, rem_act, list_act) == nil {
 		log.Printf("infra: %s", a.cli.GetObject(flow).Error())
 	}
 
 	// Enhance create action
 	if a.cli.OnActions(cr_act).
-		// Ex: forjj create --repos "github/myrepo:::My Repo,other_repo:::Another repo"
-		AddActionFlagFromObjectListAction(cr_act, repo, "to_create", add_act).
-		// Ex: forjj create --apps "upstream:github"
-		AddActionFlagFromObjectListAction(cr_act, app, "to_create", add_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, chg_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --infra-repo ...
 		AddActionFlagsFromObjectAction(infra, chg_act).
-		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil).
-		AddFlag(cli.Bool, "no-maintain", create_no_maintain_help, nil) == nil {
+		AddFlag(cli.String, ssh_dir_f, create_ssh_dir_help, nil).
+	// TODO: Support for a different Forjfile name. (using forjfile_name_f constant)
+		AddFlag(cli.String, forjfile_path_f, create_forjfile_help, opts_forjfile).
+		AddFlag(cli.Bool, no_maintain_f, create_no_maintain_help, nil) == nil {
 		log.Printf("action create: %s", a.cli.Error())
 	}
 
@@ -360,12 +332,19 @@ func (a *Forj) init() {
 	// Enhance Maintain
 	if a.cli.OnActions(maint_act).
 		AddActionFlagsFromObjectAction(workspace, chg_act).
+		AddActionFlagFromObjectAction(infra, chg_act, infra_path_f).
 		AddFlag(cli.String, "file", maintain_option_file, nil) == nil {
 		log.Printf("action maintain: %s", a.cli.Error())
 	}
 
 	_, err := exec.LookPath("git")
 	kingpin.FatalIfError(err, "Unable to find 'git' command. Ensure it available in your PATH and retry.\n")
+
+	// Add Forjfile/cli mapping for simple forj data getter
+	a.AddMap(orga_f, workspace, "", orga_f, "settings", "", orga_f)
+	a.AddMap(infra_name_f, infra, "", infra_name_f, infra, "", "name")
+	a.AddMap(infra_upstream_f, infra, "", infra_upstream_f, infra, "", "upstream")
+	// TODO: Add git-remote cli mapping
 }
 
 // LoadInternalData()
@@ -400,13 +379,13 @@ func (a *Forj) getInternalData(param string) (result string) {
 		}
 	case "source-mount": // where the plugin has source mounted in the container
 		if a.CurrentPluginDriver != nil {
-			result = a.CurrentPluginDriver.plugin.SourceMount
+			result = a.CurrentPluginDriver.Plugin.SourceMount
 		} else {
 			gotrace.Trace("Warning. source-mount requested outside plugin context.")
 		}
 	case "workspace-mount": // where the plugin has source mounted to the container from caller
 		if a.CurrentPluginDriver != nil {
-			result = a.CurrentPluginDriver.plugin.WorkspaceMount
+			result = a.CurrentPluginDriver.Plugin.WorkspaceMount
 		} else {
 			gotrace.Trace("Warning. workspace-mount requested outside plugin context.")
 		}
@@ -419,37 +398,43 @@ func (a *Forj) getInternalData(param string) (result string) {
 //
 // Build the list of plugin shell parameters for dedicated action.
 // It will be created as a Hash of values
-func (a *Forj) GetDriversActionsParameter(d *Driver, flag_name string) (string, bool) {
-	forjj_regexp, _ := regexp.Compile("forjj-(.*)")
+func (a *Forj) GetDriversActionsParameter(d *drivers.Driver, flag_name string) (value string, found bool) {
 	forjj_interpret, _ := regexp.Compile(`\{\{.*\}\}`)
 
-	forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
-	if forjj_vars == nil {
-		gotrace.Trace("'%s' candidate as parameters.", flag_name)
-		parameter_name := d.InstanceName + "-" + flag_name
-		if v, err := a.cli.GetAppStringValue(parameter_name); err != nil {
-			if forjj_interpret.MatchString(v) {
-				gotrace.Trace("Interpreting '%s' from '%s'", v, parameter_name)
-				// Initialized defaults value from templates
-				var doc bytes.Buffer
-
-				if t, err := template.New("forj-data").Parse(v); err != nil {
-					gotrace.Trace("Unable to interpret Parameter '%s' value '%s'. %s", parameter_name, v, err)
-					return "", false
-				} else {
-					t.Execute(&doc, a.InternalForjData)
-				}
-
-				v = doc.String()
-				gotrace.Trace("'%s' interpreted to '%s'", parameter_name, v)
-			}
-			gotrace.Trace("Set: '%s' <= '%s'", flag_name, v)
-			return v, true
-		} else {
-			gotrace.Trace("%s", err)
-			return "", false
-		}
-	} else {
-		return a.InternalForjData[forjj_vars[1]], true
+	if value, found = a.GetInternalForjData(flag_name) ; found {
+		return
 	}
+	gotrace.Trace("'%s' candidate as parameters.", flag_name)
+	parameter_name := d.InstanceName + "-" + flag_name
+	if v, err := a.cli.GetAppStringValue(parameter_name); err != nil {
+		if forjj_interpret.MatchString(v) {
+			gotrace.Trace("Interpreting '%s' from '%s'", v, parameter_name)
+			// Initialized defaults value from templates
+			var doc bytes.Buffer
+
+			if t, err := template.New("forj-data").Parse(v); err != nil {
+				gotrace.Trace("Unable to interpret Parameter '%s' value '%s'. %s", parameter_name, v, err)
+				return "", false
+			} else {
+				t.Execute(&doc, a.InternalForjData)
+			}
+
+			v = doc.String()
+			gotrace.Trace("'%s' interpreted to '%s'", parameter_name, v)
+		}
+		gotrace.Trace("Set: '%s' <= '%s'", flag_name, v)
+		return v, true
+	} else {
+		gotrace.Trace("%s", err)
+		return
+	}
+}
+
+func (a *Forj) GetInternalForjData(flag_name string) (v string, found bool) {
+	forjj_regexp, _ := regexp.Compile("forjj-(.*)")
+	forjj_vars := forjj_regexp.FindStringSubmatch(flag_name)
+	if forjj_vars != nil {
+		v, found = a.InternalForjData[forjj_vars[1]]
+	}
+	return
 }

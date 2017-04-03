@@ -1,0 +1,16 @@
+# vim: syntax=yaml
+---
+local-settings:
+  docker-exe-path: "~/<<Path To Your Static Docker Binary>>"
+forj-settings:
+  organization: "<<Your Organization Name in Github>>"
+applications:
+  github:
+    type: upstream
+    token: <<Your Github Token>>
+  jenkins:
+    type: ci
+repositories:
+  forjj-example:
+    # flow: "pull_request" # Optionnel: Par défaut, pas de flow. ou le flow par défaut de la forge.
+    title: "Forjj blueprint examples"

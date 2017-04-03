@@ -71,6 +71,7 @@ fi
 
 if [ "$BUILD_ENV_PATH" = "" ]
 then
+   export CGO_ENABLED=0
    export BUILD_ENV_LOADED=true
    export BUILD_ENV_PROJECT=$(pwd)
    BUILD_ENV_PATH=$PATH

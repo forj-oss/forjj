@@ -1,4 +1,4 @@
-package main
+package forjfile
 
 import (
 	"encoding/json"
@@ -7,9 +7,9 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
+	"forjj/utils"
 )
 
 const forjj_workspace_json_file = "forjj.json"
@@ -24,42 +24,99 @@ type Workspace struct {
 	Driver                 string              // Infra upstream driver name
 	Instance               string              // Infra upstream instance name
 	Infra                  *goforjj.PluginRepo // Infra-repo definition
-	DockerBinPath          string              // Docker static binary path
-	Contrib_repo_path      string              // Contrib Repo path used.
-	Flow_repo_path         string              // Flow repo path used.
-	Repotemplate_repo_path string              // Repotemplate Path used.
 	workspace              string              // Workspace name
 	workspace_path         string              // Workspace directory path.
 	error                  error               // Error detected
+	is_workspace           bool                // True if instance is the workspace data to save in Workspace path.
+	WorkspaceStruct
 }
 
-func (w *Workspace) Init() {
+/*func (w *WorkspaceStruct)MarshalYAML() (interface{}, error) {
+
+}*/
+
+func (w *Workspace)Init() {
+	if w == nil {
+		return
+	}
 	w.Infra = goforjj.NewRepo()
 }
 
-func (w *Workspace) SetPath(Workspace_path string) {
-	if Workspace_path == "" {
-		return
+func (w *Workspace) SetPath(Workspace_path string) error {
+	if w == nil {
+		return fmt.Errorf("Workspace object nil.")
 	}
-	Workspace_path, _ = Abs(path.Clean(Workspace_path))
+	if Workspace_path == "" {
+		return fmt.Errorf("Workspace path not defined.")
+	}
+	Workspace_path, _ = utils.Abs(path.Clean(Workspace_path))
 	w.workspace_path = path.Dir(Workspace_path)
 	w.workspace = path.Base(Workspace_path)
 	gotrace.Trace("Use workspace : %s (%s / %s)", w.Path(), w.workspace_path, w.workspace)
+	return nil
+}
+
+func (w *Workspace) RequireWorkspacePath() error {
+	if w.workspace == "" {
+		return fmt.Errorf("Workspace path not defined.")
+	}
+	aPath := w.Path()
+	if _, err := os.Stat(aPath) ; err != nil {
+		if err = os.Mkdir(aPath, 0755) ; err != nil {
+			return fmt.Errorf("Unable to create Workspace path '%s'. %s", aPath, err)
+		}
+		gotrace.Trace("Workspace path '%s' has been created.", aPath)
+		return nil
+	}
+	gotrace.Trace("Workspace path '%s' has been re-used.", aPath)
+	return nil
+}
+
+func (w *Workspace) SetFrom(aWorkspace WorkspaceStruct) {
+	if w == nil {
+		return
+	}
+	w.WorkspaceStruct = aWorkspace
+}
+
+// InfraPath Return the path which contains the workspace.
+// As the workspace is in the root or the infra repository, that
+// path is then the Infra path.
+// Note: The infra name is the repository name, ie the upstream
+// repo name. This name is not necessarily the base name of the
+// Infra path, because we can clone to a different name.
+func (w *Workspace) InfraPath() string {
+	if w == nil {
+		return ""
+	}
+	return w.workspace_path
 }
 
 // Path Provide the workspace absolute path
 func (w *Workspace) Path() string {
+	if w == nil {
+		return ""
+	}
+
 	return path.Clean(path.Join(w.workspace_path, w.workspace))
 }
 
 // Name Provide the workspace Name
 func (w *Workspace) Name() string {
+	if w == nil {
+		return ""
+	}
+
 	return w.workspace
 }
 
 // Ensure workspace path exists. So, if missing, it will be created.
 // The current path (pwd) is moved to the existing workspace path.
 func (w *Workspace) Ensure_exist() (string, error) {
+	if w == nil {
+		return "", fmt.Errorf("Workspace is nil.")
+	}
+
 	w_path := w.Path()
 	_, err := os.Stat(w_path)
 	if os.IsNotExist(err) {
@@ -72,7 +129,10 @@ func (w *Workspace) Ensure_exist() (string, error) {
 }
 
 // Check if a workspace exist or not
-func (w *Workspace) check_exist() (bool, error) {
+func (w *Workspace) Check_exist() (bool, error) {
+	if w == nil {
+		return false, fmt.Errorf("Workspace is nil.")
+	}
 	w_path := w.Path()
 	_, err := os.Stat(w_path)
 	if os.IsNotExist(err) {
@@ -82,7 +142,10 @@ func (w *Workspace) check_exist() (bool, error) {
 
 }
 
-func (w *Workspace) Save(app *Forj) {
+func (w *Workspace) Save() {
+	if w == nil {
+		return
+	}
 	var djson []byte
 
 	workspace_path, err := w.Ensure_exist()
@@ -99,9 +162,27 @@ func (w *Workspace) Save(app *Forj) {
 	gotrace.Trace("File '%s' saved with '%s'", fjson, djson)
 }
 
+func (w *Workspace) Error() error {
+	if w == nil {
+		return fmt.Errorf("Workspace is nil.")
+	}
+	return w.error
+}
+
+func (w *Workspace) SetError(err error) error{
+	if w == nil {
+		return fmt.Errorf("Workspace is nil.")
+	}
+	w.error = err
+	return w.error
+}
+
 // Load workspace information from the forjj.json
 // Workspace path is get from forjj and set kept in the workspace as reference for whole forjj thanks to a.w.Path()
 func (w *Workspace) Load() error {
+	if w == nil {
+		return fmt.Errorf("Workspace is nil.")
+	}
 	if w.workspace_path == "" || w.workspace == "" {
 		return fmt.Errorf("Invalid workspace. name or path are empty.")
 	}
@@ -110,6 +191,7 @@ func (w *Workspace) Load() error {
 
 	_, err := os.Stat(fjson)
 	if os.IsNotExist(err) {
+		gotrace.Trace("'%s' not found. Workspace data not loaded.", fjson)
 		return nil
 	}
 	if err != nil {
@@ -123,33 +205,8 @@ func (w *Workspace) Load() error {
 	}
 
 	if err := json.Unmarshal(djson, &w); err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Unable to load '%s'. %s", fjson, err)
 	}
-	gotrace.Trace("File '%s' loaded.", fjson)
+	gotrace.Trace("Workspace data loaded from '%s'.", fjson)
 	return nil
-}
-
-// When this function is called, it will
-// try to identify if we are in an existing workspace
-// It will return the path found.
-// You will need to call Init(path) and later Load()
-func (w *Workspace) DetectIt() (string, error) {
-	var pwd string
-
-	gotrace.Trace("Detecting FORJJ workspace...")
-	if v, err := os.Getwd(); err != nil {
-		return "", err
-	} else {
-		pwd = v
-	}
-	for {
-		if _, err := os.Stat(path.Join(pwd, forjj_workspace_json_file)); err == nil {
-			gotrace.Trace("Found workspace at '%s'", pwd)
-			return pwd, nil
-		}
-		pwd = path.Dir(pwd)
-		if pwd == "/" {
-			return "", fmt.Errorf("Unable to find a valid workspace from your path.")
-		}
-	}
 }

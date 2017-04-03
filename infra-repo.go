@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
-	"log"
+	//"fmt"
+	//"github.com/forj-oss/forjj-modules/trace"
+	//"github.com/forj-oss/goforjj"
+	//"log"
 )
 
 // This function will ensure minimal git repo exists to store resources plugins data files.
@@ -12,10 +12,10 @@ import (
 // Used by create/update actions only.
 // In case of create a commit must be created but the push will be possible only when the upstream will be created through maintain step.
 // If the repo already exist from the upstream, it will be simply restored.
-func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra bool) {
+/*func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra bool) {
 	defer gotrace.Trace("Exiting ensure_infra_exists")
 
-	if err = a.ensure_local_repo_initialized(a.w.Infra.Name); err != nil {
+	if err = a.i.EnsureInitialized(); err != nil {
 		err = fmt.Errorf("Unable to ensure infra repository gets initialized. %s.", err)
 		return
 	}
@@ -23,27 +23,8 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 	// Now, we are in the infra repo root directory. But at least is completely empty.
 
 	// Build Managed Forjj Repos list in memory.
-	err = a.BuildReposList(action)
-	if err != nil {
-		return
-	}
-
-	// Set the Initial data & README.md content for the infra repository.
-	if _, found := a.r.Repos[a.w.Infra.Name]; !found {
-		gotrace.Trace("Defining your Infra-repository %s", a.w.Infra.Name)
-		// TODO: Refer to a repotemplate to create the README.md content and file.
-		r := goforjj.PluginRepoData{
-			Title:     fmt.Sprintf("Infrastructure Repository for the organization %s", a.w.Organization),
-			Instance:  a.w.Instance,
-			Templates: make([]string, 0),
-			Users:     make(map[string]string),
-			Groups:    make(map[string]string),
-			Options:   make(map[string]string),
-		}
-		if v, found := a.o.Defaults["flow"]; found {
-			r.Flow = v
-		}
-		a.r.Repos[a.w.Infra.Name] = &r
+	if action == "create" {
+		a.AddReposFromCli()
 	}
 
 	a.infra_readme = fmt.Sprintf("Infrastructure Repository for the organization %s", a.w.Organization)
@@ -144,7 +125,7 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 			log.Printf("As the upstream service already exists, forjj has only fetched your workspace infra repository from '%s'.", a.w.Infra.GetOrigin())
 
 			// Then re-apply cli default options and repos back to the existing restored code.
-			a.LoadForjjOptions()
+			a.LoadForge()
 
 			// Build Managed Forjj Repos list in memory.
 			err = a.BuildReposList(action)
@@ -156,4 +137,4 @@ func (a *Forj) ensure_infra_exists(action string) (err error, aborted, new_infra
 		}
 	}
 	return
-}
+}*/

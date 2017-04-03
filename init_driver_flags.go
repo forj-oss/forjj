@@ -7,15 +7,16 @@ import (
 	"log"
 	"regexp"
 	"sort"
+	"forjj/drivers"
 )
 
 // initDriverObjectFlags internally used by init_driver_flags()
 type initDriverObjectFlags struct {
 	// Initialized by init_driver_flags()
-	d             *Driver
+	d             *drivers.Driver
 	a             *Forj
 	instance_name string
-	d_opts        *DriverOptions
+	d_opts        *drivers.DriverOptions
 
 	// Initialized by determine_object()
 	object_name string
@@ -26,12 +27,16 @@ type initDriverObjectFlags struct {
 	validActions  []string
 	allActions    bool
 	defineActions map[string]bool
+
+	// Used by add_object_actions_flags()
+	object_instance_name string
 }
 
+// set_task_flags read the driver in task_flags/create and get the list of flags to create as cli action flag.
 func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string]goforjj.YamlFlag) {
 	service_type := id.d.DriverType
 
-	if _, ok := id.a.drivers[id.instance_name].cmds[command]; !ok {
+	if ok := id.a.drivers[id.instance_name].IsValidCommand(command); !ok {
 		log.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.",
 			service_type, command)
 	}
@@ -49,31 +54,47 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 		// drivers flags starting with --forjj are a way to communicate some forjj internal data to the driver.
 		// They are not in the list of possible drivers options from the cli.
 		if ok, _ := regexp.MatchString("forjj-.*", option_name); ok {
-			id.d.cmds[command].flags[option_name] = DriverCmdOptionFlag{driver_flag_name: option_name} // No value by default. Will be set later after complete parse.
+			// No value by default. Will be set later after complete parse.
+			id.d.InitCmdFlag(command, option_name, option_name)
 			continue
 		}
 
 		forjj_option_name := id.instance_name + "-" + option_name
-		flag_opts := id.d_opts.set_flag_options(option_name, &flag_options.Options)
+		flag_opts := id.d_opts.SetFlagOptions(option_name, &flag_options.Options, id.task_has_value)
 		if command == "common" {
 			// loop on create/update/maintain to create flag on each command
 			gotrace.Trace("Create common flags '%s' to App layer.", forjj_option_name)
-			id.d.init_driver_flags_for(id.a, option_name, "", forjj_option_name, flag_options.Help, flag_opts)
+			id.a.init_driver_flags_for(id.d, option_name, "", forjj_option_name, flag_options.Help, flag_opts)
 		} else {
-			id.d.init_driver_flags_for(id.a, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
+			id.a.init_driver_flags_for(id.d, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
 		}
 	}
 
 }
 
+// task_has_value will determine which default value to add to a cli flag.
+// It is called in the context of a plugin `task_flags`
+// It is searching in creds (creds.YamlSecure) and in Forjfile (forjfile.Forge)
+//
+// If a value is found in both creds and Forjfile, creds is chosen.
+func (id *initDriverObjectFlags) task_has_value(flag string) (value string, found bool) {
+	value, found = id.a.s.Get(id.object_name, id.object_instance_name, flag)
+	if found { // Any credential data are simply ignored
+		return
+	}
+	return id.a.f.Get("settings", "", flag)
+}
+
+// determine_object identify an existing object or create a new one with a key if not single.
 func (id *initDriverObjectFlags) determine_object(object_name string, object_det *goforjj.YamlObject) (new bool) {
 	id.object_det = object_det
 	id.object_name = object_name
 	flag_key := id.object_det.Identified_by_flag
 
 	if o := id.a.cli.GetObject(object_name); o != nil {
-		if o.IsInternal() {
+		if o.HasRole() == "internal" {
 			gotrace.Trace("'%s' object definition is invalid. This is an internal forjj object. Ignored.", object_name)
+			id.obj = nil
 			return
 		}
 		id.obj = o
@@ -81,7 +102,7 @@ func (id *initDriverObjectFlags) determine_object(object_name string, object_det
 	} else {
 		// New Object and get the key.
 		new = true
-		id.obj = id.a.cli.NewObject(object_name, id.object_det.Help, false)
+		id.obj = id.a.cli.NewObject(object_name, id.object_det.Help, "")
 		if flag_key == "" {
 			id.obj.Single()
 			gotrace.Trace("New single object '%s'", object_name)
@@ -90,8 +111,12 @@ func (id *initDriverObjectFlags) determine_object(object_name string, object_det
 				gotrace.Trace("Unable to create the object '%s' identified by '%s'. '%s' is not defined.",
 					object_name, flag_key, flag_key)
 			} else {
-				flag_opts := id.d_opts.set_flag_options(flag_key, &v.Options)
-				id.obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp, flag_opts)
+				flag_opts := id.d_opts.SetFlagOptions(flag_key, &v.Options, id.d_opts.HasValue)
+				if v.FormatRegexp == "" {
+					id.obj.AddKey(cli.String, flag_key, v.Help, ".*", flag_opts)
+				} else {
+					id.obj.AddKey(cli.String, flag_key, v.Help, v.FormatRegexp, flag_opts)
+				}
 			}
 			gotrace.Trace("New object '%s' with key '%s'", object_name, flag_key)
 		}
@@ -109,18 +134,42 @@ func (id *initDriverObjectFlags) prepare_actions_list() {
 	}
 }
 
+// is_object_scope determine if the field scope should be global or not
+// It decides in the following order:
+// - at yaml flag level (/objects/<object_name>/flags/<flag_name>)
+// - at yaml object level (/objects/<object_name>)
+// - from object role
+func (id *initDriverObjectFlags) is_field_object_scope(flag_det *goforjj.YamlFlag) (bool) {
+	if v := flag_det.FieldScope ; v != "" {
+		return (v == "object")
+	}
+	if v := id.object_det.FieldsScope ; v != "" {
+		return (v == "object")
+	}
+	return (id.obj.HasRole() == "object-scope")
+}
+
 func (id *initDriverObjectFlags) add_object_fields(flag_name string, flag_det *goforjj.YamlFlag, default_actions []string) (flag_updated bool) {
-	d := id.a.drivers[id.instance_name]
-	d_opts := id.a.drivers_options.Drivers[id.instance_name]
-	service_type := d.DriverType
 	if id.obj.HasField(flag_name) {
 		gotrace.Trace("Object '%s': Field '%s' has already been defined as an object field. Ignored.",
 			id.obj.Name(), flag_name)
 		return
 	}
-	flag_opts := d_opts.set_flag_options(flag_name, &flag_det.Options)
-	id.obj.AddInstanceField(id.instance_name, cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, flag_opts)
-	gotrace.Trace("Object Instance '%s-%s': Field '%s' added.", id.obj.Name(), id.instance_name, flag_name)
+
+	if id.is_field_object_scope(flag_det) {
+		if flag_det.FormatRegexp == "" {
+			id.obj.AddField(cli.String, flag_name, flag_det.Help, ".*", nil)
+		} else {
+			id.obj.AddField(cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, nil)
+		}
+
+		gotrace.Trace("Object '%s' field '%s' added.", id.obj.Name(), flag_name)
+	} else {
+		for _, instance_name := range id.obj.GetInstances() {
+			id.obj.AddInstanceField(instance_name, cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, nil)
+			gotrace.Trace("Object Instance '%s-%s': Field '%s' added.", id.obj.Name(), instance_name, flag_name)
+		}
+	}
 
 	// Checking flag actions definition.
 	if flag_det.Actions != nil {
@@ -128,7 +177,7 @@ func (id *initDriverObjectFlags) add_object_fields(flag_name string, flag_det *g
 			action_name := inStringList(action, id.validActions...)
 			if action_name == "" {
 				log.Printf("FORJJ Driver '%s-%s': Invalid action '%s' for field '%s'. Accept only '%s'. Ignored.",
-					service_type, d.Name, action, flag_name, id.validActions)
+					id.d.DriverType, id.d.Name, action, flag_name, id.validActions)
 				// Remove this bad Action name from yaml loaded driver.
 				flag_det.Actions = arrayStringDelete(flag_det.Actions, action)
 				flag_updated = true
@@ -179,23 +228,81 @@ func (id *initDriverObjectFlags) add_object_actions() []string {
 
 // add_object_actions_flags
 // warning: Ensure flag_det.Actions is properly set before calling this function.
-func (id *initDriverObjectFlags) add_object_actions_flags(flag_name string, flag_det goforjj.YamlFlag, actionsToAdd []string) {
+func (id *initDriverObjectFlags) add_object_actions_flags(
+	flag_name string,
+	flag_det *goforjj.YamlFlag,
+	actionsToAdd []string,
+) {
 	if ok, _ := regexp.MatchString("forjj-.*", flag_name); ok {
 		gotrace.Trace("Object '%s': '%s' is an internal FORJJ variable. Not added in any object actions.",
 			id.object_name, flag_name)
 		return
 	}
 
-	id.obj.OnActions(flag_det.Actions...)
-	gotrace.Trace("Object '%s': Adding flag '%s' for actions '%s'.", id.object_name, flag_name, flag_det.Actions)
-	id.obj.AddFlag(flag_name, nil)
+	id.add_object_actions_flag(flag_det.Actions, flag_name, flag_det)
 
 	if flag_det.Options.Secure {
-		flag_opts := id.d_opts.set_flag_options(flag_name, &flag_det.Options)
-		id.a.cli.OnActions(maint_act).
-			WithObjectInstance(id.object_name, id.instance_name).
-			AddActionFlagFromObjectField(flag_name, flag_opts)
+		id.add_object_actions_flag([]string{"maintain"}, flag_name, flag_det)
 		gotrace.Trace("Object '%s': Secure field '%s' added to maintain task.", id.object_name, flag_name)
 	}
+}
 
+// is_object_scope determine if the field scope should be global or not
+// It decides in the following order:
+// - at yaml flag level (/objects/<object_name>/flags/<flag_name>)
+// - at yaml object level (/objects/<object_name>)
+// - from object role
+func (id *initDriverObjectFlags) is_flag_object_scope(flag_name string, flag_det *goforjj.YamlFlag) (bool) {
+	if v := flag_det.FlagScope; v != "" {
+		// if the flag exist as a global field, so we can't create an instance flag. No instance.
+		if found, asObjectField := id.obj.IsObjectField(flag_name) ; v == "instance" && found && asObjectField{
+			return true
+		}
+		return (v == "object")
+	}
+	if v := id.object_det.FlagsScope; v != "" {
+		return (v == "object")
+	}
+	return (id.obj.HasRole() == "object-scope")
+}
+
+func (id *initDriverObjectFlags) add_object_actions_flag(actions []string, flag_name string, flag_det *goforjj.YamlFlag) {
+	gotrace.Trace("Object '%s': Adding flag '%s' for actions '%s'.", id.object_name, flag_name, flag_det.Actions)
+
+	if id.is_flag_object_scope(flag_name, flag_det) {
+		id.obj.OnActions(actions...)
+		id.object_instance_name = ""
+		flag_opts := id.d_opts.SetFlagOptions(flag_name, &flag_det.Options, id.object_instance_has_value)
+		id.obj.AddFlag(flag_name, flag_opts)
+		return
+	}
+	for _, id.object_instance_name = range id.obj.GetInstances() {
+		flag_opts := id.d_opts.SetFlagOptions(flag_name, &flag_det.Options, id.object_instance_has_value)
+		id.a.cli.OnActions(actions...).
+			WithObjectInstance(id.object_name, id.object_instance_name).
+			AddActionFlagFromObjectField(flag_name, flag_opts)
+	}
+}
+
+// object_instance_has_value will determine which default value to add to a cli flag.
+// It is called in the context of a plugin `object_fields`
+// It is searching in creds (drivers.DriverOptions) and in Forjfile (forjfile.Forge)
+//
+// If a value is found in both creds and Forjfile, creds is chosen.
+//
+// In Forjfile, an object flag is set in several yaml sections. The mapping is:
+// Objects:
+// - app => /applications
+// - repo => /repositories
+// - user => /forj/users
+// - group => /forj/groups
+//
+// Any other objects are in /forj/<object>
+//
+func (id *initDriverObjectFlags) object_instance_has_value(flag string) (value string, found bool) {
+	value, found = id.d_opts.HasValue(flag)
+	if found {
+		return
+	}
+	return id.a.f.Get(id.object_name, id.object_instance_name ,flag)
 }
