@@ -134,9 +134,9 @@ func BranchExist(remote string) (bool, error) {
 
 func RemoteStatus(remote string) (string, error) {
 	var local_rev, remote_rev, base_rev string
-	if v, err := Get("rev-parse", "@") ; err != nil          { return "", err } else { local_rev = v }
-	if v, err := Get("rev-parse", remote) ; err != nil       { return "", err } else { remote_rev = v }
-	if v, err := Get("merge-base", "@", remote) ; err != nil { return "", err } else { base_rev = v }
+	if v, err := Get("rev-parse", "@{0}") ; err != nil          { return "", err } else { local_rev = v  }
+	if v, err := Get("rev-parse", remote) ; err != nil          { return "", err } else { remote_rev = v }
+	if v, err := Get("merge-base", "@{0}", remote) ; err != nil { return "", err } else { base_rev = v   }
 
 	if local_rev == remote_rev { return "=", nil }
 	if local_rev == base_rev   { return "-1", nil }
