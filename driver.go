@@ -155,6 +155,10 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		return err, false
 	}
 
+	if found, _ := goforjj.InArray(instance_name, a.debug_instances) ; found {
+		d.Plugin.RunningFromDebugger()
+	}
+
 	d.Plugin.PluginSetSource(path.Join(a.i.Path(), "apps", d.DriverType))
 	d.Plugin.PluginSetWorkspace(a.w.Path())
 	d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
