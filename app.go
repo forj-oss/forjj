@@ -63,6 +63,7 @@ type Forj struct {
 	FlowRepo_uri         *url.URL // URL to github raw files for Flows.
 	appMapEntries        map[string]AppMapEntry
 	no_maintain          *bool    // At create time. true to not start maintain task at the end of create.
+	debug_instances      []string // List of instances in debug mode
 	// TODO: enhance infra README.md with a template.
 
 	infra_readme string // Initial infra repo README.md text.
@@ -103,6 +104,7 @@ const (
 	infra_name_f     = "infra-name"        // Name of the infra repository in upstream system
 	infra_upstream_f = "infra-upstream"    // Name of the infra upstream service instance name (github for example)
 	cred_f           = "credentials-file"
+	debug_instance_f = "run-plugin-debugger"
 	orga_f           = "organization"      // Organization name for the Forge. Could be used to set upstream organization.
 	// create flags
 	forjfile_path_f  = "forjfile-path"     // Path where the Forjfile template resides.
@@ -150,6 +152,8 @@ func (a *Forj) init() {
 	a.cli.AddFieldListCapture("ft", `[A-Za-z0-9_ !:/.-]+`)
 
 	a.cli.AddAppFlag(cli.String, cred_f, forjj_creds_help, opts_creds_file)
+	a.cli.AddAppFlag(cli.String, debug_instance_f, "List of plugin instances in debug mode, comma separeted.",
+		nil)
 
 	a.drivers = make(map[string]*drivers.Driver)
 	//a.Actions = make(map[string]*ActionOpts)

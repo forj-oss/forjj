@@ -9,6 +9,7 @@ import (
 	"path"
 	"os"
 	"forjj/utils"
+	"strings"
 )
 
 const Workspace_Name = ".forj-workspace"
@@ -115,6 +116,10 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		d.Plugin.PluginSetWorkspace(a.w.Path())
 		d.Plugin.PluginSetSource(path.Join(a.w.Path(), a.w.Infra.Name, "apps", d.DriverType))
 		d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
+	}
+
+	if i, err := a.cli.GetAppStringValue(debug_instance_f); err == nil && i != "" {
+		a.debug_instances = strings.Split(i, ",")
 	}
 	return nil, true
 }
