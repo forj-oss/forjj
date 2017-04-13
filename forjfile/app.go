@@ -32,6 +32,11 @@ func (a *AppStruct) UnmarshalYAML(unmarchal func(interface{}) error) error {
 	return nil
 }
 
+func (a *AppStruct) MarshalYAML() (interface{}, error) {
+	// Ensure we write only Yaml Data.
+	return a.AppYamlStruct, nil
+}
+
 func (a *AppStruct)Name() string {
 	return a.name
 }
