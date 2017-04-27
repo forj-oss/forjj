@@ -410,9 +410,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 			keys := make(goforjj.InstanceKeys)
 
 			flags := Obj.FlagsRange("setup")
-			if instance_name == "jenkins" && object_name == "app" && d.InstanceName == "jenkins" {
-				gotrace.Trace("test")
-			}
+
 			for key, flag := range flags {
 				if v, found := a.GetInternalForjData(key) ; found {
 					keys[key] = v
