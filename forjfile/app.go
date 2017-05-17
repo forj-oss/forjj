@@ -1,6 +1,9 @@
 package forjfile
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/forj-oss/goforjj"
+)
 
 type AppStruct struct {
 	forge *ForgeYaml
@@ -41,18 +44,19 @@ func (a *AppStruct)Name() string {
 	return a.name
 }
 
-func (a *AppStruct)Get(flag string) (value string, found bool) {
+func (a *AppStruct)Get(flag string) (value *goforjj.ValueStruct, _ bool) {
 	switch flag {
 	case "name":
-		return a.name, true
+		return value.Set(a.name, true)
 	case "type":
-		return a.Type, true
+		return value.Set(a.Type, true)
 	case "driver":
-		return a.Driver, true
+		return value.Set(a.Driver, true)
 	default:
-		value, found = a.More[flag]
-		return
+		v, f := a.More[flag]
+		return value.Set(v, f)
 	}
+	return
 }
 
 func (r *AppStruct)SetHandler(from func(field string)(string, bool), keys...string) {

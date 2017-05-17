@@ -8,6 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"forjj/utils"
 	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 )
 
 // ForjfileTmpl is the Memory expansion of an external Forjfile (used to create a Forge)
@@ -346,49 +347,49 @@ func (f *Forge) GetInfraInstance() string {
 	return f.yaml.Infra.Upstream
 }
 
-func (f *Forge) Get(object, instance, key string) (string, bool) {
-	if ! f.Init() { return "", false }
+func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _ bool) {
+	if ! f.Init() { return }
 	switch object {
 	case "infra":
 		if f.yaml.Infra == nil {
-			return "", false
+			return
 		}
 		if key == "name" {
 			if f.yaml.Infra.More == nil {
-				return "", false
+				return
 			}
 			if v, found := f.yaml.Infra.More["name"] ; found && v != "" {
-				return v, true
+				return value.Set(v, true)
 			}
 			if f.yaml.Infra.name != "" {
-				return f.yaml.Infra.name, true
+				return value.Set(f.yaml.Infra.name, true)
 			}
 		}
 		return f.yaml.Infra.Get(key)
 	case "user":
 		if f.yaml.Users == nil {
-			return "", false
+			return
 		}
 		if user, found := f.yaml.Users[instance] ; found {
 			return user.Get(key)
 		}
 	case "group":
 		if f.yaml.Groups == nil {
-			return "", false
+			return
 		}
 		if group, found := f.yaml.Groups[instance]; found {
 			return group.Get(key)
 		}
 	case "app":
 		if f.yaml.Apps == nil {
-			return "", false
+			return
 		}
 		if app, found := f.yaml.Apps[instance] ; found {
 			return app.Get(key)
 		}
 	case "repo":
 		if f.yaml.Repos == nil {
-			return "", false
+			return
 		}
 		if repo, found := f.yaml.Repos[instance]; found {
 			return repo.Get(key)
@@ -398,7 +399,7 @@ func (f *Forge) Get(object, instance, key string) (string, bool) {
 	default:
 		return f.get(object, instance, key)
 	}
-	return "", false
+	return
 }
 
 func (f *Forge) ObjectLen(object string) (int) {
@@ -437,11 +438,12 @@ func (f *Forge) ObjectLen(object string) (int) {
 	return 0
 }
 
-func (f *Forge) get(object, instance, key string)(value string, found bool)  {
-	if ! f.Init() { return "", false }
+func (f *Forge) get(object, instance, key string)(value *goforjj.ValueStruct, _ bool)  {
+	if ! f.Init() { return }
 	if obj, f1 := f.yaml.More[object] ; f1 {
 		if instance, f2 := obj[instance] ; f2 {
-			value, found = instance[key]
+			v, f := instance[key]
+			value.Set(v, f)
 		}
 	}
 	return

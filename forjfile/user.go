@@ -1,5 +1,7 @@
 package forjfile
 
+import "github.com/forj-oss/goforjj"
+
 type UserStruct struct {
 	forge *ForgeYaml
 	Role string
@@ -8,12 +10,13 @@ type UserStruct struct {
 
 // TODO: Add struct unit tests
 
-func (u *UserStruct) Get(field string) (value string, found bool) {
+func (u *UserStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	switch field {
 	case "role":
-		return u.Role, (u.Role != "")
+		return value.Set(u.Role, (u.Role != ""))
 	default:
-		value, found = u.More[field]
+		v, f := u.More[field]
+		return value.Set(v, f)
 	}
 	return
 }

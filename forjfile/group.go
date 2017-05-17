@@ -1,6 +1,8 @@
 package forjfile
 
-import "strings"
+import (
+	"github.com/forj-oss/goforjj"
+)
 
 type GroupStruct struct {
 	forge *ForgeYaml
@@ -11,19 +13,16 @@ type GroupStruct struct {
 
 // TODO: Add struct unit tests
 
-func (g *GroupStruct) Get(field string) (value string, found bool) {
+func (g *GroupStruct) Get(field string) (value *goforjj.ValueStruct, found bool) {
 	switch field {
 	case "role":
-		return g.Role, (g.Role != "")
+		return value.Set(g.Role, (g.Role != ""))
 	case "members":
-		if g.Members != nil && len(g.Members) > 0 {
-			return strings.Join(g.Members, ","), true
-		}
-		return "", false
+		return value.Set(g.Members, (g.Members != nil && len(g.Members) > 0))
 	default:
-		value, found = g.More[field]
+		v, f := g.More[field]
+		return value.Set(v, f)
 	}
-	return
 }
 
 func (g *GroupStruct) GetMembers() []string {

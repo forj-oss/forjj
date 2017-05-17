@@ -1,5 +1,7 @@
 package forjfile
 
+import "github.com/forj-oss/goforjj"
+
 type ReposStruct map[string]*RepoStruct
 
 func (r ReposStruct) MarshalYAML() (interface{}, error) {
@@ -39,24 +41,25 @@ func (r *RepoStruct)setToInfra(infra *RepoStruct) {
 	infra.is_infra = false // Unset it to ensure data is saved in yaml
 }
 
-func (r *RepoStruct)Get(field string) (value string, found bool) {
+func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	switch field {
 	case "name":
-		return r.name, (r.name != "")
+		return value.Set(r.name, (r.name != ""))
 	case "upstream":
-		return r.Upstream, (r.Upstream != "")
+		return value.Set(r.Upstream, (r.Upstream != ""))
 	case "git-remote":
-		return r.GitRemote, (r.GitRemote != "")
+		return value.Set(r.GitRemote, (r.GitRemote != ""))
 	case "remote":
-		return r.remote, (r.remote != "")
+		return value.Set(r.remote, (r.remote != ""))
 	case "title":
-		return r.Title, (r.Title != "")
+		return value.Set(r.Title, (r.Title != ""))
 	case "flow":
-		return r.Flow, (r.Flow != "")
+		return value.Set(r.Flow, (r.Flow != ""))
 	case "repo-template":
-		return r.RepoTemplate, (r.RepoTemplate != "")
+		return value.Set(r.RepoTemplate, (r.RepoTemplate != ""))
 	default:
-		value, found = r.More[field]
+		v, f := r.More[field]
+		return value.Set(v, f)
 	}
 	return
 }
