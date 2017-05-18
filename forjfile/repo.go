@@ -44,22 +44,22 @@ func (r *RepoStruct)setToInfra(infra *RepoStruct) {
 func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	switch field {
 	case "name":
-		return value.Set(r.name, (r.name != ""))
+		return value.SetIfFound(r.name, (r.name != ""))
 	case "upstream":
-		return value.Set(r.Upstream, (r.Upstream != ""))
+		return value.SetIfFound(r.Upstream, (r.Upstream != ""))
 	case "git-remote":
-		return value.Set(r.GitRemote, (r.GitRemote != ""))
+		return value.SetIfFound(r.GitRemote, (r.GitRemote != ""))
 	case "remote":
-		return value.Set(r.remote, (r.remote != ""))
+		return value.SetIfFound(r.remote, (r.remote != ""))
 	case "title":
-		return value.Set(r.Title, (r.Title != ""))
+		return value.SetIfFound(r.Title, (r.Title != ""))
 	case "flow":
-		return value.Set(r.Flow, (r.Flow != ""))
+		return value.SetIfFound(r.Flow, (r.Flow != ""))
 	case "repo-template":
-		return value.Set(r.RepoTemplate, (r.RepoTemplate != ""))
+		return value.SetIfFound(r.RepoTemplate, (r.RepoTemplate != ""))
 	default:
 		v, f := r.More[field]
-		return value.Set(v, f)
+		return value.SetIfFound(v, f)
 	}
 	return
 }

@@ -247,7 +247,7 @@ func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action
 }
 
 func (a *Forj)moveSecureAppData(flag_name string) {
-	if v, found := a.f.Get("settings", "", flag_name) ; found {
+	if v, found := a.f.GetString("settings", "", flag_name) ; found {
 		a.s.SetForjValue(flag_name, v)
 		a.f.Remove("settings", "", flag_name)
 		gotrace.Trace("Moving secure flag data '%s' from Forjfile to creds.yaml", flag_name)
@@ -278,7 +278,7 @@ func (a *Forj)moveSecureObjectData(object_name, instance, flag_name string) {
 			object_name, instance, flag_name)
 	}
 	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found {
-		a.s.SetObjectValue(object_name, instance, flag_name, v)
+		a.s.SetObjectValue(object_name, instance, flag_name, new(goforjj.ValueStruct).Set(v))
 		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
 	}
 }
@@ -375,12 +375,12 @@ func (a *Forj)ScanAndSetObjectData() {
 
 func (a *Forj) IsRepoManaged(d *drivers.Driver, object_name, instance_name string) bool {
 	// Determine if the upstream instance is set to this instance.
-	if v, found := a.f.Get(object_name, instance_name, "git-remote"); found && v != "" {
+	if v, found := a.f.GetString(object_name, instance_name, "git-remote"); found && v != "" {
 		return false
 	}
 	repo_upstream := ""
-	if v, found := a.f.Get(object_name, instance_name, "upstream"); !found {
-		if v, found = a.f.Get("settings", "default", "upstream-instance"); !found {
+	if v, found := a.f.GetString(object_name, instance_name, "upstream"); !found {
+		if v, found = a.f.GetString("settings", "default", "upstream-instance"); !found {
 			return false
 		}
 		repo_upstream = v
@@ -413,16 +413,19 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 
 			for key, flag := range flags {
 				if v, found := a.GetInternalForjData(key) ; found {
-					keys[key] = v
+					if value := new(goforjj.ValueStruct).Set(v) ; value != nil {
+						keys[key] = value
+					}
 					continue
 				}
-				var value string
+
+				value := new(goforjj.ValueStruct)
 				if flag.Options.Secure {
 					// From creds.yml
 					if v, found := a.s.Get(object_name, instance_name, key) ; !found {
 						continue
 					} else {
-						value = v
+						value.Set(v)
 					}
 				} else {
 					// From Forjfile

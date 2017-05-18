@@ -47,14 +47,14 @@ func (a *AppStruct)Name() string {
 func (a *AppStruct)Get(flag string) (value *goforjj.ValueStruct, _ bool) {
 	switch flag {
 	case "name":
-		return value.Set(a.name, true)
+		return value.Set(a.name), true
 	case "type":
-		return value.Set(a.Type, true)
+		return value.Set(a.Type), true
 	case "driver":
-		return value.Set(a.Driver, true)
+		return value.Set(a.Driver), true
 	default:
 		v, f := a.More[flag]
-		return value.Set(v, f)
+		return value.SetIfFound(v, f)
 	}
 	return
 }

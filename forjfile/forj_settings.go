@@ -32,10 +32,10 @@ func (s *ForjSettingsStruct) Get(instance, key string) (value *goforjj.ValueStru
 	}
 	switch key {
 	case "organization":
-		return value.Set(s.Organization, (s.Organization != ""))
+		return value.SetIfFound(s.Organization, (s.Organization != ""))
 	default:
 		v, f := s.More[key]
-		return value.Set(v, f)
+		return value.SetIfFound(v, f)
 	}
 }
 
@@ -73,12 +73,12 @@ func (g *ForjSettingsStruct) set_forge(f *ForgeYaml) {
 func (s *DefaultSettingsStruct) Get(key string) (value *goforjj.ValueStruct, found bool) {
 	switch key {
 	case "upstream-instance":
-		return value.Set(s.UpstreamInstance, (s.UpstreamInstance != ""))
+		return value.SetIfFound(s.UpstreamInstance, (s.UpstreamInstance != ""))
 	case "flow":
-		return value.Set(s.Flow, (s.Flow != ""))
+		return value.SetIfFound(s.Flow, (s.Flow != ""))
 	default:
 		v, f := s.More[key]
-		return value.Set(v, f)
+		return value.SetIfFound(v, f)
 	}
 }
 

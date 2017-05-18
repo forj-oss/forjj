@@ -347,6 +347,11 @@ func (f *Forge) GetInfraInstance() string {
 	return f.yaml.Infra.Upstream
 }
 
+func (f *Forge) GetString(object, instance, key string) (string, bool) {
+	v, found := f.Get(object, instance, key)
+	return v.GetString(), found
+}
+
 func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _ bool) {
 	if ! f.Init() { return }
 	switch object {
@@ -359,10 +364,10 @@ func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _
 				return
 			}
 			if v, found := f.yaml.Infra.More["name"] ; found && v != "" {
-				return value.Set(v, true)
+				return value.Set(v), true
 			}
 			if f.yaml.Infra.name != "" {
-				return value.Set(f.yaml.Infra.name, true)
+				return value.Set(f.yaml.Infra.name), true
 			}
 		}
 		return f.yaml.Infra.Get(key)
@@ -438,12 +443,12 @@ func (f *Forge) ObjectLen(object string) (int) {
 	return 0
 }
 
-func (f *Forge) get(object, instance, key string)(value *goforjj.ValueStruct, _ bool)  {
+func (f *Forge) get(object, instance, key string)(value *goforjj.ValueStruct, found bool)  {
 	if ! f.Init() { return }
 	if obj, f1 := f.yaml.More[object] ; f1 {
 		if instance, f2 := obj[instance] ; f2 {
 			v, f := instance[key]
-			value.Set(v, f)
+			value, found = value.SetIfFound(v, f)
 		}
 	}
 	return

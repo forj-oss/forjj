@@ -16,12 +16,12 @@ type GroupStruct struct {
 func (g *GroupStruct) Get(field string) (value *goforjj.ValueStruct, found bool) {
 	switch field {
 	case "role":
-		return value.Set(g.Role, (g.Role != ""))
+		return value.SetIfFound(g.Role, (g.Role != ""))
 	case "members":
-		return value.Set(g.Members, (g.Members != nil && len(g.Members) > 0))
+		return value.SetIfFound(g.Members, (g.Members != nil && len(g.Members) > 0))
 	default:
 		v, f := g.More[field]
-		return value.Set(v, f)
+		return value.SetIfFound(v, f)
 	}
 }
 

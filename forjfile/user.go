@@ -13,10 +13,10 @@ type UserStruct struct {
 func (u *UserStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	switch field {
 	case "role":
-		return value.Set(u.Role, (u.Role != ""))
+		return value.SetIfFound(u.Role, (u.Role != ""))
 	default:
 		v, f := u.More[field]
-		return value.Set(v, f)
+		return value.SetIfFound(v, f)
 	}
 	return
 }
