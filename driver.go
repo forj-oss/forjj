@@ -196,6 +196,9 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	a.GetObjectsData(plugin_payload, d, action)
 
 	d.Plugin.Result, err = d.Plugin.PluginRunAction(action, plugin_payload)
+	if err != nil {
+		return fmt.Errorf("Internal Error: %s", err), false
+	}
 	if d.Plugin.Result == nil {
 		return fmt.Errorf("An error occured in '%s' plugin. No data has been returned. Please check plugin logs.", instance_name), false
 	}
