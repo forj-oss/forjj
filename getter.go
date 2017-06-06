@@ -53,7 +53,7 @@ func (a *Forj)GetPrefs(field string) (string, bool, error) {
 	if found && !isdefault {
 		return v, found, err
 	}
-	if v, found := a.f.Get(entry.forj_section, entry.forj_instance, entry.forj_field); found {
+	if v, found := a.f.GetString(entry.forj_section, entry.forj_instance, entry.forj_field); found {
 		return v, found, nil
 	}
 	return v, found, err
@@ -69,7 +69,7 @@ func (a *Forj)GetForgePrefs(field string) (v string, found bool, _ error) {
 		entry = e
 	}
 
-	v, found = a.f.Get(entry.forj_section, entry.forj_instance, entry.forj_field)
+	v, found = a.f.GetString(entry.forj_section, entry.forj_instance, entry.forj_field)
 	return
 }
 

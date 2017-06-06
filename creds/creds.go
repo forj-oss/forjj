@@ -6,13 +6,14 @@ import (
 	"gopkg.in/yaml.v2"
 	"github.com/forj-oss/forjj-modules/trace"
 	"fmt"
+	"github.com/forj-oss/goforjj"
 )
 
 type YamlSecure struct {
 	file string
 	updated bool
 	Forj map[string]string
-	Objects map[string]map[string]map[string]string
+	Objects map[string]map[string]map[string]*goforjj.ValueStruct
 }
 
 const default_creds_file = "forjj-creds.yml"
@@ -61,27 +62,27 @@ func (d *YamlSecure)SetForjValue(key, value string) {
 	}
 }
 
-func (d *YamlSecure)SetObjectValue(obj_name, instance_name, key_name, value string) {
+func (d *YamlSecure)SetObjectValue(obj_name, instance_name, key_name string, value *goforjj.ValueStruct) {
 	if d.Objects == nil {
-		d.Objects = make(map[string]map[string]map[string]string)
+		d.Objects = make(map[string]map[string]map[string]*goforjj.ValueStruct)
 	}
-	var instances map[string]map[string]string
-	var keys map[string]string
+	var instances map[string]map[string]*goforjj.ValueStruct
+	var keys map[string]*goforjj.ValueStruct
 	if i, found := d.Objects[obj_name] ; !found  {
-		keys = make(map[string]string)
-		instances = make(map[string]map[string]string)
+		keys = make(map[string]*goforjj.ValueStruct)
+		instances = make(map[string]map[string]*goforjj.ValueStruct)
 		keys[key_name] = value
 		instances[instance_name] = keys
 		d.Objects[obj_name] = instances
 		d.updated = true
 	} else {
 		if k, found := i[instance_name] ; !found {
-			keys = make(map[string]string)
+			keys = make(map[string]*goforjj.ValueStruct)
 			keys[key_name] = value
 			d.Objects[obj_name][instance_name] = keys
 			d.updated = true
 		} else {
-			if v, found := k[key_name] ; !found || value != v {
+			if v, found := k[key_name] ; !found || !value.Equal(v) {
 				k[key_name] = value
 				d.updated = true
 			}
@@ -89,7 +90,12 @@ func (d *YamlSecure)SetObjectValue(obj_name, instance_name, key_name, value stri
 	}
 }
 
-func (d *YamlSecure)Get(obj_name, instance_name, key_name string) (string, bool) {
+func (d *YamlSecure)GetString(obj_name, instance_name, key_name string) (string, bool) {
+	v, found := d.Get(obj_name, instance_name, key_name)
+	return v.GetString(), found
+}
+
+func (d *YamlSecure)Get(obj_name, instance_name, key_name string) (* goforjj.ValueStruct, bool) {
 	if i, found := d.Objects[obj_name] ; found {
 		if k, found := i[instance_name] ; found {
 			if v, found := k[key_name] ; found {
@@ -97,6 +103,6 @@ func (d *YamlSecure)Get(obj_name, instance_name, key_name string) (string, bool)
 			}
 		}
 	}
-	return "", false
+	return nil, false
 }
 

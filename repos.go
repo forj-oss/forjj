@@ -10,11 +10,11 @@ import (
 // DefineDefaultUpstream will set a Defaultupstream if default is not set.
 // In that case, if we have no upstream app or 2 or more upstream apps, an error will be returned.
 func (a *Forj) DefineDefaultUpstream() error {
-	if v, found := a.f.Get("infra", "", "upstream"); found && (v == "none" || v == "") {
+	if v, found := a.f.GetString("infra", "", "upstream"); found && (v == "none" || v == "") {
 		return nil
 	}
 
-	if v, found := a.f.Get("settings", "default", "upstream-instance") ; found {
+	if v, found := a.f.GetString("settings", "default", "upstream-instance") ; found {
 		if theapp, found := a.f.Apps()[v] ; !found {
 			return fmt.Errorf("default '%s' upstream instance not found in applications.", v)
 		} else {

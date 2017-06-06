@@ -1,5 +1,7 @@
 package forjfile
 
+import "github.com/forj-oss/goforjj"
+
 // forj/settings: Collection of key/value pair
 type ForjSettingsStruct struct {
 	is_template bool
@@ -24,19 +26,16 @@ func (f *ForjSettingsStruct) MarshalYAML() (interface{}, error) {
 	return f.ForjSettingsStructTmpl, nil
 }
 
-func (s *ForjSettingsStruct) Get(instance, key string) (value string, found bool) {
+func (s *ForjSettingsStruct) Get(instance, key string) (value *goforjj.ValueStruct, _ bool) {
 	if instance == "default" {
 		return s.Default.Get(key)
 	}
 	switch key {
 	case "organization":
-		if value = s.Organization ; value != "" {
-			found = true
-		}
-		return
+		return value.SetIfFound(s.Organization, (s.Organization != ""))
 	default:
-		value, found = s.More[key]
-		return
+		v, f := s.More[key]
+		return value.SetIfFound(v, f)
 	}
 }
 
@@ -71,21 +70,15 @@ func (g *ForjSettingsStruct) set_forge(f *ForgeYaml) {
 	g.Default.set_forge(f)
 }
 
-func (s *DefaultSettingsStruct) Get(key string) (value string, found bool) {
+func (s *DefaultSettingsStruct) Get(key string) (value *goforjj.ValueStruct, found bool) {
 	switch key {
 	case "upstream-instance":
-		if value = s.UpstreamInstance ; value != "" {
-			found = true
-		}
-		return
+		return value.SetIfFound(s.UpstreamInstance, (s.UpstreamInstance != ""))
 	case "flow":
-		if value = s.Flow ; value != "" {
-			found = true
-		}
-		return
+		return value.SetIfFound(s.Flow, (s.Flow != ""))
 	default:
-		value, found = s.More[key]
-		return
+		v, f := s.More[key]
+		return value.SetIfFound(v, f)
 	}
 }
 

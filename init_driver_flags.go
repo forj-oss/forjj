@@ -78,11 +78,11 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 //
 // If a value is found in both creds and Forjfile, creds is chosen.
 func (id *initDriverObjectFlags) task_has_value(flag string) (value string, found bool) {
-	value, found = id.a.s.Get(id.object_name, id.object_instance_name, flag)
+	value, found = id.a.s.GetString(id.object_name, id.object_instance_name, flag)
 	if found { // Any credential data are simply ignored
 		return
 	}
-	return id.a.f.Get("settings", "", flag)
+	return id.a.f.GetString("settings", "", flag)
 }
 
 // determine_object identify an existing object or create a new one with a key if not single.
@@ -304,5 +304,5 @@ func (id *initDriverObjectFlags) object_instance_has_value(flag string) (value s
 	if found {
 		return
 	}
-	return id.a.f.Get(id.object_name, id.object_instance_name ,flag)
+	return id.a.f.GetString(id.object_name, id.object_instance_name ,flag)
 }
