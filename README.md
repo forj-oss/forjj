@@ -58,7 +58,7 @@ vim Forjfile
 
 ```bash
 mkdir -p ~/bin
-wget -O ~/bin/forjj https://github.com/forj-oss/forjj/releases/download/0.9-a/forjj
+wget -O ~/bin/forjj https://github.com/forj-oss/forjj/releases/download/latest/forjj
 chmod +x ~/bin/forjj
 ```
 
