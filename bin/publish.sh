@@ -30,8 +30,11 @@ then
 fi
 
 set -e
-go get -d github.com/itchio/gothub
-go build -o bin/gothub github.com/itchio/gothub
+if [ ! -f bin/gothub ]
+then
+   go get -d github.com/itchio/gothub
+   go build -o bin/gothub github.com/itchio/gothub
+fi
 if [ "$(git rev-parse --abbrev-ref HEAD)" != master ]
 then
    echo "You must be on master branch."
@@ -60,7 +63,7 @@ then
    git tag -d $TAG
 else
    TAG="$(grep VERSION version.go | sed 's/const VERSION="\(.*\)"/\1/g')"
-   if [ "$(git tag | grep "^$TAG$")" = "" ]
+   if [ "$(git tag | grep "^$TAG$")" != "" ]
    then
       echo "Unable to publish $TAG. Already published and released."
       exit 1
