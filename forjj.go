@@ -16,6 +16,7 @@ var (
 	build_branch string
 	build_commit string
 	build_date string
+	build_tag string
 )
 
 // Define the default Docker image to use for running forjj actions task by drivers.
