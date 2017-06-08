@@ -136,7 +136,13 @@ func (a *Forj) init() {
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 
-	version := "forjj V"+ VERSION
+	var version string
+	if PRERELEASE {
+		version = "forjj pre-release V"+ VERSION
+	} else {
+		version = "forjj V"+ VERSION
+	}
+
 	if build_branch != "master" {
 		version += fmt.Sprintf(" branch %s - %s - %s", build_branch, build_date, build_commit)
 	}

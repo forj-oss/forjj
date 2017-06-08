@@ -63,6 +63,7 @@ then
    git tag -d $TAG
 else
    TAG="$(grep VERSION version.go | sed 's/const VERSION="\(.*\)"/\1/g')"
+   PRE_RELEASE="$(grep VERSION version.go | sed 's/const PRERELEASE="\(.*\)"/\1/g')"
    if [ "$(git tag | grep "^$TAG$")" != "" ]
    then
       echo "Unable to publish $TAG. Already published and released."
@@ -91,10 +92,15 @@ then
    if [ $? -ne 0 ]
    then
       # TODO: Remove hardcoded binary name.
-      gothub release --tag $TAG --name forjj --description "Latest version of forjj."
+      gothub release --tag $TAG --name forjj --description "Latest version of forjj." -p
    fi
 else
-   gothub release --tag $TAG --name forjj --description "forjj version $TAG."
+    GOTHUB_PARS=""
+   if [ "$PRE_RELEASE" = true ]
+   then
+      GOTHUB_PARS="-p"
+   fi
+   gothub release --tag $TAG --name forjj --description "forjj version $TAG." $GOTHUB_PARS
 fi
 
 gothub upload --tag $TAG --name forjj --file $GOPATH/bin/forjj --replace
