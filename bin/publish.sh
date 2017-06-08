@@ -38,7 +38,7 @@ then
    exit 1
 fi
 
-REMOTE="$(git remote -v | grep "^upstream$")"
+REMOTE="$(git remote -v | grep "^upstream")"
 if [ "$REMOTE" = "" ]
 then
     echo "upstream is missing. You must have it configured (git@github.com:forj-oss/forjj.git) and rights given to push"
@@ -62,7 +62,8 @@ else
    TAG="$(grep VERSION version.go | sed 's/const VERSION="\(.*\)"/\1/g')"
    if [ "$(git tag | grep "^$TAG$")" = "" ]
    then
-      echo "Unable to publish $TAG. Already published."
+      echo "Unable to publish $TAG. Already published and released."
+      exit 1
    fi
 fi
 
