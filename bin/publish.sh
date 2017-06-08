@@ -50,6 +50,7 @@ then
     exit 1
 fi
 git stash # Just in case
+git fetch upstream
 git reset --hard upstream/master
 
 if [ "$1" = "latest" ]
