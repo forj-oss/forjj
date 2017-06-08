@@ -53,12 +53,11 @@ git stash # Just in case
 git fetch upstream
 git reset --hard upstream/master
 
+set +e
 if [ "$1" = "latest" ]
 then
    TAG=latest
-   set +e
    git tag -d $TAG
-   set -e
 else
    TAG="$(grep VERSION version.go | sed 's/const VERSION="\(.*\)"/\1/g')"
    if [ "$(git tag | grep "^$TAG$")" = "" ]
@@ -66,8 +65,16 @@ else
       echo "Unable to publish $TAG. Already published and released."
       exit 1
    fi
+   if [[ "$1" != "--auto" ]]
+   then
+      echo "You are going to publish version $TAG. Ctrl-C to interrupt or press Enter to go on"
+      read
+   else
+      echo "Publishing version $TAG..."
+   fi
 fi
 
+set -e
 git tag $TAG
 git push -f upstream $TAG
 
