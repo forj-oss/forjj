@@ -143,8 +143,14 @@ func (a *Forj) init() {
 		version = "forjj V"+ VERSION
 	}
 
+	fmt.Printf("branch %s, build_date %s, build_commit %s, build_tag %s.\n",
+		build_branch, build_date, build_commit, build_tag)
+
 	if build_branch != "master" {
-		version += fmt.Sprintf(" branch %s - %s - %s", build_branch, build_date, build_commit)
+		version += fmt.Sprintf(" branch %s", build_branch)
+	}
+	if build_tag == "false" {
+		version += fmt.Sprintf(" patched - %s - %s", build_date, build_commit)
 	}
 
 	a.app.Version(version).Author("Christophe Larsonneur <clarsonneur@gmail.com>")
