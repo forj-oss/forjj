@@ -38,7 +38,8 @@ then
    BUILD_BRANCH=$(git rev-parse --abbrev-ref HEAD)
    BUILD_COMMIT=$(git log --format="%H" -1)
    BUILD_DATE="$(git log --format="%ai" -1 | sed 's/ /_/g')"
-   if [ "$(git tag -l --points-at HEAD)" = "" ]
+   GIT_TAG="$(git tag -l --points-at HEAD)"
+   if [ "$GIT_TAG" = "" ] || [ "$GIT_TAG" = "latest" ]
    then
       BUILD_TAG=false
    else
