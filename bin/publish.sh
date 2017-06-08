@@ -66,6 +66,11 @@ else
       echo "Unable to publish $TAG. Already published and released."
       exit 1
    fi
+   if [[ "$1" != "--auto" ]]
+   then
+      echo "You are going to publish version $TAG. Ctrl-C to interrupt or press Enter to go on"
+      read
+   fi
 fi
 
 git tag $TAG
