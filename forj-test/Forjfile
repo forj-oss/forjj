@@ -1,0 +1,51 @@
+# vim: syntax=yaml
+---
+local-settings:
+  docker-exe-path: "~/tmp/docker-1.12.1"
+applications:
+  github:
+    type: upstream
+    # GITHUB_TOKEN is requested to make it work.
+  jenkins:
+    type: ci
+    deploy-service-addr: jenkins-forjj.eastus.cloudapp.azure.com
+    deploy-service-port: 8081
+repositories:
+  forjj:
+    title: "Build your DevOps environment in minutes - thanks to docker!"
+  forjj-modules:
+    title: "FORJJ Go module to manage forjj cli and data to send out to FORJJ plugins"
+  forjj-contribs:
+    title: "Forjj drivers defining core tasks to real application."
+  goforjj:
+    title: "A go module to facilitate building a FORJJ plugin"
+  jenkins-ci:
+    title: "Jenkins docker image built for forjj"
+  jenkins-install-inits:
+    title: "Part of DevOps - Make your Jenkins as Code a Reality!!! Repository of Jenkins features(groovy/plugins/shell script) to install/maintain."
+  forjj-example:
+    title: "Forjj blueprint examples"
+    issue_tracker: false
+  forjj-repotemplates:
+    title: "Global shared Repository templates to build a predefined repo structure in minutes."
+    issue_tracker: false
+  forjj-flows:
+    title: "Global Forjj flows definition"
+    issue_tracker: false
+forj-settings:
+  organization: "forjj-test"
+users:
+  clarsonneur:
+    role: owner
+  ojacques:
+    role: owner
+groups:
+  Core:
+    members: [ "clarsonneur", "ojacques" ]
+  Contributors:
+    members: [ "arneluehrs" ]
+  gerrit:
+    members: [ "forj-publish" ]
+project:
+  forjj-modules: # Manually defined for now until flow is working.
+    upstream: https://github.com/forj-oss/forjj-modules
