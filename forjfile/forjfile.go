@@ -13,8 +13,8 @@ import (
 
 // ForjfileTmpl is the Memory expansion of an external Forjfile (used to create a Forge)
 type ForjfileTmpl struct {
-	Workspace WorkspaceStruct `yaml:"local-settings"` // See workspace.go
-	ForgeYaml `yaml:",inline"`
+	Workspace WorkspaceStruct // See workspace.go
+	yaml ForgeYaml
 }
 
 // Forge is the Memory expand of a repository Forjfile.
@@ -27,6 +27,8 @@ type Forge struct {
 
 type ForgeYaml struct {
 	updated bool
+	// LocalSettings should not be used from a Forjfile except if this one is a template one.
+	LocalSettings WorkspaceStruct `yaml:"local-settings,omitempty"` // ignored if Normal Forjfile
 	ForjSettings ForjSettingsStruct `yaml:"forj-settings"`
 	Infra *RepoStruct
 	Repos ReposStruct `yaml:"repositories"`
@@ -87,14 +89,15 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 
 	f = new(ForjfileTmpl)
 
-	if e := yaml.Unmarshal(yaml_data, f) ; e != nil {
+	if e := yaml.Unmarshal(yaml_data, &f.yaml) ; e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
 	}
 
+	f.Workspace = f.yaml.LocalSettings
 	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
 	// Setting defaults
-	f.ForgeYaml.set_defaults()
+	f.yaml.set_defaults()
 	loaded = true
 	return
 }
@@ -147,13 +150,11 @@ func (f *Forge)Load() (loaded bool, err error) {
 		file = fi
 	}
 
-	var forjfile_tmpl ForjfileTmpl
-	if e := yaml.Unmarshal(yaml_data, &forjfile_tmpl) ; e != nil {
+	if e := yaml.Unmarshal(yaml_data, &f.yaml) ; e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
 	}
 
-	f.yaml = &forjfile_tmpl.ForgeYaml
 	f.yaml.set_defaults()
 	loaded = true
 	gotrace.Trace("Forge loaded from '%s'.", aPath)
@@ -187,7 +188,7 @@ func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
 func (f *Forge)SetFromTemplate(ft *ForjfileTmpl) {
 	if !f.Init() { return }
 
-	*f.yaml = ft.ForgeYaml
+	*f.yaml = ft.yaml
 	f.yaml.updated = true
 }
 
@@ -603,6 +604,9 @@ func (f *ForgeYaml)Init() {
 }
 
 func (f *ForgeYaml)set_defaults() {
+	// Cleanup LocalSettings to ensure no local setting remain in a Forjfile
+	f.LocalSettings = WorkspaceStruct{}
+
 	if f.Apps != nil {
 		for name, app := range f.Apps {
 			if app == nil { continue }
