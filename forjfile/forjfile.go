@@ -161,6 +161,9 @@ func (f *Forge)Load() (loaded bool, err error) {
 	return
 }
 
+func (f *Forge)Forjfile() *ForgeYaml {
+	return f.yaml
+}
 
 func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
 	file, err = utils.Abs(aPath)

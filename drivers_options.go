@@ -396,7 +396,7 @@ func (a *Forj) IsRepoManaged(d *drivers.Driver, object_name, instance_name strin
 }
 
 // GetObjectsData build the list of Object required by the plugin provided from the cli flags.
-func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, action string) {
+func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, action string) error {
 	// Loop on each plugin object
 	for object_name, Obj := range d.Plugin.Yaml.Objects {
 		Obj_instances := a.f.GetInstances(object_name)
@@ -432,12 +432,16 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 					if v, found := a.f.Get(object_name, instance_name, key) ; !found {
 						continue
 					} else {
-						value = v
+						value.Set(v)
 					}
+				}
+				if err := value.Evaluate(a.Model()) ; err != nil {
+					return err
 				}
 				keys[key] = value
 			}
 			r.AddObjectActions(object_name, instance_name, keys)
 		}
 	}
+	return nil
 }

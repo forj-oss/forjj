@@ -114,6 +114,17 @@ const (
 	message_f        = "message"
 )
 
+type ForjModel struct {
+	Forjfile *forjfile.ForgeYaml
+}
+
+func (a *Forj) Model() *ForjModel {
+	data := ForjModel{
+		Forjfile: a.f.Forjfile(),
+	}
+	return &data
+}
+
 //
 // Define application cli options
 //
