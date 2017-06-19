@@ -226,7 +226,12 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	// Deliver list of Remotes in Internal Forjfile
 	if d.DriverType == "upstream" {
 		for Name, Repo := range d.Plugin.Result.Data.Repos {
+			if a.f.GetInfraName() == Name {
+				a.f.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
+				a.f.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
+			}
 			a.f.Set("repo", Name, "remote", Repo.Remotes["origin"].Ssh)
+			a.f.Set("repo", Name, "remote-url", Repo.Remotes["origin"].Url)
 		}
 	}
 

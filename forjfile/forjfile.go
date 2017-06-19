@@ -126,6 +126,10 @@ func (f *Forge)SetInfraAsRepo() {
 	repo.setFromInfra(f.yaml.Infra)
 }
 
+func (f *Forge)GetInfraName() string {
+	return f.yaml.Infra.name
+}
+
 // Load : Load Forjfile stored in a Repository.
 func (f *Forge)Load() (loaded bool, err error) {
 	var (
