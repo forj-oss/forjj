@@ -48,6 +48,14 @@ func (r *RepoStruct)GetString(field string) (string) {
 	return ""
 }
 
+func (r *RepoStruct)RemoteUrl() string {
+	return r.remote.Url
+}
+
+func (r *RepoStruct)RemoteGit() string {
+	return r.remote.Ssh
+}
+
 func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	switch field {
 	case "name":

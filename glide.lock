@@ -1,5 +1,5 @@
 hash: 3f8f777e11527ce63c26f3a961787911ca4e8bac4392b0f0923b5e58a422dfd2
-updated: 2017-06-19T14:48:43.375763194Z
+updated: 2017-06-19T18:40:31.379047429Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -13,7 +13,7 @@ imports:
 - name: github.com/fatih/color
   version: 62e9147c64a1ed519147b62a56a14e83e2be02c1
 - name: github.com/forj-oss/forjj-modules
-  version: 14e1fe07a3261ed4edd1204f59d63097e2b28e9a
+  version: d304ad5c6a969246676bbe9ebb248bc68232af5e
   subpackages:
   - cli
   - cli/interface
@@ -47,6 +47,8 @@ imports:
   repo: https://go.googlesource.com/sys
   subpackages:
   - unix
+- name: gopkg.in/alecthomas/kingpin.v2
+  version: 7f0871f2e17818990e4eed73f9b5c2f429501228
 - name: gopkg.in/yaml.v2
   version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
 testImports: []
