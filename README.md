@@ -74,6 +74,7 @@ Open http://localhost:8080 to see your Jenkins master.
 
 ## What is behind the scene?
 
+
 Forjj has created 3 things:
 
 1. Your infra repository
@@ -100,7 +101,7 @@ and configure, everything.
 
 Usually, in your team, you have Dev & Ops and ... walls.
 
- ![imgs/devops.png]
+![devops](imgs/devops.png)
 
 If you introduce Infrastructure as Code, are you sure you will contribute
 to remove walls?
