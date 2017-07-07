@@ -8,6 +8,7 @@ applications:
   github:
     type: upstream
     token: <<Your Github Token>>
+    # server: << Your github enterprise server name >>
   jenkins:
     type: ci
 repositories:
