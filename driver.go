@@ -13,6 +13,7 @@ import (
 	"forjj/git"
 	"path"
 	"os"
+	"forjj/forjfile"
 )
 
 const (
@@ -230,8 +231,10 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 				a.f.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
 				a.f.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
 			}
-			a.f.Set("repo", Name, "remote", Repo.Remotes["origin"].Ssh)
-			a.f.Set("repo", Name, "remote-url", Repo.Remotes["origin"].Url)
+			repo_obj := a.f.GetObjectInstance(repo, Name).(*forjfile.RepoStruct)
+			repo_obj.Set("remote", Repo.Remotes["origin"].Ssh)
+			repo_obj.Set("remote-url", Repo.Remotes["origin"].Url)
+			repo_obj.SetInstanceOwner(Repo.Owner)
 		}
 	}
 

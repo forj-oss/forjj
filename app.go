@@ -116,11 +116,23 @@ const (
 
 type ForjModel struct {
 	Forjfile *forjfile.ForgeYaml
+	Current ForjCurrentModel
 }
 
-func (a *Forj) Model() *ForjModel {
+type ForjCurrentModel struct {
+	Type string
+	Name string
+	Data interface{}
+}
+
+func (a *Forj) Model(object_name, instance_name string) *ForjModel {
 	data := ForjModel{
 		Forjfile: a.f.Forjfile(),
+		Current: ForjCurrentModel{
+			Type: object_name,
+			Name: instance_name,
+			Data: a.f.GetObjectInstance(object_name, instance_name),
+		},
 	}
 	return &data
 }

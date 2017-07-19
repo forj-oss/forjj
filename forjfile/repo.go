@@ -1,6 +1,8 @@
 package forjfile
 
-import "github.com/forj-oss/goforjj"
+import (
+	"github.com/forj-oss/goforjj"
+)
 
 type ReposStruct map[string]*RepoStruct
 
@@ -18,6 +20,7 @@ type RepoStruct struct {
 	name         string
 	is_infra     bool
 	forge        *ForgeYaml
+	owner        string
 	Upstream     string `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
 	GitRemote    string `yaml:"git-remote,omitempty"`
 	remote       goforjj.PluginRepoRemoteUrl // Git remote string to use/set
@@ -25,6 +28,10 @@ type RepoStruct struct {
 	Flow         string `yaml:",omitempty"`
 	RepoTemplate string `yaml:"repo-template,omitempty"`
 	More         map[string]string `yaml:",inline"`
+}
+
+func (r *RepoStruct)Owner() string {
+	return r.owner
 }
 
 func (r *RepoStruct)setFromInfra(infra *RepoStruct) {
@@ -140,6 +147,10 @@ func (r *RepoStruct)Set(field, value string) {
 			r.forge.dirty()
 		}
 	}
+}
+
+func (r *RepoStruct)SetInstanceOwner(owner string) {
+	r.owner = owner
 }
 
 func (r *RepoStruct)set_forge(f *ForgeYaml) {

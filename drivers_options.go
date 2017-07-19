@@ -346,22 +346,35 @@ func (a *Forj)ScanAndSetObjectData() {
 				// Do not set app object values for a driver of a different application.
 				if object_name == "app" && instance_name != driver.InstanceName { continue }
 
-				// Do not set repo values not managed by the driver
-				if object_name == "repo" && ! a.IsRepoManaged(driver, object_name, instance_name) { continue }
+				if object_name == "repo" {
+					if instance_owner, is_owner := a.IsRepoManaged(driver, object_name, instance_name) ; is_owner {
+						Repo := a.f.GetObjectInstance(object_name, instance_name).(*forjfile.RepoStruct)
+						// Getting the owner from the upstream plugins result
+						if v, found := a.drivers[instance_owner].Plugin.Result.Data.Repos[instance_name] ; found {
+							Repo.SetInstanceOwner(v.Owner)
+						} else {
+							gotrace.Warning("Unable to set Repository Owner. Unable to find '%s' repository from " +
+								"upstream '%s' driver data Result.", instance_name, instance_owner)
+						}
+					} else {
+						// Do not set repo values not managed by the driver
+						continue
+					}
+				}
 
 				// Object flags
-				for flag2_name, flag := range obj.Flags {
-					if ! flag.Options.Secure {
-						a.copyCliObjectData(object_name, instance_name, flag2_name, flag.Options.Default)
+				for flag2_name, flag2 := range obj.Flags {
+					if ! flag2.Options.Secure {
+						a.copyCliObjectData(object_name, instance_name, flag2_name, flag2.Options.Default)
 						continue
 					}
 					a.moveSecureObjectData(object_name, instance_name, flag2_name)
 				}
 				// Object group flags
 				for group_name, group := range obj.Groups {
-					for flag3_name, flag := range group.Flags {
-						if ! flag.Options.Secure {
-							a.copyCliObjectData(object_name, instance_name, group_name + "-" + flag3_name, flag.Options.Default)
+					for flag3_name, flag3 := range group.Flags {
+						if ! flag3.Options.Secure {
+							a.copyCliObjectData(object_name, instance_name, group_name + "-" + flag3_name, flag3.Options.Default)
 							continue
 						}
 						a.moveSecureObjectData(object_name, instance_name, group_name + "-" + flag3_name)
@@ -373,26 +386,36 @@ func (a *Forj)ScanAndSetObjectData() {
 	}
 }
 
-func (a *Forj) IsRepoManaged(d *drivers.Driver, object_name, instance_name string) bool {
+// IsRepoManaged check is the upstream driver is the repository owner.
+// It returns the repo owner declared and true if the upstream driver is that owner.
+func (a *Forj) IsRepoManaged(d *drivers.Driver, object_name, instance_name string) (repo_upstream string, is_owner bool) {
 	// Determine if the upstream instance is set to this instance.
-	if v, found := a.f.GetString(object_name, instance_name, "git-remote"); found && v != "" {
-		return false
-	}
-	repo_upstream := ""
-	if v, found := a.f.GetString(object_name, instance_name, "upstream"); !found {
-		if v, found = a.f.GetString("settings", "default", "upstream-instance"); !found {
-			return false
-		}
-		repo_upstream = v
-	} else {
-		repo_upstream = v
+	repo_upstream = a.RepoManagedBy(object_name, instance_name)
+	if repo_upstream == "" {
+		return
 	}
 	if repo_upstream != d.InstanceName {
 		gotrace.Trace("Repo '%s' ignored for driver '%s'. Expect Repo to be managed by '%s'.",
 			instance_name, d.InstanceName, repo_upstream)
-		return false
+		return
 	}
-	return true
+	is_owner = true
+	return
+}
+
+// RepoManagedBy return the upstream instance name that is identified to have the ownership
+func (a *Forj) RepoManagedBy(object_name, instance_name string) (_ string) {
+	// Determine if the upstream instance is set to this instance.
+	if v, found := a.f.GetString(object_name, instance_name, "git-remote"); found && v != "" {
+		return
+	}
+	if v, found := a.f.GetString(object_name, instance_name, "upstream"); found {
+		return v
+	}
+	if v, found := a.f.GetString("settings", "default", "upstream-instance"); found {
+		return v
+	}
+	return
 }
 
 // GetObjectsData build the list of Object required by the plugin provided from the cli flags.
@@ -405,7 +428,11 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 			if object_name == "app" && instance_name != d.InstanceName { continue }
 
 			// Filter on repo to be supported by the driver instance.
-			if object_name == "repo" && ! a.IsRepoManaged(d, object_name, instance_name) { continue }
+			if object_name == "repo" {
+				if _, is_owner := a.IsRepoManaged(d, object_name, instance_name) ; ! is_owner {
+					continue
+				}
+			}
 
 			keys := make(goforjj.InstanceKeys)
 
@@ -435,9 +462,10 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 						value.Set(v)
 					}
 				}
-				if err := value.Evaluate(a.Model()) ; err != nil {
-					return err
+				if err := value.Evaluate(a.Model(object_name, instance_name)) ; err != nil {
+					return fmt.Errorf("Unable to evaluate '%s'. %s", value.GetString(), err)
 				}
+				gotrace.Trace("%s/%s: Key '%s' has been set to '%s'", object_name, instance_name, key, value.GetString())
 				keys[key] = value
 			}
 			r.AddObjectActions(object_name, instance_name, keys)
