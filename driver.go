@@ -224,6 +224,8 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		return err, aborted
 	}
 
+	// Dispatch driver information in Forjj
+
 	// Deliver list of Remotes in Internal Forjfile
 	if d.DriverType == "upstream" {
 		for Name, Repo := range d.Plugin.Result.Data.Repos {
@@ -235,7 +237,12 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 			repo_obj.Set("remote", Repo.Remotes["origin"].Ssh)
 			repo_obj.Set("remote-url", Repo.Remotes["origin"].Url)
 			repo_obj.SetInstanceOwner(Repo.Owner)
+			repo_obj.SetPluginOwner(d)
 		}
+	}
+	// Collect application API if published by the driver.
+	if u, found := d.Plugin.Result.Data.Services.Urls["api_url"]; found {
+		d.DriverAPIUrl = u
 	}
 
 	return

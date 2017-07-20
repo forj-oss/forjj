@@ -2,6 +2,7 @@ package forjfile
 
 import (
 	"github.com/forj-oss/goforjj"
+	"forjj/drivers"
 )
 
 type ReposStruct map[string]*RepoStruct
@@ -21,6 +22,7 @@ type RepoStruct struct {
 	is_infra     bool
 	forge        *ForgeYaml
 	owner        string
+	driverOwner  *drivers.Driver
 	Upstream     string `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
 	GitRemote    string `yaml:"git-remote,omitempty"`
 	remote       goforjj.PluginRepoRemoteUrl // Git remote string to use/set
@@ -151,6 +153,24 @@ func (r *RepoStruct)Set(field, value string) {
 
 func (r *RepoStruct)SetInstanceOwner(owner string) {
 	r.owner = owner
+}
+
+func (r *RepoStruct)SetPluginOwner(d *drivers.Driver) {
+	r.driverOwner = d
+}
+
+func (r *RepoStruct)RemoteType() string {
+	if r.driverOwner == nil {
+		return "git"
+	}
+	return r.driverOwner.Name
+}
+
+func (r *RepoStruct)UpstreamAPIUrl() string {
+	if r.driverOwner == nil {
+		return ""
+	}
+	return r.driverOwner.DriverAPIUrl
 }
 
 func (r *RepoStruct)set_forge(f *ForgeYaml) {
