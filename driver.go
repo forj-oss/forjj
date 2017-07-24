@@ -13,6 +13,7 @@ import (
 	"forjj/git"
 	"path"
 	"os"
+	"forjj/forjfile"
 )
 
 const (
@@ -193,7 +194,9 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	a.LoadInternalData()
 	a.GetForjjFlags(plugin_payload, d, "common")
 	a.GetForjjFlags(plugin_payload, d, action)
-	a.GetObjectsData(plugin_payload, d, action)
+	if err := a.GetObjectsData(plugin_payload, d, action) ; err != nil {
+		return fmt.Errorf("Unable to Get Object data on '%s'. %s", instance_name, err), aborted
+	}
 
 	d.Plugin.Result, err = d.Plugin.PluginRunAction(action, plugin_payload)
 	if err != nil {
@@ -219,6 +222,27 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 			aborted = true // So, when a plugin return 419, the plugin task is considered as aborted. So forjj can continue if it is possible. (create/update action case)
 		}
 		return err, aborted
+	}
+
+	// Dispatch driver information in Forjj
+
+	// Deliver list of Remotes in Internal Forjfile
+	if d.DriverType == "upstream" {
+		for Name, Repo := range d.Plugin.Result.Data.Repos {
+			if a.f.GetInfraName() == Name {
+				a.f.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
+				a.f.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
+			}
+			repo_obj := a.f.GetObjectInstance(repo, Name).(*forjfile.RepoStruct)
+			repo_obj.Set("remote", Repo.Remotes["origin"].Ssh)
+			repo_obj.Set("remote-url", Repo.Remotes["origin"].Url)
+			repo_obj.SetInstanceOwner(Repo.Owner)
+			repo_obj.SetPluginOwner(d)
+		}
+	}
+	// Collect application API if published by the driver.
+	if u, found := d.Plugin.Result.Data.Services.Urls["api_url"]; found {
+		d.DriverAPIUrl = u
 	}
 
 	return

@@ -135,8 +135,11 @@ func (a *Forj) Create() error {
 		}
 	}()
 
+	instances := a.define_drivers_execution_order()
+
 	// Loop on drivers requested like github or jenkins
-	for instance, d := range a.drivers {
+	for _, instance := range instances {
+		d := a.drivers[instance]
 		if err, aborted := a.do_driver_task("create", instance); err != nil {
 			if !aborted {
 				return fmt.Errorf("Failed to create '%s' source files. %s", instance, err)
@@ -166,6 +169,28 @@ func (a *Forj) Create() error {
 	// flow_close()
 
 	return nil
+}
+
+func (a *Forj) define_drivers_execution_order() (instances []string) {
+	instances = make([]string, len(a.drivers))
+	drivers := make(map[string]*drivers.Driver)
+	index:=0
+	for name, driver := range a.drivers { drivers[name] = driver }
+	// first: execute upstream infra
+	if instance := a.f.GetInfraInstance() ; instance != "" {
+		instances[index] = instance
+		index++
+		delete(drivers, instance)
+		gotrace.Trace("execution order will start with '%s'", instance)
+	}
+
+	// Get all others.
+	for name := range drivers {
+		instances[index] = name
+		index++
+	}
+	gotrace.Trace("Execution order selected: '%s'", strings.Join(instances, "', '"))
+	return
 }
 
 // Search for upstreams drivers and with or without --infra-upstream setting, the appropriate upstream will define the infra-repo upstream instance to use.

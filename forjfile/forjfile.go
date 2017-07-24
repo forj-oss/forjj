@@ -126,6 +126,10 @@ func (f *Forge)SetInfraAsRepo() {
 	repo.setFromInfra(f.yaml.Infra)
 }
 
+func (f *Forge)GetInfraName() string {
+	return f.yaml.Infra.name
+}
+
 // Load : Load Forjfile stored in a Repository.
 func (f *Forge)Load() (loaded bool, err error) {
 	var (
@@ -161,6 +165,9 @@ func (f *Forge)Load() (loaded bool, err error) {
 	return
 }
 
+func (f *Forge)Forjfile() *ForgeYaml {
+	return f.yaml
+}
 
 func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
 	file, err = utils.Abs(aPath)
@@ -408,6 +415,45 @@ func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _
 	return
 }
 
+func (f *Forge) GetObjectInstance(object, instance string) interface{} {
+	if ! f.Init() { return nil }
+	switch object {
+	case "user":
+		if f.yaml.Users == nil {
+			return nil
+		}
+		if user, found := f.yaml.Users[instance] ; found {
+			return user
+		}
+	case "group":
+		if f.yaml.Groups == nil {
+			return nil
+		}
+		if group, found := f.yaml.Groups[instance]; found {
+			return group
+		}
+	case "app":
+		if f.yaml.Apps == nil {
+			return nil
+		}
+		if app, found := f.yaml.Apps[instance] ; found {
+			return app
+		}
+	case "repo":
+		if f.yaml.Repos == nil {
+			return nil
+		}
+		if repo, found := f.yaml.Repos[instance]; found {
+			return repo
+		}
+	case "settings":
+		return f.yaml.ForjSettings.GetInstance(instance)
+	default:
+		return f.getInstance(object, instance)
+	}
+	return nil
+}
+
 func (f *Forge) ObjectLen(object string) (int) {
 	if ! f.Init() { return 0 }
 	switch object {
@@ -448,12 +494,23 @@ func (f *Forge) get(object, instance, key string)(value *goforjj.ValueStruct, fo
 	if ! f.Init() { return }
 	if obj, f1 := f.yaml.More[object] ; f1 {
 		if instance, f2 := obj[instance] ; f2 {
-			v, f := instance[key]
-			value, found = value.SetIfFound(v, f)
+			v, f3 := instance[key]
+			value, found = value.SetIfFound(v, f3)
 		}
 	}
 	return
 }
+
+func (f *Forge) getInstance(object, instance string) (_ map[string]string) {
+	if ! f.Init() { return }
+	if obj, f1 := f.yaml.More[object] ; f1 {
+		if i, f2 := obj[instance] ; f2 {
+			return i
+		}
+	}
+	return
+}
+
 
 func (f *Forge) SetHandler(object, name string, from func(key string) (string, bool), keys ...string) {
 	if ! f.Init() { return }
@@ -554,6 +611,11 @@ func (f *Forge) setHandler(object, instance string, from func(key string) (strin
 		if v, found := instance_d[key] ; found && v != value {
 			instance_d[key] = value
 			f.yaml.updated = true
+		} else {
+			if !found {
+				instance_d[key] = value
+				f.yaml.updated = true
+			}
 		}
 
 	}

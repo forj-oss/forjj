@@ -39,6 +39,13 @@ func (s *ForjSettingsStruct) Get(instance, key string) (value *goforjj.ValueStru
 	}
 }
 
+func (s *ForjSettingsStruct) GetInstance(instance string) interface{} {
+	if instance == "default" {
+		return s.Default
+	}
+	return s
+}
+
 func (r *ForjSettingsStruct)SetHandler(instance string, from func(field string)(string, bool), keys...string) {
 	for _, key := range keys {
 		if v, found := from(key) ; found {

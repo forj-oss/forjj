@@ -72,7 +72,7 @@ func (a *Forj) do_driver_maintain(instance string) error {
 		}
 		if r, found := d.Plugin.Result.Data.Repos[infra_name] ; found {
 			for name, remote := range r.Remotes {
-				a.i.EnsureGitRemote(remote, name)
+				a.i.EnsureGitRemote(remote.Ssh, name)
 			}
 			for branch, remote := range r.BranchConnect {
 				status, err := a.i.EnsureBranchConnected(branch, remote)

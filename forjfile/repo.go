@@ -1,6 +1,9 @@
 package forjfile
 
-import "github.com/forj-oss/goforjj"
+import (
+	"github.com/forj-oss/goforjj"
+	"forjj/drivers"
+)
 
 type ReposStruct map[string]*RepoStruct
 
@@ -18,13 +21,19 @@ type RepoStruct struct {
 	name         string
 	is_infra     bool
 	forge        *ForgeYaml
-	Upstream     string `yaml:"upstream-app"`
-	GitRemote    string `yaml:"git-remote"`
-	remote       string // Git remote string to use/set
-	Title        string
-	Flow         string
-	RepoTemplate string `yaml:"repo-template"`
+	owner        string
+	driverOwner  *drivers.Driver
+	Upstream     string `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
+	GitRemote    string `yaml:"git-remote,omitempty"`
+	remote       goforjj.PluginRepoRemoteUrl // Git remote string to use/set
+	Title        string `yaml:",omitempty"`
+	Flow         string `yaml:",omitempty"`
+	RepoTemplate string `yaml:"repo-template,omitempty"`
 	More         map[string]string `yaml:",inline"`
+}
+
+func (r *RepoStruct)Owner() string {
+	return r.owner
 }
 
 func (r *RepoStruct)setFromInfra(infra *RepoStruct) {
@@ -41,6 +50,21 @@ func (r *RepoStruct)setToInfra(infra *RepoStruct) {
 	infra.is_infra = false // Unset it to ensure data is saved in yaml
 }
 
+func (r *RepoStruct)GetString(field string) (string) {
+	if v, found := r.Get(field) ; found {
+		return v.GetString()
+	}
+	return ""
+}
+
+func (r *RepoStruct)RemoteUrl() string {
+	return r.remote.Url
+}
+
+func (r *RepoStruct)RemoteGit() string {
+	return r.remote.Ssh
+}
+
 func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	switch field {
 	case "name":
@@ -50,7 +74,9 @@ func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	case "git-remote":
 		return value.SetIfFound(r.GitRemote, (r.GitRemote != ""))
 	case "remote":
-		return value.SetIfFound(r.remote, (r.remote != ""))
+		return value.SetIfFound(r.remote.Ssh, (r.remote.Ssh != ""))
+	case "remote-url":
+		return value.SetIfFound(r.remote.Url, (r.remote.Url != ""))
 	case "title":
 		return value.SetIfFound(r.Title, (r.Title != ""))
 	case "flow":
@@ -92,9 +118,12 @@ func (r *RepoStruct)Set(field, value string) {
 			r.forge.dirty()
 		}
 	case "remote":
-		if r.remote != value {
-			r.remote = value
-			r.forge.dirty()
+		if r.remote.Ssh != value {
+			r.remote.Ssh = value
+		}
+	case "remote-url":
+		if r.remote.Url != value {
+			r.remote.Url = value
 		}
 	case "repo-template":
 		if r.RepoTemplate != value {
@@ -120,6 +149,28 @@ func (r *RepoStruct)Set(field, value string) {
 			r.forge.dirty()
 		}
 	}
+}
+
+func (r *RepoStruct)SetInstanceOwner(owner string) {
+	r.owner = owner
+}
+
+func (r *RepoStruct)SetPluginOwner(d *drivers.Driver) {
+	r.driverOwner = d
+}
+
+func (r *RepoStruct)RemoteType() string {
+	if r.driverOwner == nil {
+		return "git"
+	}
+	return r.driverOwner.Name
+}
+
+func (r *RepoStruct)UpstreamAPIUrl() string {
+	if r.driverOwner == nil {
+		return ""
+	}
+	return r.driverOwner.DriverAPIUrl
 }
 
 func (r *RepoStruct)set_forge(f *ForgeYaml) {

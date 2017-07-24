@@ -32,6 +32,7 @@ type Driver struct {
 											  // - any change in plugin is not failing a running environment.
 											  // - If no plugin is referenced from cli, we can start it without loading it from the plugin.yaml.
 											  // - We can manage plugins versions and update when needed or requested.
+	DriverAPIUrl  string                      // Recognized application API url shared between plugins
 }
 
 func NewDriver(driver, driver_type, instance string, cli_requested bool) *Driver {
