@@ -28,6 +28,7 @@ type Workspace struct {
 	workspace_path         string              // Workspace directory path.
 	error                  error               // Error detected
 	is_workspace           bool                // True if instance is the workspace data to save in Workspace path.
+	clean_entries          []string            // List of keys to ensure removed.
 	WorkspaceStruct
 }
 
@@ -35,11 +36,12 @@ type Workspace struct {
 
 }*/
 
-func (w *Workspace)Init() {
+func (w *Workspace)Init(non_ws_entries []string) {
 	if w == nil {
 		return
 	}
 	w.Infra = goforjj.NewRepo()
+	w.clean_entries = non_ws_entries
 }
 
 func (w *Workspace) SetPath(Workspace_path string) error {
@@ -54,6 +56,21 @@ func (w *Workspace) SetPath(Workspace_path string) error {
 	w.workspace = path.Base(Workspace_path)
 	gotrace.Trace("Use workspace : %s (%s / %s)", w.Path(), w.workspace_path, w.workspace)
 	return nil
+}
+
+func (w *Workspace) GetString(field string) (value string, found bool) {
+	switch field {
+	case "docker-bin-path":
+		return w.DockerBinPath, (w.DockerBinPath != "")
+	case "contrib-repo-path":
+		return w.Contrib_repo_path, (w.Contrib_repo_path != "")
+	case "flow-repo-path":
+		return w.Flow_repo_path, (w.Flow_repo_path != "")
+	case "repotemplate-repo-path":
+		return w.Repotemplate_repo_path, (w.Repotemplate_repo_path != "")
+	}
+	value, found = w.More[field]
+	return
 }
 
 func (w *Workspace) RequireWorkspacePath() error {
@@ -153,6 +170,8 @@ func (w *Workspace) Save() {
 
 	fjson := path.Join(workspace_path, forjj_workspace_json_file)
 
+	w.CleanUnwantedEntries()
+
 	djson, err = json.Marshal(w)
 	kingpin.FatalIfError(err, "Issue to encode in json '%s'", djson)
 
@@ -160,6 +179,16 @@ func (w *Workspace) Save() {
 	kingpin.FatalIfError(err, "Unable to create/update '%s'", fjson)
 
 	gotrace.Trace("File '%s' saved with '%s'", fjson, djson)
+}
+
+// CleanUnwantedEntries is called before save to remove some unwanted data in the Workspace file.
+// Ex: infra-path
+func (w *Workspace) CleanUnwantedEntries() {
+	for _, key := range w.clean_entries {
+		if _, found := w.More[key] ; found {
+			delete(w.More, key)
+		}
+	}
 }
 
 func (w *Workspace) Error() error {
