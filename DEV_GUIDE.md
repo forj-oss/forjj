@@ -9,12 +9,26 @@ Forjj is written in GO language, that needs to be compiled. This is the main dif
 To properly build Forjj you need to get the sources from github.
 
 Forjj is composed of various repositories that are available from the project main page https://github.com/forj-oss .
-- forjj --> main program, cli
-- forjj-contribs --> plugins (github, jenkins)
-- forjj-flows --> ?
-- forjj-modules --> Modules used by Forjj cli
-- forjj-repotemplates --> Templates for created project by Forjj
-- goforjj --> GO templates in order to build plugins
+- **forjj**:
+  Main program, cli
+
+- **forjj-contribs**:
+  Plugins for pipeline tools (currently github, jenkins).
+
+- **forjj-flows**:
+  This repository defines Project development flows that forjj can configure in a new or existing forge. It will contain some description files to build the interface between applications (through forjj plugins) which will support the development workflow.
+
+  E.g: flow 'pull_request' will create the required links between github webhook and jenkins to start jenkins on Pull request.
+
+- **forjj-modules**:
+  Modules used by Forjj cli
+
+- **forjj-repotemplates**:
+  Templates for created repository in the SCM application (github today)
+
+- **goforjj**:
+  GO templates in order to build plugins. It defines/centralizes also the REST API interface between forjj and plugins written in GO.
+
 
 You need to understand, which part of the project your modification will change and download the proper code repository.
 
@@ -22,7 +36,7 @@ Advice : so far do not change the name of the default project directory because 
 
 ## Build tree
 
-Using GO, you need to have a tree similar to this inside your home directory.
+Using GO, you need to have a similar tree inside your home directory.
 
 ```
 go
@@ -37,8 +51,11 @@ go
     └── forjj-contribs
 ```
 - **go** is the root of go projects. You need to set the **GOPATH** environment variable to that directory.
+
 - **bin** will host the binary files after a successful build. You should add this directory into your path.
-- **pkg** will host the go packages needed as dependencies. There is no need to create this folder it will be created by the **go get** command.
+
+- **pkg** will host the go packages needed as dependencies. There is no need to create this folder it will be created by the **go get** command. In the above example, there is already packages downloaded.
+
 - **src** should contains your go sources. This is the directory in which we need to clone the Forjj repositories.
 
 
@@ -57,11 +74,13 @@ export http_proxy=http://<proxyname>:<proxyport>
 ```
 You can also define a **no_proxy** environment variable to avoid proxy usage on some hosts or subnets. e.g:
 ```
-export no_proxy=10.3.0.0/24,myhost
+export no_proxy=10.3.0.0/24,myhost,anotherhost
 ```
 Note, no_proxy variable should contain a comma separated list of domain extension, and you should not have spaces between the comas.
 
 You need to also configure your docker daemon to use a proxy, some information here https://docs.docker.com/engine/admin/systemd/#httphttps-proxy .
+
+Also note that the proxy variables can be set by NetworkManager if you define a proxy through the Gnome or Kde applets.
 
 
 ## Build environment
@@ -82,7 +101,7 @@ Example to build Forjj
 Build env loaded. To unload it, call 'build-env-unset'
 ```
 
-2. Build Forjj, first step is to create the forjj-golang-env containeri because it does not exist.
+2. Build Forjj, first step is to create the forjj-golang-env container because it does not exist.
 ```
 [uggla@ugglalaptop forjj]$ build.sh
 + sudo docker build -t forjj-golang-env --build-arg UID=1000 --build-arg GID=1000 glide
@@ -207,7 +226,7 @@ PROJECT = forjj
 -rwxr-xr-x 1 uggla uggla 10552499 Jul 24 13:14 bin/forjj
 ```
 
-Note, in this case Forjj is a local binary. The plugin part build is a bit different as the result is a docker images with the required binaries.
+Note, in this case Forjj is a local binary. The plugin part build is a bit different, as the result is a docker images, with the required binaries.
 
 
 Thank you
