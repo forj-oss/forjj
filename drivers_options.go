@@ -350,7 +350,7 @@ func (a *Forj)ScanAndSetObjectData() {
 					if instance_owner, is_owner := a.IsRepoManaged(driver, object_name, instance_name) ; is_owner {
 						Repo := a.f.GetObjectInstance(object_name, instance_name).(*forjfile.RepoStruct)
 						// Getting the owner from the upstream plugins result
-						if v, found := a.drivers[instance_owner] ; found {
+						if v, found := a.drivers[instance_owner] ; found && v.Plugin.Result != nil {
 							if v2, found2 := v.Plugin.Result.Data.Repos[instance_name] ; found2 {
 								Repo.SetInstanceOwner(v2.Owner)
 							} else {
