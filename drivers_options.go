@@ -315,7 +315,7 @@ func (a *Forj)copyCliObjectData(object_name, instance, flag_name, def_value stri
 		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
 	} else {
 		if def_value != "" {
-			a.f.Set(object_name, instance, flag_name, def_value)
+			a.f.SetDefault(object_name, instance, flag_name, def_value)
 			gotrace.Trace("Setting Forjfile flag '%s/%s:%s' default value to '%s'",
 				object_name, instance, flag_name, def_value)
 		}

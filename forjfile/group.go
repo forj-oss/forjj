@@ -6,8 +6,8 @@ import (
 
 type GroupStruct struct {
 	forge *ForgeYaml
-	Role string
-	Members []string
+	Role string            `yaml:",omitempty"`
+	Members []string       `yaml:",omitempty"`
 	More map[string]string `yaml:",inline"`
 }
 
@@ -114,9 +114,14 @@ func (g *GroupStruct) Set(field, value string) {
 		if g.More == nil {
 			g.More = make(map[string]string)
 		}
-		if v, found := g.More[field] ; found && v != value {
-			g.More[field] = value
+		if v, found := g.More[field] ; found && value == "" {
+			delete(g.More, field)
 			g.forge.dirty()
+		} else {
+			if v != value {
+				g.forge.dirty()
+				g.More[field] = value
+			}
 		}
 	}
 	return
