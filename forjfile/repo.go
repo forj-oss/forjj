@@ -144,9 +144,15 @@ func (r *RepoStruct)Set(field, value string) {
 		if r.More == nil {
 			r.More = make(map[string]string)
 		}
-		if v, found := r.More[field] ; found && v != value {
-			r.More[field] = value
+		if v, found := r.More[field] ; found && value == "" {
+			delete(r.More,field)
 			r.forge.dirty()
+		} else {
+			if v != value {
+				r.forge.dirty()
+				r.More[field] = value
+			}
+
 		}
 	}
 }

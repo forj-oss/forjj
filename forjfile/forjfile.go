@@ -36,7 +36,7 @@ type ForgeYaml struct {
 	Users map[string]*UserStruct
 	Groups map[string]*GroupStruct
 	// Collection of Object/Name/Keys=values
-	More map[string]map[string]map[string]string `yaml:",inline"`
+	More map[string]map[string]ForjValues `yaml:",inline,omitempty"`
 
 }
 
@@ -213,7 +213,7 @@ func (f *Forge)Init() bool {
 		f.yaml.Infra.More = make(map[string]string)
 	}
 	if f.yaml.More == nil {
-		f.yaml.More = make(map[string]map[string]map[string]string)
+		f.yaml.More = make(map[string]map[string]ForjValues)
 	}
 	if f.yaml.Apps == nil {
 		f.yaml.Apps = make(map[string]*AppStruct)
@@ -495,13 +495,13 @@ func (f *Forge) get(object, instance, key string)(value *goforjj.ValueStruct, fo
 	if obj, f1 := f.yaml.More[object] ; f1 {
 		if instance, f2 := obj[instance] ; f2 {
 			v, f3 := instance[key]
-			value, found = value.SetIfFound(v, f3)
+			value, found = value.SetIfFound(v.Get(), f3)
 		}
 	}
 	return
 }
 
-func (f *Forge) getInstance(object, instance string) (_ map[string]string) {
+func (f *Forge) getInstance(object, instance string) (_ map[string]ForjValue) {
 	if ! f.Init() { return }
 	if obj, f1 := f.yaml.More[object] ; f1 {
 		if i, f2 := obj[instance] ; f2 {
@@ -512,7 +512,7 @@ func (f *Forge) getInstance(object, instance string) (_ map[string]string) {
 }
 
 
-func (f *Forge) SetHandler(object, name string, from func(key string) (string, bool), keys ...string) {
+func (f *Forge) SetHandler(object, name string, from func(string) (string, bool), set func(*ForjValue, string) (bool), keys ...string) {
 	if ! f.Init() { return }
 	switch object {
 	case "infra":
@@ -544,7 +544,7 @@ func (f *Forge) SetHandler(object, name string, from func(key string) (string, b
 			f.yaml.Apps = make(map[string]*AppStruct)
 		}
 		if app, found := f.yaml.Apps[name]; found {
-			app.SetHandler(from, keys...)
+			app.SetHandler(from, set, keys...)
 		} else {
 			newapp := AppStruct{}
 			newapp.set_forge(f.yaml)
@@ -564,27 +564,35 @@ func (f *Forge) SetHandler(object, name string, from func(key string) (string, b
 	case "settings":
 		f.yaml.ForjSettings.SetHandler(name, from, keys...)
 	default:
-		f.setHandler(object, name, from, keys...)
+		f.setHandler(object, name, from, set, keys...)
 	}
 }
 
 func (f *Forge) Remove(object, name, key string) {
-	from := func(string) (string, bool) {
+	from := func(string) (_ string, _ bool) {
 		return "", true
 	}
-	f.SetHandler(object, name, from, key)
+
+	f.SetHandler(object, name, from, (*ForjValue).Clean, key)
 }
 
 func (f *Forge) Set(object, name, key, value string) {
 	from := func(string) (string, bool) {
 		return value, (value != "")
 	}
-	f.SetHandler(object, name, from, key)
+	f.SetHandler(object, name, from, (*ForjValue).Set, key)
 }
 
-func (f *Forge) setHandler(object, instance string, from func(key string) (string, bool), keys ...string)  {
-	var object_d map[string]map[string]string
-	var instance_d map[string]string
+func (f *Forge) SetDefault(object, name, key, value string) {
+	from := func(string) (string, bool) {
+		return value, (value != "")
+	}
+	f.SetHandler(object, name, from, (*ForjValue).SetDefault, key)
+}
+
+func (f *Forge) setHandler(object, instance string, from func(string) (string, bool), set func(*ForjValue, string) (bool), keys ...string)  {
+	var object_d map[string]ForjValues
+	var instance_d ForjValues
 
 	if ! f.Init() { return }
 
@@ -592,13 +600,13 @@ func (f *Forge) setHandler(object, instance string, from func(key string) (strin
 		object_d = o
 	} else {
 		f.yaml.updated = true
-		object_d = make(map[string]map[string]string)
+		object_d = make(map[string]ForjValues)
 	}
 	if i, found := object_d[instance] ; found && i != nil {
 		instance_d = i
 	} else {
 		f.yaml.updated = true
-		instance_d = make(map[string]string)
+		instance_d = make(map[string]ForjValue)
 		object_d[instance] = instance_d
 	}
 	for _, key := range keys {
@@ -608,12 +616,14 @@ func (f *Forge) setHandler(object, instance string, from func(key string) (strin
 		} else {
 			value = v
 		}
-		if v, found := instance_d[key] ; found && v != value {
-			instance_d[key] = value
+		if v, found := instance_d[key] ; found && v.Get() != value {
+			set(&v, value)
+			instance_d[key] = v
 			f.yaml.updated = true
 		} else {
 			if !found {
-				instance_d[key] = value
+				set(&v, value)
+				instance_d[key] = v
 				f.yaml.updated = true
 			}
 		}
@@ -648,7 +658,7 @@ func (f *ForgeYaml)Init() {
 		f.Users = make(map[string]*UserStruct)
 	}
 	if f.More == nil {
-		f.More = make(map[string]map[string]map[string]string)
+		f.More = make(map[string]map[string]ForjValues)
 	}
 
 	if f.Infra.More == nil {

@@ -18,8 +18,8 @@ type ForjSettingsStructTmpl struct {
 type DefaultSettingsStruct struct {
 	forge *ForgeYaml
 	UpstreamInstance string `yaml:"upstream-instance"`
-	Flow string
-	More map[string]string `yaml:",inline"`
+	Flow string             `yaml:",omitempty"`
+	More map[string]string  `yaml:",inline"`
 }
 
 func (f *ForjSettingsStruct) MarshalYAML() (interface{}, error) {
@@ -94,16 +94,25 @@ func (s *DefaultSettingsStruct) Get(key string) (value *goforjj.ValueStruct, fou
 func (s *DefaultSettingsStruct) Set(key string, value string) {
 	switch key {
 	case "upstream-instance":
-		s.UpstreamInstance = value
-		s.forge.dirty()
+		if s.UpstreamInstance != value {
+			s.UpstreamInstance = value
+			s.forge.dirty()
+		}
 	case "flow":
-		s.Flow = value
-		s.forge.dirty()
+		if s.Flow != value{
+			s.Flow = value
+			s.forge.dirty()
+		}
 		return
 	default:
-		if v, found := s.More[key] ; found && v != value {
-			s.forge.dirty()
-			s.More[key] = value
+		if v, found := s.More[key] ; found && value == ""{
+				delete(s.More, key)
+				s.forge.dirty()
+		} else {
+			if v != value {
+				s.forge.dirty()
+				s.More[key] = value
+			}
 		}
 	}
 }

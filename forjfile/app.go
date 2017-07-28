@@ -16,6 +16,7 @@ type AppYamlStruct struct {
 	Driver string
 	// TODO: Support for object dedicated to the application instance (not shared)
 	// Objects map[string]map[string]string
+	more   ForjValues
 	More   map[string]string `yaml:",inline"`
 }
 
@@ -31,12 +32,18 @@ func (a *AppStruct) UnmarshalYAML(unmarchal func(interface{}) error) error {
 		return fmt.Errorf("Application type value is required.")
 	}
 
+	app.more = make(ForjValues)
+	for key, value := range app.More {
+		app.more[key] = ForjValue{value:value}
+	}
+
 	a.AppYamlStruct = app
 	return nil
 }
 
 func (a *AppStruct) MarshalYAML() (interface{}, error) {
 	// Ensure we write only Yaml Data.
+	a.AppYamlStruct.More = a.AppYamlStruct.more.Map()
 	return a.AppYamlStruct, nil
 }
 
@@ -53,33 +60,49 @@ func (a *AppStruct)Get(flag string) (value *goforjj.ValueStruct, _ bool) {
 	case "driver":
 		return value.Set(a.Driver), true
 	default:
-		v, f := a.More[flag]
-		return value.SetIfFound(v, f)
+		v, f := a.more[flag]
+		return value.SetIfFound(v.Get(), f)
 	}
 	return
 }
 
-func (r *AppStruct)SetHandler(from func(field string)(string, bool), keys...string) {
+func (r *AppStruct)SetHandler(from func(field string)(string, bool), set func(*ForjValue, string) (bool), keys...string) {
 	for _, key := range keys {
 		if v, found := from(key) ; found {
-			r.Set(key, v)
+			r.Set(key, v, set)
 		}
 	}
 }
 
-func (a *AppStruct)Set(flag, value string) {
+func (a *AppStruct)Set(flag, value string, set func(*ForjValue, string) (bool)) {
 	switch flag {
 	case "name":
-		a.name = value
+		if a.name != value {
+			a.forge.dirty()
+			a.name = value
+		}
 	case "type":
-		a.Type = value
+		if a.Type != value {
+			a.Type = value
+			a.forge.dirty()
+		}
 	case "driver":
-		a.Driver = value
+		if a.Driver != value {
+			a.Driver = value
+			a.forge.dirty()
+		}
 	default:
-		if a.More == nil { a.More = make(map[string]string) }
-		a.More[flag] = value
+		if a.more == nil { a.more = make(ForjValues) }
+		if v, found := a.more[flag] ; found && value == "" {
+			a.forge.dirty()
+			delete(a.more, flag)
+		} else {
+			if set(&v, value) {
+				a.forge.dirty()
+				a.more[flag] = v
+			}
+		}
 	}
-	a.forge.dirty()
 	return
 }
 

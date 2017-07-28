@@ -40,9 +40,14 @@ func (u *UserStruct) Set(field, value string) {
 		if u.More == nil {
 			u.More = make(map[string]string)
 		}
-		if v, found := u.More[field] ; found && v != value {
+		if v, found := u.More[field] ; found && value == "" {
 			u.More[field] = value
 			u.forge.dirty()
+		} else {
+			if v != value {
+				u.forge.dirty()
+				u.More[field] = value
+			}
 		}
 	}
 	return
