@@ -10,6 +10,9 @@ type ReposStruct map[string]*RepoStruct
 func (r ReposStruct) MarshalYAML() (interface{}, error) {
 	to_marshal := make(map[string]*RepoStruct)
 	for name, repo := range r {
+		if repo == nil {
+			continue
+		}
 		if ! repo.is_infra {
 			to_marshal[name] = repo
 		}
@@ -33,6 +36,10 @@ type RepoStruct struct {
 }
 
 func (r *RepoStruct)Owner() string {
+	if r == nil {
+		return ""
+	}
+
 	return r.owner
 }
 
@@ -46,11 +53,19 @@ func (r *RepoStruct)setFromInfra(infra *RepoStruct) {
 }
 
 func (r *RepoStruct)setToInfra(infra *RepoStruct) {
+	if r == nil {
+		return
+	}
+
 	*infra = *r
 	infra.is_infra = false // Unset it to ensure data is saved in yaml
 }
 
 func (r *RepoStruct)GetString(field string) (string) {
+	if r == nil {
+		return ""
+	}
+
 	if v, found := r.Get(field) ; found {
 		return v.GetString()
 	}
@@ -58,14 +73,25 @@ func (r *RepoStruct)GetString(field string) (string) {
 }
 
 func (r *RepoStruct)RemoteUrl() string {
+	if r == nil {
+		return ""
+	}
+
 	return r.remote.Url
 }
 
 func (r *RepoStruct)RemoteGit() string {
+	if r == nil {
+		return ""
+	}
+
 	return r.remote.Ssh
 }
 
 func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
+	if r == nil {
+		return
+	}
 	switch field {
 	case "name":
 		return value.SetIfFound(r.name, (r.name != ""))
@@ -91,6 +117,10 @@ func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
 }
 
 func (r *RepoStruct)SetHandler(from func(field string)(string, bool), keys...string) {
+	if r == nil {
+		return
+	}
+
 	for _, key := range keys {
 		if v, found := from(key) ; found {
 			r.Set(key, v)
@@ -158,14 +188,23 @@ func (r *RepoStruct)Set(field, value string) {
 }
 
 func (r *RepoStruct)SetInstanceOwner(owner string) {
+	if r == nil {
+		return
+	}
 	r.owner = owner
 }
 
 func (r *RepoStruct)SetPluginOwner(d *drivers.Driver) {
+	if r == nil {
+		return
+	}
 	r.driverOwner = d
 }
 
 func (r *RepoStruct)RemoteType() string {
+	if r == nil {
+		return "git"
+	}
 	if r.driverOwner == nil {
 		return "git"
 	}
@@ -173,6 +212,9 @@ func (r *RepoStruct)RemoteType() string {
 }
 
 func (r *RepoStruct)UpstreamAPIUrl() string {
+	if r == nil {
+		return ""
+	}
 	if r.driverOwner == nil {
 		return ""
 	}
@@ -180,5 +222,9 @@ func (r *RepoStruct)UpstreamAPIUrl() string {
 }
 
 func (r *RepoStruct)set_forge(f *ForgeYaml) {
+	if r == nil {
+		return
+	}
+
 	r.forge = f
 }
