@@ -201,7 +201,7 @@ func (a *Forj) set_organization_name() error {
 // Initialize the workspace environment required by Forjj to work.
 func (a *Forj) setWorkspace() error {
 	// Ask to not save some entries, like 'infra-path' in the workspace file.
-	a.w.Init([]string{infra_path_f})
+	a.w.Init(infra_path_f)
 
 	infra_path, found, err := a.GetLocalPrefs(infra_path_f)
 
