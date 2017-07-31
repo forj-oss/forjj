@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	//"github.com/forj-oss/forjj-modules/trace"
-	//"log"
+	"log"
 	"regexp"
 )
 
@@ -12,13 +12,23 @@ import (
 // Workspace data has been initialized or loaded.
 // forjj-options has been initialized or loaded
 func (a *Forj) Update() error {
-	a.ScanAndSetObjectData()
+	if _, err := a.w.Ensure_exist(); err != nil {
+		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
+	}
 
-	/*	if _, err := a.w.Check_exist(); err != nil {
-			return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
+	// missing:true to check if some required values are missing.
+	a.ScanAndSetObjectData(true)
+
+	defer func() {
+		// save infra repository location in the workspace.
+		a.w.Save()
+
+		if err := a.s.Save(); err != nil {
+			log.Printf("%s", err)
 		}
+	}()
 
-		if err := a.define_infra_upstream("update"); err != nil {
+	/*	if err := a.define_infra_upstream("update"); err != nil {
 			return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
 		}
 

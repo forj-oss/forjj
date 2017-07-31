@@ -246,16 +246,22 @@ func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action
 	}
 }
 
-func (a *Forj)moveSecureAppData(flag_name string) {
+func (a *Forj)moveSecureAppData(flag_name string, missing_required bool) error {
 	if v, found := a.f.GetString("settings", "", flag_name) ; found {
 		a.s.SetForjValue(flag_name, v)
 		a.f.Remove("settings", "", flag_name)
 		gotrace.Trace("Moving secure flag data '%s' from Forjfile to creds.yaml", flag_name)
+		return nil
 	}
 	if v, error := a.cli.GetAppStringValue(flag_name) ; error == nil {
 		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
 		a.s.SetForjValue(flag_name, v)
+		return nil
 	}
+	if missing_required {
+		return fmt.Errorf("Missing required setting flag '%s' value.", flag_name)
+	}
+	return nil
 }
 
 func (a *Forj)copyCliData(flag_name, def_value string) {
@@ -270,17 +276,23 @@ func (a *Forj)copyCliData(flag_name, def_value string) {
 	}
 }
 
-func (a *Forj)moveSecureObjectData(object_name, instance, flag_name string) {
+func (a *Forj)moveSecureObjectData(object_name, instance, flag_name string, missing_required bool) error {
 	if v, found := a.f.Get(object_name, instance, flag_name) ; found {
 		a.s.SetObjectValue(object_name, instance, flag_name, v)
 		a.f.Remove(object_name, instance, flag_name)
 		gotrace.Trace("Moving secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
 			object_name, instance, flag_name)
+		return nil
 	}
 	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found {
 		a.s.SetObjectValue(object_name, instance, flag_name, new(goforjj.ValueStruct).Set(v))
 		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
+		return nil
 	}
+	if missing_required {
+		return fmt.Errorf("Missing required %s %s flag '%s' value.", object_name, instance, flag_name)
+	}
+	return nil
 }
 
 // objectGetInstances returns the merge of instances of an object found in cli and Forjfile
@@ -326,7 +338,7 @@ func (a *Forj)copyCliObjectData(object_name, instance, flag_name, def_value stri
 // - move Forjfile creds to creds.yml
 // - copy cli creds data to creds.yml
 // - copy cli non creds data to Forjfile
-func (a *Forj)ScanAndSetObjectData() {
+func (a *Forj)ScanAndSetObjectData(missing bool) error {
 	for _, driver := range a.drivers {
 		// Tasks flags
 		for _, task := range driver.Plugin.Yaml.Tasks {
@@ -335,7 +347,10 @@ func (a *Forj)ScanAndSetObjectData() {
 					a.copyCliData(flag_name, flag.Options.Default)
 					continue
 				}
-				a.moveSecureAppData(flag_name)
+				if err := a.moveSecureAppData(flag_name,
+					missing && flag.Options.Required) ; err != nil {
+					return err
+				}
 			}
 		}
 
@@ -373,7 +388,10 @@ func (a *Forj)ScanAndSetObjectData() {
 						a.copyCliObjectData(object_name, instance_name, flag2_name, flag2.Options.Default)
 						continue
 					}
-					a.moveSecureObjectData(object_name, instance_name, flag2_name)
+					if err := a.moveSecureObjectData(object_name, instance_name, flag2_name,
+						missing && flag2.Options.Required) ; err != nil {
+						return err
+					}
 				}
 				// Object group flags
 				for group_name, group := range obj.Groups {
@@ -382,13 +400,17 @@ func (a *Forj)ScanAndSetObjectData() {
 							a.copyCliObjectData(object_name, instance_name, group_name + "-" + flag3_name, flag3.Options.Default)
 							continue
 						}
-						a.moveSecureObjectData(object_name, instance_name, group_name + "-" + flag3_name)
+						if err := a.moveSecureObjectData(object_name, instance_name, group_name + "-" + flag3_name,
+							missing && flag3.Options.Required) ; err != nil {
+							return err
+						}
 					}
 				}
 
 			}
 		}
 	}
+	return nil
 }
 
 // IsRepoManaged check is the upstream driver is the repository owner.

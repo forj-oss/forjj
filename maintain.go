@@ -16,7 +16,7 @@ func (a *Forj) Maintain() error {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
-	a.ScanAndSetObjectData()
+	a.ScanAndSetObjectData(true)
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 

@@ -91,7 +91,7 @@ func (a *Forj) create_source_text_file(file string, data []byte) error {
 // Workspace data has been initialized or loaded.
 // forjj-options has been initialized or loaded
 func (a *Forj) Create() error {
-	a.ScanAndSetObjectData()
+	a.ScanAndSetObjectData(false)
 	if !*a.no_maintain {
 		log.Printf("CREATE: Automatic git push and forjj maintain enabled.")
 	}
