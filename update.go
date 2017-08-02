@@ -54,6 +54,29 @@ func (a *Forj) Update() error {
 	//    return fmt.Errorf("Unable to move to your feature branch. %s", err)
 	//}
 
+	instances := a.define_drivers_execution_order()
+
+	// Loop on drivers requested like github or jenkins
+	for _, instance := range instances {
+		d := a.drivers[instance]
+		if err, aborted := a.do_driver_task("update", instance); err != nil {
+			if !aborted {
+				return fmt.Errorf("Failed to update '%s' source files. %s", instance, err)
+			}
+			log.Printf("Warning. %s", err)
+			continue
+		}
+
+		if d.HasNoFiles() {
+			gotrace.Info("No files to add/commit.")
+			continue
+		}
+
+		// Committing source code.
+		if err := a.do_driver_add(d); err != nil {
+			return fmt.Errorf("Failed to Add '%s' source files. %s", instance, err)
+		}
+	}
 	/*	// If the upstream driver has updated his source, we need to get and commit them. If
 		// Commiting source code.
 		if d, found := a.drivers[a.w.Instance]; no_new_infra && found {
