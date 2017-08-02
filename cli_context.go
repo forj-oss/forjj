@@ -54,6 +54,9 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	// Load Forjfile from infra repo, if found.
 	if err := a.LoadForge() ; err != nil {
+		if action != "create" {
+			return fmt.Errorf("Forjfile not loaded. %s", err), false
+		}
 		gotrace.Warning("%s", err)
 	}
 
@@ -121,6 +124,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	if i, err := a.cli.GetAppStringValue(debug_instance_f); err == nil && i != "" {
 		a.debug_instances = strings.Split(i, ",")
 	}
+	a.contextDisplayed()
 	return nil, true
 }
 

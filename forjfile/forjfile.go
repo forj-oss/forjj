@@ -13,12 +13,15 @@ import (
 
 // ForjfileTmpl is the Memory expansion of an external Forjfile (used to create a Forge)
 type ForjfileTmpl struct {
+	file_loaded string
 	Workspace WorkspaceStruct // See workspace.go
 	yaml ForgeYaml
 }
 
 // Forge is the Memory expand of a repository Forjfile.
 type Forge struct {
+	file_loaded string
+	tmplfile_loaded string
 	updated_msg string
 	infra_path string // Infra path used to create/save/load Forjfile
 	file_name string // Relative path to the Forjfile.
@@ -89,6 +92,7 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 
 	f = new(ForjfileTmpl)
 
+	f.file_loaded = file
 	if e := yaml.Unmarshal(yaml_data, &f.yaml) ; e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
@@ -100,6 +104,14 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	f.yaml.set_defaults()
 	loaded = true
 	return
+}
+
+func (f *Forge)GetForjfileTemplateFileLoaded() string {
+	return f.tmplfile_loaded
+}
+
+func (f *Forge)GetForjfileFileLoaded() string {
+	return f.file_loaded
 }
 
 func (f *Forge)SetInfraAsRepo() {
@@ -154,6 +166,7 @@ func (f *Forge)Load() (loaded bool, err error) {
 		file = fi
 	}
 
+	f.file_loaded = aPath
 	if e := yaml.Unmarshal(yaml_data, &f.yaml) ; e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
@@ -197,6 +210,7 @@ func (f *Forge)SetFromTemplate(ft *ForjfileTmpl) {
 
 	*f.yaml = ft.yaml
 	f.yaml.updated = true
+	f.tmplfile_loaded = ft.file_loaded
 }
 
 func (f *Forge)Init() bool {
