@@ -202,7 +202,7 @@ func (a *Forj) init() {
 	a.cli.NewActions(maint_act, maintain_action_help, "Maintain %s.", true)
 	a.cli.NewActions(add_act, add_action_help, "Add %s to your software factory.", false)
 	a.cli.NewActions(chg_act, update_action_help, "Update %s of your software factory.", false)
-	a.cli.NewActions(rem_act, remove_action_help, "Remove %s from your software factory.", false)
+	a.cli.NewActions(rem_act, remove_action_help, "Remove/disable %s from your software factory.", false)
 	a.cli.NewActions(ren_act, rename_action_help, "Rename %s of your software factory.", false)
 	a.cli.NewActions(list_act, list_action_help, "List %s of your software factory.", false)
 
@@ -334,7 +334,7 @@ func (a *Forj) init() {
 		log.Printf("infra: %s", a.cli.GetObject(flow).Error())
 	}
 
-	// Enhance create action
+	// Enhance create action. Plugins can add options to create with `only-for-actions`
 	if a.cli.OnActions(cr_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --docker-exe-path ...
@@ -349,26 +349,16 @@ func (a *Forj) init() {
 		log.Printf("action create: %s", a.cli.Error())
 	}
 
-	// Enhance Update
+	// Enhance Update. Plugins can add options to update with `only-for-actions`
 	if a.cli.OnActions(upd_act).
-		// Ex: forjj update infra --add-repos "github/myrepo:::My Repo,other_repo:::Another repo"...
-		AddActionFlagsFromObjectListActions(repo, "to_create", add_act).
-		// Ex: forjj update infra --remove-repos "myrepo" ... # This will disable the repo only. No real remove.
-		AddActionFlagsFromObjectListActions(repo, "to_remove", rem_act).
-		// Ex: forjj update infra --add-apps "upstream:github" --github-...
-		AddActionFlagsFromObjectListActions(app, "to_create", add_act).
-		// Ex: forjj update infra --remove-apps "github" ...
-		AddActionFlagsFromObjectListActions(app, "to_remove", rem_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj update --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, chg_act).
-		// Add Update workspace flags to Create action, not prefixed.
-		// ex: forjj update --infra-repo ...
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil) == nil {
 		log.Printf("action update: %s", a.cli.Error())
 	}
 
-	// Enhance Maintain
+	// Enhance Maintain. Plugins can add options to maintain with `only-for-actions`
 	if a.cli.OnActions(maint_act).
 		AddActionFlagsFromObjectAction(workspace, chg_act).
 		AddActionFlagFromObjectAction(infra, chg_act, infra_path_f).

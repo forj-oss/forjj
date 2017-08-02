@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	//"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/forjj-modules/trace"
 	"log"
 	"regexp"
 )
@@ -16,9 +16,6 @@ func (a *Forj) Update() error {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
-	// missing:true to check if some required values are missing.
-	a.ScanAndSetObjectData(true)
-
 	defer func() {
 		// save infra repository location in the workspace.
 		a.w.Save()
@@ -28,55 +25,36 @@ func (a *Forj) Update() error {
 		}
 	}()
 
-	/*	if err := a.define_infra_upstream("update"); err != nil {
-			return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
-		}
+	if err := a.define_infra_upstream(); err != nil {
+		return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
+	}
 
-		gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
+	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-		if _, err := a.local_repo_exist(a.w.Infra.Name); err != nil {
-			return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
-		}
+	a.DefineDefaultUpstream()
 
-		// Now, we are in the infra repo root directory and at least, the 1st commit exist.
+	// missing:true to check if some required values are missing.
+	if err := a.ScanAndSetObjectData(true) ; err != nil {
+		return fmt.Errorf("Unable to update. %s", err)
+	}
 
-		// save infra repository location in the workspace.
-		defer a.w.Save()
+	// Checking infra repository: A valid infra repo is a git repository with at least one commit and
+	// a Forjfile from repo root.
+	if err := a.i.Use(a.f.InfraPath()) ; err != nil {
+		return fmt.Errorf("Failed to update your infra repository. %s", err)
+	}
 
-		// Ensure infra exist and list of repos sent to the upstream as well.
-		// If the upstream do not exist but requested, the driver exit with an error.
-		// There is no abort situation. If missing upstream, a create is required first.
-		no_new_infra := true // By default, the infra existed.
-		if err, _, new_infra := a.ensure_infra_exists("update"); err != nil {
-			return fmt.Errorf("Failed to ensure infra exists. %s", err)
-		} else {
-			if d, found := a.drivers[a.w.Instance]; new_infra && found {
-				// This case happen if the driver source exist, but never maintained. So, only update is possible.
+	// Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
-				// New infra = new commits. Must maintain. Maintain will push because the upstream connection did not exist.
+	// TODO: flow_start to execute instructions before updating source code for existing apps in appropriate branch. Possible if a flow is already implemented otherwise git must stay in master branch
+	// flow_start()
 
-				// Commiting source code.
-				if err = a.do_driver_commit(d); err != nil {
-					return fmt.Errorf("Failed to commit '%s' source files. %s", a.w.Instance, err)
-				}
-				if err := a.do_driver_maintain(a.w.Instance); err != nil {
-					// This will create/configure the upstream service
-					// The commit will be pushed if the local repo upstream is inexistent. Which is the case of a new infra.
-					return err
-				}
-				no_new_infra = false // Ensure no more commit is executed with this driver.
-			}
-		}
+	// Disabled as not ready.
+	//if err := a.MoveToFixBranch(*a.Actions["update"].argsv["branch"]) ; err != nil {
+	//    return fmt.Errorf("Unable to move to your feature branch. %s", err)
+	//}
 
-		// TODO: flow_start to execute instructions before updating source code for existing apps in appropriate branch. Possible if a flow is already implemented otherwise git must stay in master branch
-		// flow_start()
-
-		// Disabled as not ready.
-		//if err := a.MoveToFixBranch(*a.Actions["update"].argsv["branch"]) ; err != nil {
-		//    return fmt.Errorf("Unable to move to your feature branch. %s", err)
-		//}
-
-		// If the upstream driver has updated his source, we need to get and commit them. If
+	/*	// If the upstream driver has updated his source, we need to get and commit them. If
 		// Commiting source code.
 		if d, found := a.drivers[a.w.Instance]; no_new_infra && found {
 			if err := a.do_driver_commit(d); err != nil {

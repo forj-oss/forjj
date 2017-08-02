@@ -21,7 +21,9 @@ func (a *Forj) load_driver_options(instance_name string) error {
 	}
 
 	if a.drivers[instance_name].Plugin.Yaml.Name != "" { // if true => Driver Def loaded
-		a.init_driver_flags(instance_name)
+		if err := a.init_driver_flags(instance_name) ; err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -103,19 +105,39 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 
 }
 
-func (a *Forj) get_valid_driver_actions() (validActions []string) {
+// TODO: Replace this split by cli function to list valid actions from cli definition (cli.NewAction)
+// This will avoid hard coded list here.
+
+// get_valid_driver_actions split al cli actions in
+// Object actions, like add/remove and
+// Command actions, like create/maintain
+// It returns 2 list of valid kingpin Object/Command actions
+func (a *Forj) get_valid_driver_actions() (validObjectActions, validCommandActions []string) {
 	actions := a.cli.GetAllActions()
-	validActions = make([]string, 0, len(actions))
+	validObjectActions = make([]string, 0, len(actions))
+	validCommandActions = make([]string, 0, len(actions))
 	for action_name := range actions {
 		if inStringList(action_name, cr_act, upd_act, maint_act) == "" {
-			validActions = append(validActions, action_name)
+			validObjectActions = append(validObjectActions, action_name)
+		} else {
+			validCommandActions = append(validCommandActions, action_name)
 		}
 	}
 	return
 }
 
-// Initialize command drivers flags with plugin definition loaded from plugin yaml file.
-func (a *Forj) init_driver_flags(instance_name string) {
+func (a *Forj) init_driver_set_cli_app_instance(instance_name string) error {
+	app_obj := a.cli.GetObject(app)
+
+	if app_obj == nil {
+		return fmt.Errorf("Unable to find internal 'app' object.")
+	}
+	app_obj.AddInstances(instance_name)
+	return nil
+}
+
+// Initialize kingpin/cli command drivers flags with plugin definition loaded from plugin yaml file.
+func (a *Forj) init_driver_flags(instance_name string) error {
 	d := a.drivers[instance_name]
 	service_type := d.DriverType
 	opts := a.drivers_options.Drivers[instance_name]
@@ -129,6 +151,11 @@ func (a *Forj) init_driver_flags(instance_name string) {
 	gotrace.Trace("Setting create/update/maintain flags from plugin type '%s' (%s)", service_type, d.Plugin.Yaml.Name)
 	for command, flags := range d.Plugin.Yaml.Tasks {
 		id.set_task_flags(command, flags)
+	}
+
+	// Add Application(app) instance name to cli, if not set itself by cli input.
+	if err := a.init_driver_set_cli_app_instance(instance_name) ; err != nil {
+		return fmt.Errorf("Unable to initialize driver instance '%s'. %s", instance_name, err)
 	}
 
 	// Create an object or enhance an existing one.
@@ -154,6 +181,8 @@ func (a *Forj) init_driver_flags(instance_name string) {
 			if id.add_object_fields(flag_name, &flag_det, id.validActions) {
 				object_det.Flags[flag_name] = flag_det
 			}
+
+			id.add_object_field_to_cmds(flag_name, &flag_det)
 		}
 
 		gotrace.Trace("Object '%s': Adding groups fields", object_name)
@@ -203,6 +232,7 @@ func (a *Forj) init_driver_flags(instance_name string) {
 
 	// TODO: Give plugin capability to manipulate new plugin object instances as list (ex: role => roles)
 	// TODO: integrate new plugins objects list in create/update task
+	return nil
 }
 
 
