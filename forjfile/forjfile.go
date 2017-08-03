@@ -706,7 +706,13 @@ func (f *ForgeYaml)set_defaults() {
 	}
 	if f.Repos != nil {
 		for name, repo := range f.Repos {
-			if repo == nil { continue }
+			if repo == nil {
+				// Repo can be nil if we did not defined any fields under his name.
+				// ie : forjj-modules:
+				// or
+				// forjj-modules: nil
+				repo = new(RepoStruct)
+			}
 			repo.name = name
 			repo.set_forge(f)
 			f.Repos[name] = repo

@@ -3,6 +3,7 @@ package forjfile
 import (
 	"github.com/forj-oss/goforjj"
 	"forjj/drivers"
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 type ReposStruct map[string]*RepoStruct
@@ -11,6 +12,7 @@ func (r ReposStruct) MarshalYAML() (interface{}, error) {
 	to_marshal := make(map[string]*RepoStruct)
 	for name, repo := range r {
 		if repo == nil {
+			gotrace.Error("Unable to save Repository '%s'. Repo data is nil.", name)
 			continue
 		}
 		if ! repo.is_infra {
