@@ -24,9 +24,10 @@ type initDriverObjectFlags struct {
 	obj         *cli.ForjObject
 
 	// Initialized by prepare_actions_list()
-	validActions  []string
-	allActions    bool
-	defineActions map[string]bool
+	validActions        []string
+	validCommandActions []string
+	allActions          bool
+	defineActions       map[string]bool
 
 	// Used by add_object_actions_flags()
 	object_instance_name string
@@ -124,10 +125,15 @@ func (id *initDriverObjectFlags) determine_object(object_name string, object_det
 	return
 }
 
+// determine_object_instances will update object cli with the list of instances found in Forjfile.
+func (id *initDriverObjectFlags) determine_object_instances(object_name string) {
+
+}
+
 // prepare_actions_list set validActions/defineActions
 func (id *initDriverObjectFlags) prepare_actions_list() {
 	// Determine which actions can be configured for drivers object flags.
-	id.validActions = id.a.get_valid_driver_actions()
+	id.validActions, id.validCommandActions = id.a.get_valid_driver_actions()
 	id.defineActions = make(map[string]bool)
 	for _, action_name := range id.validActions {
 		id.defineActions[action_name] = false
@@ -149,6 +155,41 @@ func (id *initDriverObjectFlags) is_field_object_scope(flag_det *goforjj.YamlFla
 	return (id.obj.HasRole() == "object-scope")
 }
 
+// add_object_fields_to_cmds will declare flag 'cli-exported-for-actions' app object fields attached to actions (kingpin.Cmd)
+func (id *initDriverObjectFlags) add_object_field_to_cmds(flag_name string, flag_det *goforjj.YamlFlag) {
+
+	// We can add only APP object fields. A warning is displayed if set to some other objects.
+	if o := id.object_name ; o != app {
+		 if len(flag_det.CliCmdActions) > 0 {
+			 gotrace.Warning("FORJJ Driver '%s-%s': The object '%s' flag '%s' cli-exported-for-actions ignored. This parameter is " +
+				 "only supported on '%s' object type",
+				 id.d.DriverType, id.d.Name, o, flag_name, app)
+		 }
+		return
+	}
+
+	flag_opts := id.d_opts.SetFlagOptions(flag_name, &flag_det.Options, id.task_has_value)
+
+	// remove kingpin Required option if requested. forjj will test it later.
+	if flag_opts.IsRequired() {
+		flag_opts.NotRequired()
+	}
+
+	// We can export only to recognized Command actions (create/update/maintain)
+	for _, action := range flag_det.CliCmdActions {
+		if inStringList(action, id.validCommandActions...) == "" {
+			gotrace.Warning("FORJJ Driver '%s-%s': object '%s' flag '%s'. cli-exported-for-actions declares invalid action '%s'. ignored.",
+				id.d.DriverType, id.d.Name, id.object_name, flag_name, action)
+			continue
+		}
+		if id.a.cli.OnActions(action).WithObjectInstance(id.object_name, id.instance_name).
+			AddActionFlagFromObjectField(flag_name, flag_opts) == nil {
+			gotrace.Error("Unable to declare field '%s' to Command action '%s'. %s",
+				flag_name, action, id.a.cli.Error())
+		}
+	}
+}
+
 func (id *initDriverObjectFlags) add_object_fields(flag_name string, flag_det *goforjj.YamlFlag, default_actions []string) (flag_updated bool) {
 	if id.obj.HasField(flag_name) {
 		gotrace.Trace("Object '%s': Field '%s' has already been defined as an object field. Ignored.",
@@ -156,17 +197,19 @@ func (id *initDriverObjectFlags) add_object_fields(flag_name string, flag_det *g
 		return
 	}
 
+	flag_opts := id.d_opts.SetFlagOptions(flag_name, &flag_det.Options, id.task_has_value)
+
 	if id.is_field_object_scope(flag_det) {
 		if flag_det.FormatRegexp == "" {
-			id.obj.AddField(cli.String, flag_name, flag_det.Help, ".*", nil)
+			id.obj.AddField(cli.String, flag_name, flag_det.Help, ".*", flag_opts)
 		} else {
-			id.obj.AddField(cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, nil)
+			id.obj.AddField(cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, flag_opts)
 		}
 
 		gotrace.Trace("Object '%s' field '%s' added.", id.obj.Name(), flag_name)
 	} else {
 		for _, instance_name := range id.obj.GetInstances() {
-			id.obj.AddInstanceField(instance_name, cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, nil)
+			id.obj.AddInstanceField(instance_name, cli.String, flag_name, flag_det.Help, flag_det.FormatRegexp, flag_opts)
 			gotrace.Trace("Object Instance '%s-%s': Field '%s' added.", id.obj.Name(), instance_name, flag_name)
 		}
 	}

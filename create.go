@@ -91,12 +91,12 @@ func (a *Forj) create_source_text_file(file string, data []byte) error {
 // Workspace data has been initialized or loaded.
 // forjj-options has been initialized or loaded
 func (a *Forj) Create() error {
-	a.ScanAndSetObjectData()
+	a.ScanAndSetObjectData(false)
 	if !*a.no_maintain {
 		log.Printf("CREATE: Automatic git push and forjj maintain enabled.")
 	}
 
-	if err := a.define_infra_upstream("create"); err != nil {
+	if err := a.define_infra_upstream(); err != nil {
 		return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
 	}
 
@@ -200,7 +200,7 @@ func (a *Forj) define_drivers_execution_order() (instances []string) {
 // - Forj.w.Driver          : Driver name
 //
 // If something is wrong an error is returned. So, at least `a.w.Instance` and the Forjfile gets updated and non-empty.
-func (a *Forj) define_infra_upstream(action string) (err error) {
+func (a *Forj) define_infra_upstream() (err error) {
 	// Identify list of upstream instances
 	gotrace.Trace("Identifying the infra Plugin driver...")
 

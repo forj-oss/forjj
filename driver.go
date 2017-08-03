@@ -229,15 +229,20 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	// Deliver list of Remotes in Internal Forjfile
 	if d.DriverType == "upstream" {
 		for Name, Repo := range d.Plugin.Result.Data.Repos {
-			if a.f.GetInfraName() == Name {
-				a.f.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
-				a.f.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
+			var repo_obj *forjfile.RepoStruct
+			if r, ok := a.f.GetObjectInstance(repo, Name).(*forjfile.RepoStruct) ; ! ok {
+				continue
+			} else {
+				repo_obj = r
 			}
-			repo_obj := a.f.GetObjectInstance(repo, Name).(*forjfile.RepoStruct)
 			repo_obj.Set("remote", Repo.Remotes["origin"].Ssh)
 			repo_obj.Set("remote-url", Repo.Remotes["origin"].Url)
 			repo_obj.SetInstanceOwner(Repo.Owner)
 			repo_obj.SetPluginOwner(d)
+			if a.f.GetInfraName() == Name {
+				a.f.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
+				a.f.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
+			}
 		}
 	}
 	// Collect application API if published by the driver.

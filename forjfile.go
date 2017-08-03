@@ -29,9 +29,5 @@ func (a *Forj)LoadForjfile(action string) error {
 	a.w.SetFrom(f.Workspace)
 	a.f.SetFromTemplate(f)
 
-	/*for instance, app := range a.f.Apps {
-
-	}*/
-
 	return nil
 }

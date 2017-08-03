@@ -36,7 +36,7 @@ type Workspace struct {
 
 }*/
 
-func (w *Workspace)Init(non_ws_entries []string) {
+func (w *Workspace)Init(non_ws_entries ...string) {
 	if w == nil {
 		return
 	}

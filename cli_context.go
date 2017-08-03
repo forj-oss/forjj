@@ -54,6 +54,9 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	// Load Forjfile from infra repo, if found.
 	if err := a.LoadForge() ; err != nil {
+		if action != "create" {
+			return fmt.Errorf("Forjfile not loaded. %s", err), false
+		}
 		gotrace.Warning("%s", err)
 	}
 
@@ -74,12 +77,15 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
 		a.ContribRepo_uri = v
+		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
 	}
 	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
 		a.FlowRepo_uri = v
+		gotrace.Trace("Using '%s' for '%s'", v, "flows-repo")
 	}
 	if v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err == nil {
 		a.RepotemplateRepo_uri = v
+		gotrace.Trace("Using '%s' for '%s'", v, "repotemplates-repo")
 	}
 
 	if file_desc, err := a.cli.GetAppStringValue(cred_f); err == nil && file_desc != "" {
@@ -121,6 +127,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	if i, err := a.cli.GetAppStringValue(debug_instance_f); err == nil && i != "" {
 		a.debug_instances = strings.Split(i, ",")
 	}
+	a.contextDisplayed()
 	return nil, true
 }
 
@@ -201,7 +208,7 @@ func (a *Forj) set_organization_name() error {
 // Initialize the workspace environment required by Forjj to work.
 func (a *Forj) setWorkspace() error {
 	// Ask to not save some entries, like 'infra-path' in the workspace file.
-	a.w.Init([]string{infra_path_f})
+	a.w.Init(infra_path_f)
 
 	infra_path, found, err := a.GetLocalPrefs(infra_path_f)
 

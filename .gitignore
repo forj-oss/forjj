@@ -9,7 +9,7 @@ tasks.json
 /vendor
 .glide
 .be-*
-/Forjfile
+samples/forjj*/Forjfile
 .publish_lacws
 forjj
 bin/gothub

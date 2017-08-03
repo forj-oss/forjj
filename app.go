@@ -202,7 +202,7 @@ func (a *Forj) init() {
 	a.cli.NewActions(maint_act, maintain_action_help, "Maintain %s.", true)
 	a.cli.NewActions(add_act, add_action_help, "Add %s to your software factory.", false)
 	a.cli.NewActions(chg_act, update_action_help, "Update %s of your software factory.", false)
-	a.cli.NewActions(rem_act, remove_action_help, "Remove %s from your software factory.", false)
+	a.cli.NewActions(rem_act, remove_action_help, "Remove/disable %s from your software factory.", false)
 	a.cli.NewActions(ren_act, rename_action_help, "Rename %s of your software factory.", false)
 	a.cli.NewActions(list_act, list_action_help, "List %s of your software factory.", false)
 
@@ -211,12 +211,14 @@ func (a *Forj) init() {
 	// ex: forjj add repo
 	if a.cli.NewObject(workspace, "any forjj workspace parameters", "internal").
 		Single().
+		AddField(cli.String, infra_path_f, infra_path_help, "#w", nil).
 		AddField(cli.String, "docker-exe-path", docker_exe_path_help, "#w", nil).
 		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w", nil).
 		AddField(cli.String, "flows-repo", flows_repo_help, "#w", nil).
 		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w", nil).
 		AddField(cli.String, orga_f, forjj_orga_name_help, "#w", nil).
 		DefineActions(chg_act, rem_act).OnActions().
+		AddFlag(infra_path_f, opts_infra_path).
 		AddFlag("docker-exe-path", nil).
 		AddFlag("contribs-repo", opts_contribs_repo).
 		AddFlag("flows-repo", opts_flows_repo).
@@ -313,14 +315,12 @@ func (a *Forj) init() {
 	// infra - Mostly built by plugins or other objects list with update action only.
 	if a.cli.NewObject(infra, "the global settings", "internal").
 		Single().
-		AddField(cli.String, infra_path_f, infra_path_help, "#w", nil).
 		AddField(cli.String, infra_name_f, forjj_infra_name_help, "#w", nil).
 		AddField(cli.String, infra_upstream_f, forjj_infra_upstream_help, "#w", nil).
 		AddField(cli.String, "flow", default_flow_help, "#w", nil).
 		AddField(cli.String, message_f, create_message_help, "#w", opts_message).
 		DefineActions(chg_act).
 		OnActions().
-		AddFlag(infra_path_f, opts_infra_path).
 		AddFlag(infra_name_f, opts_infra_repo).
 		AddFlag(infra_upstream_f, nil).
 		AddFlag(message_f, nil).
@@ -334,7 +334,7 @@ func (a *Forj) init() {
 		log.Printf("infra: %s", a.cli.GetObject(flow).Error())
 	}
 
-	// Enhance create action
+	// Enhance create action. Plugins can add options to create with `only-for-actions`
 	if a.cli.OnActions(cr_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj create --docker-exe-path ...
@@ -349,26 +349,16 @@ func (a *Forj) init() {
 		log.Printf("action create: %s", a.cli.Error())
 	}
 
-	// Enhance Update
+	// Enhance Update. Plugins can add options to update with `only-for-actions`
 	if a.cli.OnActions(upd_act).
-		// Ex: forjj update infra --add-repos "github/myrepo:::My Repo,other_repo:::Another repo"...
-		AddActionFlagsFromObjectListActions(repo, "to_create", add_act).
-		// Ex: forjj update infra --remove-repos "myrepo" ... # This will disable the repo only. No real remove.
-		AddActionFlagsFromObjectListActions(repo, "to_remove", rem_act).
-		// Ex: forjj update infra --add-apps "upstream:github" --github-...
-		AddActionFlagsFromObjectListActions(app, "to_create", add_act).
-		// Ex: forjj update infra --remove-apps "github" ...
-		AddActionFlagsFromObjectListActions(app, "to_remove", rem_act).
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj update --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, chg_act).
-		// Add Update workspace flags to Create action, not prefixed.
-		// ex: forjj update --infra-repo ...
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil) == nil {
 		log.Printf("action update: %s", a.cli.Error())
 	}
 
-	// Enhance Maintain
+	// Enhance Maintain. Plugins can add options to maintain with `only-for-actions`
 	if a.cli.OnActions(maint_act).
 		AddActionFlagsFromObjectAction(workspace, chg_act).
 		AddActionFlagFromObjectAction(infra, chg_act, infra_path_f).
@@ -383,7 +373,7 @@ func (a *Forj) init() {
 	a.AddMap(orga_f, workspace, "", orga_f, "settings", "", orga_f)
 	a.AddMap(infra_name_f, infra, "", infra_name_f, infra, "", "name")
 	a.AddMap(infra_upstream_f, infra, "", infra_upstream_f, infra, "", "upstream")
-	a.AddMap(infra_path_f, infra, "", infra_path_f, infra, "", infra_path_f)
+	a.AddMap(infra_path_f, workspace, "", infra_path_f, workspace, "", infra_path_f)
 	// TODO: Add git-remote cli mapping
 }
 

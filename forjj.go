@@ -80,3 +80,19 @@ func main() {
 		// list => special case.
 	}
 }
+
+func (a *Forj) contextDisplayed() {
+	tmpl_file := a.f.GetForjfileTemplateFileLoaded()
+	file := a.f.GetForjfileFileLoaded()
+	if tmpl_file != "" || file != "" {
+		msg := "Forjj has loaded the following context:\n"
+		if tmpl_file != "" {
+			msg += "Template Forjfile: " + tmpl_file + "\n"
+		}
+		if file != "" {
+			msg += "Repository Forjfile: " + file + "\n"
+		}
+		msg += "-------------------------------------\n"
+		gotrace.Warning(msg)
+	}
+}
