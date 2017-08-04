@@ -319,7 +319,7 @@ func (a *Forj)moveSecureObjectData(object_name, instance, flag_name string, miss
 		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
 		return nil
 	}
-	if missing_required {
+	if _, found3 := a.s.Get(object_name, instance, flag_name) ; ! found3 && missing_required {
 		return fmt.Errorf("Missing required %s %s flag '%s' value.", object_name, instance, flag_name)
 	}
 	return nil
