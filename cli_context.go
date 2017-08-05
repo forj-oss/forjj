@@ -78,14 +78,20 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
 		a.ContribRepo_uri = v
 		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
+	} else {
+		return fmt.Errorf("Contribs repository url issue: %s", err), false
 	}
 	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
 		a.FlowRepo_uri = v
 		gotrace.Trace("Using '%s' for '%s'", v, "flows-repo")
+	} else {
+		gotrace.Error("Flow repository url issue: %s", err)
 	}
 	if v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err == nil {
 		a.RepotemplateRepo_uri = v
 		gotrace.Trace("Using '%s' for '%s'", v, "repotemplates-repo")
+	} else {
+		gotrace.Error("RepoTemplates repository url issue: %s", err)
 	}
 
 	if file_desc, err := a.cli.GetAppStringValue(cred_f); err == nil && file_desc != "" {
