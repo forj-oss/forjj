@@ -1,5 +1,5 @@
 hash: 3f8f777e11527ce63c26f3a961787911ca4e8bac4392b0f0923b5e58a422dfd2
-updated: 2017-08-02T16:18:22.722925282Z
+updated: 2017-08-21T21:05:50.70179702Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -11,16 +11,17 @@ imports:
 - name: github.com/alecthomas/units
   version: 2efee857e7cfd4f3d0138cc3cbb1b4966962b93a
 - name: github.com/fatih/color
-  version: 62e9147c64a1ed519147b62a56a14e83e2be02c1
+  version: 67c513e5729f918f5e69786686770c27141a4490
 - name: github.com/forj-oss/forjj-modules
-  version: fb012e1b086e6544bc134c2ee1f1743ba779087b
+  version: 0c615d1e0618fc2ab32342745e74a6bb41209331
   subpackages:
   - cli
   - cli/interface
   - cli/kingpinCli
+  - cli/tools
   - trace
 - name: github.com/forj-oss/goforjj
-  version: f7ac3ec3baff3f32a16ed48a10fa482d431c7be9
+  version: 1d4d1bcd4224a8c180db00dd9953e9569eb3680a
 - name: github.com/kr/text
   version: 7cafcd837844e784b526369c9bce262804aebc60
 - name: github.com/kvz/logstreamer
@@ -38,7 +39,7 @@ imports:
 - name: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
 - name: golang.org/x/net
-  version: f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f
+  version: 1c05540f6879653db88113bc4a2b70aec4bd491f
   subpackages:
   - proxy
   - publicsuffix
@@ -50,5 +51,5 @@ imports:
 - name: gopkg.in/alecthomas/kingpin.v2
   version: 1087e65c9441605df944fb12c33f0fe7072d18ca
 - name: gopkg.in/yaml.v2
-  version: 25c4ec802a7d637f88d584ab26798e94ad14c13b
+  version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
 testImports: []
