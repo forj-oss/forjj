@@ -55,26 +55,30 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	is_valid_action := (inStringList(action, cr_act, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "")
 	need_to_create := (action == cr_act)
 	if err := a.f.SetInfraPath(a.w.InfraPath(), is_valid_action && need_to_create) ; err != nil {
-		return err, false
+		a.w.SetError(err)
+		return nil, false
 	}
 
 
 	// Load Forjfile from infra repo, if found.
 	if err := a.LoadForge() ; err != nil {
 		if inStringList(action, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "" {
-			return fmt.Errorf("Forjfile not loaded. %s", err), false
+			a.w.SetError(fmt.Errorf("Forjfile not loaded. %s", err))
+			return nil, false
 		}
 		gotrace.Warning("%s", err)
 	}
 
 	// Set organization name to use.
 	if err := a.set_organization_name() ; err != nil {
-		return err, false
+		a.w.SetError(err)
+		return nil, false
 	}
 
 	// Setting infra repository name
 	if err := a.set_infra_name(action) ; err != nil {
-		return err, false
+		a.w.SetError(err)
+		return nil, false
 	}
 
 	gotrace.Trace("Infrastructure repository defined : %s (organization: %s)", a.w.Infra.Name, a.w.Organization)
