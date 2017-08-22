@@ -93,7 +93,7 @@ func (a *Forj) create_source_text_file(file string, data []byte) error {
 func (a *Forj) Create() error {
 	a.ScanAndSetObjectData(false)
 	if !*a.no_maintain {
-		log.Printf("CREATE: Automatic git push and forjj maintain enabled.")
+		log.Print("CREATE: Automatic git push and forjj maintain enabled.")
 	}
 
 	if err := a.define_infra_upstream(); err != nil {

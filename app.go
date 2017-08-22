@@ -211,18 +211,18 @@ func (a *Forj) init() {
 	// ex: forjj add repo
 	if a.cli.NewObject(workspace, "any forjj workspace parameters", "internal").
 		Single().
-		AddField(cli.String, infra_path_f, infra_path_help, "#w", nil).
+		AddField(cli.String, infra_path_f, infra_path_help, "#w", opts_infra_path).
 		AddField(cli.String, "docker-exe-path", docker_exe_path_help, "#w", nil).
-		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w", nil).
-		AddField(cli.String, "flows-repo", flows_repo_help, "#w", nil).
-		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w", nil).
+		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w", opts_contribs_repo).
+		AddField(cli.String, "flows-repo", flows_repo_help, "#w", opts_flows_repo).
+		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w", opts_repotmpl).
 		AddField(cli.String, orga_f, forjj_orga_name_help, "#w", nil).
 		DefineActions(chg_act, rem_act).OnActions().
-		AddFlag(infra_path_f, opts_infra_path).
+		AddFlag(infra_path_f, nil).
 		AddFlag("docker-exe-path", nil).
-		AddFlag("contribs-repo", opts_contribs_repo).
-		AddFlag("flows-repo", opts_flows_repo).
-		AddFlag("repotemplates-repo", opts_repotmpl).
+		AddFlag("contribs-repo", nil).
+		AddFlag("flows-repo", nil).
+		AddFlag("repotemplates-repo", nil).
 		AddFlag(orga_f, opts_orga_name) == nil {
 		log.Printf("Workspace : %s", a.cli.GetObject(workspace).Error())
 	}

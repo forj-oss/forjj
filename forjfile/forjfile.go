@@ -245,11 +245,49 @@ func (f *Forge)Init() bool {
 	return true
 }
 
-func (f *Forge) SetInfraPath(infraPath string) error {
+// CheckInfraPath will check if:
+// - a Forjfile is found
+// - is stored in a repository in root path.
+func (f *Forge) CheckInfraPath(infraAbsPath string) error {
+	if fi, err := os.Stat(infraAbsPath) ; err != nil {
+		return fmt.Errorf("Not a valid infra path '%s': %s", infraAbsPath, err)
+	} else if !fi.IsDir() {
+		return fmt.Errorf("Not a valid infra path: '%s' must be a directory.", infraAbsPath)
+	}
+
+	git := path.Join(infraAbsPath, ".git")
+	if fi, err := os.Stat(git); err != nil {
+		return fmt.Errorf("Not a valid infra path '%s'. Must be a GIT repository: %s", infraAbsPath, err)
+	} else if !fi.IsDir() {
+		return fmt.Errorf("Not a valid infra path: '%s' must be a directory.", git)
+	}
+
+	forjfile := path.Join(infraAbsPath, file_name)
+	if fi, err := os.Stat(forjfile); err != nil {
+		return fmt.Errorf("Not a valid infra path '%s'. Must have a Forjfile: %s", infraAbsPath, err)
+	} else if fi.IsDir() {
+		return fmt.Errorf("Not a valid infra path: '%s' must be a file.", forjfile)
+	}
+
+	return nil
+}
+
+func (f *Forge) SetInfraPath(infraPath string, create_request bool) error {
 	aPath, err := utils.Abs(infraPath)
 	if err != nil {
 		return err
 	}
+
+	if create_request {
+		if fi, err := os.Stat(aPath) ; err == nil && !fi.IsDir() {
+			return fmt.Errorf("Unable to set infra PATH to '%s'. Must be a directory.", aPath)
+		}
+	} else {
+		if err := f.CheckInfraPath(aPath) ; err != nil {
+			return err
+		}
+	}
+
 	f.infra_path = aPath
 	f.file_name = file_name // By default on Repo root directory.
 	return nil
