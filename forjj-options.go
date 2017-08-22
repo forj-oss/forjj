@@ -71,11 +71,6 @@ func (a *Forj) SaveForge(CommitMsg string) error {
 
 // LoadForge loads the forjj options definitions from the LoadContext().
 func (a *Forj) LoadForge() (err error) {
-	// Read definition file from repo.
-	if err = a.f.SetInfraPath(a.w.InfraPath()) ; err != nil {
-		return
-	}
-
 	if v := a.forjfile_tmpl_path; v != "" && a.w.InfraPath() == v {
 		gotrace.Info("If your Forfile template has defined local settings and/or credentials data, those data will " +
 			"be moved to the internal forjj workspace.")
