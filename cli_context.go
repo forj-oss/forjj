@@ -54,7 +54,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	// Load Forjfile from infra repo, if found.
 	if err := a.LoadForge() ; err != nil {
-		if action != "create" {
+		if inStringList(action, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "" {
 			return fmt.Errorf("Forjfile not loaded. %s", err), false
 		}
 		gotrace.Warning("%s", err)
