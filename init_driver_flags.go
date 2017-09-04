@@ -187,6 +187,7 @@ func (id *initDriverObjectFlags) add_object_field_to_cmds(flag_name string, flag
 			gotrace.Error("Unable to declare field '%s' to Command action '%s'. %s",
 				flag_name, action, id.a.cli.Error())
 		}
+		gotrace.Trace("Flag '%s' added to action object instance action '%s/%s %s'.", id.object_name, id.instance_name, action)
 	}
 }
 
@@ -269,6 +270,8 @@ func (id *initDriverObjectFlags) add_object_actions() []string {
 	return actionsToAdd
 }
 
+// TODO: Revisit how we create commands/flags/args from the driver. https://github.com/forj-oss/forjj/issues/58
+
 // add_object_actions_flags
 // warning: Ensure flag_det.Actions is properly set before calling this function.
 func (id *initDriverObjectFlags) add_object_actions_flags(
@@ -283,11 +286,6 @@ func (id *initDriverObjectFlags) add_object_actions_flags(
 	}
 
 	id.add_object_actions_flag(flag_det.Actions, flag_name, flag_det)
-
-	if flag_det.Options.Secure {
-		id.add_object_actions_flag([]string{"maintain"}, flag_name, flag_det)
-		gotrace.Trace("Object '%s': Secure field '%s' added to maintain task.", id.object_name, flag_name)
-	}
 }
 
 // is_object_scope determine if the field scope should be global or not
