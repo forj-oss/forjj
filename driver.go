@@ -32,8 +32,8 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 		return fmt.Errorf("Internal error: Invalid action '%s'. Supports only 'create' and 'update'.", action), false
 	}
 
-	if err = a.driver_start(instance); err != nil {
-		return
+//	if err = a.driver_start(instance); err != nil {
+//		return
 	}
 
 	d := a.CurrentPluginDriver
