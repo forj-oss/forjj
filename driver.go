@@ -33,7 +33,7 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 	}
 
 //	if err = a.driver_start(instance); err != nil {
-		return
+//		return
 	}
 
 	d := a.CurrentPluginDriver
