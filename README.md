@@ -1,4 +1,4 @@
-# Introduction 
+# Introduction
 
 **This project is under development, and start with a POC to build a DevOps Solution based on github and jenkins.
 So some examples/use cases described in this README.md are not fully functional.**
