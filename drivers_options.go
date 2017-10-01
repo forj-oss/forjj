@@ -267,9 +267,13 @@ func (a *Forj) add_driver(driver, driver_type, instance string, cli_requested bo
 
 // GetForjjFlags build the Forjj list of parameters requested by the plugin for a specific action name.
 func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action string) {
+	if action == maint_act && a.from_create {
+		gotrace.Trace("Getting flags from create action instead of maintain, as started from create.")
+		action = cr_act
+	}
 	if tc, found := d.Plugin.Yaml.Tasks[action]; found {
 		for flag_name := range tc {
-			if v, found := a.GetDriversActionsParameter(d, flag_name); found {
+			if v, found := a.GetDriversActionsParameter(d, flag_name, action); found {
 				r.Forj[flag_name] = v
 			}
 		}

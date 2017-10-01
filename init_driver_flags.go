@@ -49,6 +49,11 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 	}
 	sort.Strings(keys)
 
+	no_maintain := false
+	if command == cr_act {
+		no_maintain, _ = id.a.cli.GetActionBoolValue(cr_act, no_maintain_f)
+	}
+
 	for _, option_name := range keys {
 		flag_options := flags[option_name]
 
@@ -62,12 +67,16 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 
 		forjj_option_name := id.instance_name + "-" + option_name
 		flag_opts := id.d_opts.SetFlagOptions(option_name, &flag_options.Options, id.task_has_value)
-		if command == "common" {
+		if command == common_acts {
 			// loop on create/update/maintain to create flag on each command
 			gotrace.Trace("Create common flags '%s' to App layer.", forjj_option_name)
 			id.a.init_driver_flags_for(id.d, option_name, "", forjj_option_name, flag_options.Help, flag_opts)
 		} else {
 			id.a.init_driver_flags_for(id.d, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
+			if  command == cr_act && no_maintain {
+				gotrace.Trace("Adding `maintain` flags to `create` action.")
+				id.a.init_driver_flags_for(id.d, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
+			}
 		}
 	}
 
