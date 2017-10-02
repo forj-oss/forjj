@@ -50,7 +50,7 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 	sort.Strings(keys)
 
 	no_maintain := false
-	if command == cr_act {
+	if command == maint_act {
 		no_maintain, _ = id.a.cli.GetActionBoolValue(cr_act, no_maintain_f)
 	}
 
@@ -62,6 +62,8 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 		if ok, _ := regexp.MatchString("forjj-.*", option_name); ok {
 			// No value by default. Will be set later after complete parse.
 			id.d.InitCmdFlag(command, option_name, option_name)
+			gotrace.Trace("'%s' action Flag '%s' is an internal forjj flag request. Not added to kingpin.",
+				command, option_name)
 			continue
 		}
 
@@ -73,13 +75,14 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 			id.a.init_driver_flags_for(id.d, option_name, "", forjj_option_name, flag_options.Help, flag_opts)
 		} else {
 			id.a.init_driver_flags_for(id.d, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
-			if  command == cr_act && no_maintain {
-				gotrace.Trace("Adding `maintain` flags to `create` action.")
-				id.a.init_driver_flags_for(id.d, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
+			if  command == maint_act && !no_maintain {
+				gotrace.Trace("Adding `maintain` flag '%s' to `create` action.", option_name)
+				id.a.init_driver_flags_for(id.d, option_name, cr_act, forjj_option_name, flag_options.Help, flag_opts)
+			} else {
+				gotrace.Trace("`maintain` flag '%s' NOT added to `create` action. --no-maintain is true.", option_name)
 			}
 		}
 	}
-
 }
 
 // task_has_value will determine which default value to add to a cli flag.
