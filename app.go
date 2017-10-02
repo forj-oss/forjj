@@ -64,6 +64,7 @@ type Forj struct {
 	appMapEntries        map[string]AppMapEntry
 	no_maintain          *bool    // At create time. true to not start maintain task at the end of create.
 	debug_instances      []string // List of instances in debug mode
+	from_create          bool     // true when start running maintain from create
 	// TODO: enhance infra README.md with a template.
 
 	infra_readme string // Initial infra repo README.md text.
@@ -89,6 +90,7 @@ const (
 	ren_act   string = "rename"
 	list_act  string = "list"
 	maint_act string = "maintain"
+	common_acts string = "common" // Refer to all other actions
 )
 
 const (
@@ -434,7 +436,9 @@ func (a *Forj) getInternalData(param string) (result string) {
 //
 // Build the list of plugin shell parameters for dedicated action.
 // It will be created as a Hash of values
-func (a *Forj) GetDriversActionsParameter(d *drivers.Driver, flag_name string) (value string, found bool) {
+//
+// Common task flags are defined at cli Application layer. All other flags are defined as action flags.
+func (a *Forj) GetDriversActionsParameter(d *drivers.Driver, flag_name, action string) (value string, found bool) {
 	forjj_interpret, _ := regexp.Compile(`\{\{.*\}\}`)
 
 	if value, found = a.GetInternalForjData(flag_name) ; found {
@@ -442,7 +446,28 @@ func (a *Forj) GetDriversActionsParameter(d *drivers.Driver, flag_name string) (
 	}
 	gotrace.Trace("'%s' candidate as parameters.", flag_name)
 	parameter_name := d.InstanceName + "-" + flag_name
-	if v, err := a.cli.GetAppStringValue(parameter_name); err != nil {
+
+	// Define where to get the flag
+	var getStringValue func(string) (string, error)
+	if action == common_acts {
+		// Common flags at App layer
+		getStringValue = func(parameter string) (string, error) {
+			return a.cli.GetAppStringValue(parameter_name)
+		}
+	} else {
+		// From action
+		getStringValue = func(parameter string) (string, error) {
+			if act := a.cli.GetAction(action) ; act == nil {
+				return "", fmt.Errorf("Unable to find '%s' in action '%s'.", parameter, action)
+			} else if v := act.GetStringAddr(parameter) ; v == nil {
+				return "", fmt.Errorf("'%s' as not been initialized as *string in action '%s'.", parameter, action)
+			} else {
+				return *v, nil
+			}
+		}
+	}
+
+	if v, err := getStringValue(parameter_name); err == nil {
 		if forjj_interpret.MatchString(v) {
 			gotrace.Trace("Interpreting '%s' from '%s'", v, parameter_name)
 			// Initialized defaults value from templates
@@ -461,7 +486,7 @@ func (a *Forj) GetDriversActionsParameter(d *drivers.Driver, flag_name string) (
 		gotrace.Trace("Set: '%s' <= '%s'", flag_name, v)
 		return v, true
 	} else {
-		gotrace.Trace("%s", err)
+		gotrace.Error("%s", err)
 		return
 	}
 }

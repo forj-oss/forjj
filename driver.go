@@ -192,7 +192,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 
 	// Load all internal Forjj data, identified by 'forjj-*'
 	a.LoadInternalData()
-	a.GetForjjFlags(plugin_payload, d, "common")
+	a.GetForjjFlags(plugin_payload, d, common_acts)
 	a.GetForjjFlags(plugin_payload, d, action)
 	if err := a.GetObjectsData(plugin_payload, d, action) ; err != nil {
 		return fmt.Errorf("Unable to Get Object data on '%s'. %s", instance_name, err), aborted
