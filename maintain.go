@@ -18,6 +18,10 @@ func (a *Forj) Maintain() error {
 
 	a.ScanAndSetObjectData(true)
 
+	if err := a.ValidateForjfile(); err != nil {
+		return err
+	}
+
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
 	if  err := a.get_infra_repo(); err != nil {
