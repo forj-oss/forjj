@@ -31,3 +31,4 @@ func (a *Forj)LoadForjfile(action string) error {
 
 	return nil
 }
+

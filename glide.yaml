@@ -6,10 +6,6 @@ import:
 - package: github.com/kvz/logstreamer
 - package: github.com/forj-oss/goforjj
 - package: github.com/forj-oss/forjj-modules
-  subpackages:
-  - trace
-  - cli
-  - cli/kingpinCli
 - package: golang.org/x/net
   subpackages:
   - proxy

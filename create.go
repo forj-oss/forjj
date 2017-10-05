@@ -96,6 +96,10 @@ func (a *Forj) Create() error {
 		log.Print("CREATE: Automatic git push and forjj maintain enabled.")
 	}
 
+	if err := a.ValidateForjfile() ; err != nil {
+		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
+	}
+
 	if err := a.define_infra_upstream(); err != nil {
 		return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
 	}

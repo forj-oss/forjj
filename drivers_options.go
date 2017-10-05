@@ -20,6 +20,9 @@ func (a *Forj) load_driver_options(instance_name string) error {
 		return err
 	}
 
+	if a.cli.GetCurrentCommand()[0].FullCommand() == val_act {
+		return nil // Do not set plugin flags in validate mode.
+	}
 	if a.drivers[instance_name].Plugin.Yaml.Name != "" { // if true => Driver Def loaded
 		if err := a.init_driver_flags(instance_name) ; err != nil {
 			return err

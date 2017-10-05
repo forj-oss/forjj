@@ -60,4 +60,6 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps (DevOps Cultu
 	app_driver_help = "Driver name."
 	app_name_help   = "Application instance name. If not set, forjj will use the driver name."
 	app_list_help   = "List of application separated by comma. Syntax : category:driver[:instance]"
+
+	val_act_help    = "Verify your Forjfile definition."
 )

@@ -65,6 +65,7 @@ type Forj struct {
 	no_maintain          *bool    // At create time. true to not start maintain task at the end of create.
 	debug_instances      []string // List of instances in debug mode
 	from_create          bool     // true when start running maintain from create
+	validation_issue     bool     // true if validation of Forjfile has failed.
 	// TODO: enhance infra README.md with a template.
 
 	infra_readme string // Initial infra repo README.md text.
@@ -82,6 +83,7 @@ type Forj struct {
 )*/
 
 const (
+	val_act   string = "validate"
 	cr_act    string = "create"
 	chg_act   string = "change"
 	add_act   string = "add"
@@ -202,6 +204,7 @@ func (a *Forj) init() {
 	a.cli.NewActions(cr_act, create_action_help, "Create %s.", true)
 	a.cli.NewActions(upd_act, update_action_help, "Update %s.", true)
 	a.cli.NewActions(maint_act, maintain_action_help, "Maintain %s.", true)
+	a.cli.NewActions(val_act, val_act_help, "", true)
 	a.cli.NewActions(add_act, add_action_help, "Add %s to your software factory.", false)
 	a.cli.NewActions(chg_act, update_action_help, "Update %s of your software factory.", false)
 	a.cli.NewActions(rem_act, remove_action_help, "Remove/disable %s from your software factory.", false)
@@ -348,6 +351,14 @@ func (a *Forj) init() {
 	// TODO: Support for a different Forjfile name. (using forjfile_name_f constant)
 		AddFlag(cli.String, forjfile_path_f, create_forjfile_help, opts_forjfile).
 		AddFlag(cli.Bool, no_maintain_f, create_no_maintain_help, nil) == nil {
+		log.Printf("action create: %s", a.cli.Error())
+	}
+
+	if a.cli.OnActions(val_act).
+	// Add Update workspace flags to Create action, not prefixed.
+	// ex: forjj create --docker-exe-path ...
+		AddActionFlagsFromObjectAction(workspace, chg_act).
+		AddFlag(cli.String, forjfile_path_f, create_forjfile_help, opts_forjfile)== nil {
 		log.Printf("action create: %s", a.cli.Error())
 	}
 

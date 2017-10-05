@@ -1,5 +1,5 @@
-hash: 3f8f777e11527ce63c26f3a961787911ca4e8bac4392b0f0923b5e58a422dfd2
-updated: 2017-10-01T21:11:35.105931714Z
+hash: 0bd1ddd8decf20ee37a025811a3600c07f2f5058eb89335da6aefe2d3428a2da
+updated: 2017-10-05T17:12:49.725517157Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -13,7 +13,7 @@ imports:
 - name: github.com/fatih/color
   version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
 - name: github.com/forj-oss/forjj-modules
-  version: ce66c7b2db277b16f0020d66914c1f4b57a6dc46
+  version: 1b3239fb04428ea28686a23e6dd6974226837ebf
   subpackages:
   - cli
   - cli/interface
@@ -21,7 +21,7 @@ imports:
   - cli/tools
   - trace
 - name: github.com/forj-oss/goforjj
-  version: 02daa4dcfc2df6c822731d2bf39d0902e2f25615
+  version: 3c91dd727de645fc6ca539e689f85791ae7b5e23
 - name: github.com/kr/text
   version: 7cafcd837844e784b526369c9bce262804aebc60
 - name: github.com/kvz/logstreamer
@@ -39,7 +39,7 @@ imports:
 - name: github.com/pkg/errors
   version: 2b3a18b5f0fb6b4f9190549597d3f962c02bc5eb
 - name: golang.org/x/net
-  version: 0a9397675ba34b2845f758fe3cd68828369c6517
+  version: a04bdaca5b32abe1c069418fb7088ae607de5bd0
   subpackages:
   - proxy
   - publicsuffix
@@ -48,8 +48,6 @@ imports:
   repo: https://go.googlesource.com/sys
   subpackages:
   - unix
-- name: gopkg.in/alecthomas/kingpin.v2
-  version: 1087e65c9441605df944fb12c33f0fe7072d18ca
 - name: gopkg.in/yaml.v2
   version: eb3733d160e74a9c7e442f435eb3bea458e1d19f
 testImports: []
