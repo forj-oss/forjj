@@ -48,7 +48,11 @@ func main() {
 	// forj_app.InitializeDriversAPI()
 	defer forj_app.driver_cleanup_all()
 	switch kingpin.MustParse(parse, err) {
-	case "create":
+	case val_act:
+		if err := forj_app.Validate(); err != nil {
+			log.Fatalf("Forjj maintain issue. %s", err)
+		}
+	case cr_act:
 		if err := forj_app.Create(); err != nil {
 			log.Fatalf("Forjj create issue. %s", err)
 		}

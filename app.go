@@ -83,6 +83,7 @@ type Forj struct {
 )*/
 
 const (
+	val_act   string = "validate"
 	cr_act    string = "create"
 	chg_act   string = "change"
 	add_act   string = "add"
@@ -203,6 +204,7 @@ func (a *Forj) init() {
 	a.cli.NewActions(cr_act, create_action_help, "Create %s.", true)
 	a.cli.NewActions(upd_act, update_action_help, "Update %s.", true)
 	a.cli.NewActions(maint_act, maintain_action_help, "Maintain %s.", true)
+	a.cli.NewActions(val_act, val_act_help, "", true)
 	a.cli.NewActions(add_act, add_action_help, "Add %s to your software factory.", false)
 	a.cli.NewActions(chg_act, update_action_help, "Update %s of your software factory.", false)
 	a.cli.NewActions(rem_act, remove_action_help, "Remove/disable %s from your software factory.", false)

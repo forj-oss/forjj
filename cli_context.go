@@ -34,7 +34,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	} else {
 		return nil, false
 	}
-	if action == cr_act {
+	if action == cr_act || action == val_act {
 		// Detect and load a Forjfile template given.
 		if err := a.LoadForjfile(action) ; err != nil {
 			a.w.SetError(err)
