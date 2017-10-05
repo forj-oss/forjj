@@ -39,7 +39,7 @@ func (a *Forj) Update() error {
 	}
 
 	if err := a.ValidateForjfile(); err != nil {
-		return err
+		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
 	}
 
 	// Checking infra repository: A valid infra repo is a git repository with at least one commit and

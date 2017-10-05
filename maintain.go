@@ -19,7 +19,7 @@ func (a *Forj) Maintain() error {
 	a.ScanAndSetObjectData(true)
 
 	if err := a.ValidateForjfile(); err != nil {
-		return err
+		return fmt.Errorf("Your Forjfile is having issues. %s Maintain aborted.", err)
 	}
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
