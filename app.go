@@ -354,6 +354,11 @@ func (a *Forj) init() {
 		log.Printf("action create: %s", a.cli.Error())
 	}
 
+	if a.cli.OnActions(val_act).
+		AddFlag(cli.String, forjfile_path_f, create_forjfile_help, opts_forjfile)== nil {
+		log.Printf("action create: %s", a.cli.Error())
+	}
+
 	// Enhance Update. Plugins can add options to update with `only-for-actions`
 	if a.cli.OnActions(upd_act).
 		// Add Update workspace flags to Create action, not prefixed.

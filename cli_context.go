@@ -52,9 +52,10 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	a.w.Load()
 
 	// Read definition file from repo.
-	is_valid_action := (inStringList(action, cr_act, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "")
+	is_valid_action := (inStringList(action, val_act, cr_act, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "")
 	need_to_create := (action == cr_act)
-	if err := a.f.SetInfraPath(a.w.InfraPath(), is_valid_action && need_to_create) ; err != nil {
+	need_to_validate := (action == val_act)
+	if err := a.f.SetInfraPath(a.w.InfraPath(), is_valid_action && (need_to_create || need_to_validate)) ; err != nil {
 		a.w.SetError(err)
 		return nil, false
 	}

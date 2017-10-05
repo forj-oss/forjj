@@ -10,7 +10,9 @@ const DefaultUsageTemplate = `{{define "FormatCommand"}}\
 {{  range .}}\
 {{    if not .Hidden}}\
 {{      if eq .Name "add"}}---------------------------------------------------------------------------------------------
-Following actions do updates of your software factory source code, by updating forjj or plugins objects settings.
+Following actions do updates of your software factory source code, by updating your Forjfile and update plugins objects setup.
+
+FYI: Those actions are not tested, and need to be reworked to make it work. Use it at your own risk.
 
 {{      end}}\
 {{      .Depth|Indent}}{{.Name}} {{if .Default}}*{{end}}\
