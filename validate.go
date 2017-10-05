@@ -52,5 +52,6 @@ func (a *Forj)ValidateForjfile() (_ error) {
 	// GroupStruct.More
 
 	// ForgeYaml.More
+	fmt.Print("Validated successfully.\n")
 	return
 }

@@ -355,6 +355,9 @@ func (a *Forj) init() {
 	}
 
 	if a.cli.OnActions(val_act).
+	// Add Update workspace flags to Create action, not prefixed.
+	// ex: forjj create --docker-exe-path ...
+		AddActionFlagsFromObjectAction(workspace, chg_act).
 		AddFlag(cli.String, forjfile_path_f, create_forjfile_help, opts_forjfile)== nil {
 		log.Printf("action create: %s", a.cli.Error())
 	}
