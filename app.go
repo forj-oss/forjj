@@ -17,6 +17,7 @@ import (
 	"forjj/drivers"
 	"forjj/repo"
 	"forjj/creds"
+	"strings"
 )
 
 // TODO: Support multiple contrib sources.
@@ -484,7 +485,9 @@ func (a *Forj) GetDriversActionsParameter(d *drivers.Driver, flag_name, action s
 			// Initialized defaults value from templates
 			var doc bytes.Buffer
 
-			if t, err := template.New("forj-data").Parse(v); err != nil {
+			if t, err := template.New("forj-data").Funcs(template.FuncMap{
+				"ToLower": strings.ToLower,
+				}).Parse(v); err != nil {
 				gotrace.Trace("Unable to interpret Parameter '%s' value '%s'. %s", parameter_name, v, err)
 				return "", false
 			} else {
