@@ -119,7 +119,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		a.no_maintain = v
 	}
 
-	// Load drivers from repository
+	// Load drivers from repository Forjfile
 	a.prepare_registered_drivers()
 
 	// TODO: Provide a caching feature if we keep loading from internet.
