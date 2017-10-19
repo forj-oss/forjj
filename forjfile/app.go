@@ -14,6 +14,7 @@ type AppStruct struct {
 type AppYamlStruct struct {
 	Type   string
 	Driver string
+	Version string
 	// TODO: Support for object dedicated to the application instance (not shared)
 	// Objects map[string]map[string]string
 	more   ForjValues

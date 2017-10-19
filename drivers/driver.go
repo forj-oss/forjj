@@ -18,6 +18,7 @@ type DriverModel struct {
 
 type Driver struct {
 	DriverType    string                      // driver type name
+	DriverVersion string                      // Driver version to use. If not set, use latest.
 	InstanceName  string                      // Instance name.
 	Name          string                      // Name of driver to load Yaml.Name is the real internal driver name.
 	cmds          map[string]DriverCmdOptions // List of flags per commands

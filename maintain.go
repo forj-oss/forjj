@@ -53,7 +53,7 @@ func (a *Forj) do_driver_maintain(instance string) error {
 	}
 
 	gotrace.Trace("Start maintaining instance '%s'", instance)
-	if err := a.driver_start(instance); err != nil {
+	if err := a.driver_init(instance); err != nil {
 		return err
 	}
 	d := a.CurrentPluginDriver

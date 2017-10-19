@@ -32,7 +32,7 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 		return fmt.Errorf("Internal error: Invalid action '%s'. Supports only 'create' and 'update'.", action), false
 	}
 
-	if err = a.driver_start(instance); err != nil {
+	if err = a.driver_init(instance); err != nil {
 		return
 	}
 
@@ -105,7 +105,7 @@ func (a *Forj) do_driver_add(d *drivers.Driver) error {
 
 // Define starting on this driver
 // Forj.CurrentPluginDriver set
-func (a *Forj) driver_start(instance string) error {
+func (a *Forj) driver_init(instance string) error {
 
 	d, found := a.drivers[instance]
 	if !found {
@@ -161,6 +161,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	}
 
 	d.Plugin.PluginSetSource(path.Join(a.i.Path(), "apps", d.DriverType))
+	d.Plugin.PluginSetVersion(d.DriverVersion)
 	d.Plugin.PluginSetWorkspace(a.w.Path())
 	d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
 	if v, found, _, _ := a.cli.GetStringValue(workspace, "", "docker-exe-path"); found && v != "" {

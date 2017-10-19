@@ -245,6 +245,7 @@ func (a *Forj) add_defined_driver(app *forjfile.AppStruct) error {
 		driver.InstanceName = app.Name()
 		driver.Name = app.Driver
 		driver.DriverType = app.Type
+		driver.DriverVersion = app.Version
 		a.drivers[app.Name()] = driver
 		driver.Init()
 	}
