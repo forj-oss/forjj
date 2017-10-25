@@ -11,12 +11,28 @@ then
       echo "sudo docker" > .be-docker
       shift
    fi
+   if [ "$1" = "--jenkins-context" ]
+   then
+      set +x
+      shift
+      mkdir -p go-workspace/src
+      cd go-workspace/src
+      CONTEXT="$1"
+      PROJECT=forjj
+      ln -sf $CONTEXT $PROJECT
+      echo "Moved to Go workspace environment : go-workspace/src/$PROJECT"
+      cd $PROJECT
+      echo "$CONTEXT/go-workspace" > .be-gopath
+      echo "Defining '$CONTEXT/go-workspace' for GOPATH"
+      shift
+   fi
 fi
 
 if [ -f .be-docker ]
 then
    export BUILD_ENV_DOCKER="$(cat .be-docker)"
 else
+   echo "Using docker directly. (no sudo)"
    export BUILD_ENV_DOCKER="docker"
 fi
 

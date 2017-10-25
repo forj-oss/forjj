@@ -20,7 +20,7 @@ fi
 USER="--build-arg UID=$(id -u) --build-arg GID=$(id -g)"
 
 set -x
-sudo docker build -t $BUILD_ENV $PROXY $USER glide
+$BUILD_ENV_DOCKER build -t $BUILD_ENV $PROXY $USER glide
 set +x
 
 echo "'$BUILD_ENV' image built."
