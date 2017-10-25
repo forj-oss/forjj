@@ -4,15 +4,18 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo 'Building..'
+                sh('''source build-env $WORKSPACE
+                build.sh''')
             }
         }
-        stage('Test') {
+        stage('Tests') {
             steps {
-                echo 'Testing..'
+                sh('''source build-env $WORKSPACE
+                go test''')
             }
         }
         stage('Deploy') {
+            when { branch 'master' }
             steps {
                 echo 'Deploying....'
             }
