@@ -4,17 +4,22 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo 'Building..'
+                sh('''ls -la
+                source ./build-env.sh --jenkins-context $WORKSPACE
+                build.sh''')
             }
         }
-        stage('Test') {
+        stage('Tests') {
             steps {
-                echo 'Testing..'
+                sh('''source ./build-env.sh --jenkins-context $WORKSPACE
+                go test''')
             }
         }
         stage('Deploy') {
+            when { branch 'master' }
             steps {
-                echo 'Deploying....'
+                echo 'Deploying...'
+                sh('''source ./build-env.sh --jenkins-context $WORKSPACE''')
             }
         }
     }
