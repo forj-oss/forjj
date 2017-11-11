@@ -4,8 +4,7 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh('''ls -la
-                source ./build-env.sh --jenkins-context $WORKSPACE
+                sh('''source ./build-env.sh --jenkins-context $WORKSPACE
                 build.sh''')
             }
         }
