@@ -24,7 +24,12 @@ then
    exit 1
 fi
 
-MOUNT="-v $GOPATH:/go -w /go/src/$PROJECT"
+if [[ "$DOCKER_JENKINS_HOME" != "" ]]
+then # Set if jenkins requires a different mount point
+   MOUNT="-v $DOCKER_JENKINS_HOME -w $GOPATH/src/$PROJECT"
+else
+   MOUNT="-v $GOPATH:/go -w /go/src/$PROJECT"
+fi
 
 if [ -t 1 ]
 then

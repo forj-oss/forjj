@@ -4,8 +4,10 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh('''source ./build-env.sh --jenkins-context $WORKSPACE
-                build.sh''')
+                withEnv(["DOCKER_JENKINS_HOME=${env.DOCKER_JENKINS_MOUNT}"]) {
+                    sh('''source ./build-env.sh --jenkins-context $WORKSPACE
+                    build.sh''')
+                }
             }
         }
         stage('Tests') {
