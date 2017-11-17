@@ -11,6 +11,7 @@ function go_jenkins_context {
     cd $PROJECT
     echo "$CONTEXT/go-workspace" > .be-gopath
     echo "Defining '$CONTEXT/go-workspace' for GOPATH"
+    echo "Running from PWD = $(pwd)"
     SHIFT=2
 }
 
