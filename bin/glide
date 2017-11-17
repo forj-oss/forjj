@@ -1,41 +1,16 @@
 #!/bin/bash
 #
 
-if [ "$BUILD_ENV_LOADED" != "true" ]
+BUILD_SCRIPT_PATH=$(dirname $0)
+BUILD_SCRIPT_LIB=$(dirname $BUILD_SCRIPT_PATH)/lib/run-build-env.sh
+
+if [[ ! -f $BUILD_SCRIPT_LIB ]]
 then
-   echo "Please go to your project and load your build environment. 'source build-env.sh'"
-   exit 1
+    echo "Unable to load build-env.sh. '$BUILD_SCRIPT_LIB' not found"
+    exit 1
 fi
 
-cd $BUILD_ENV_PROJECT
+source $BUILD_SCRIPT_LIB
 
-if [ "$http_proxy" != "" ]
-then
-   PROXY="-e http_proxy=$http_proxy -e https_proxy=$http_proxy -e no_proxy=$no_proxy"
-fi
-
-USER="-u $(id -u)"
-PROJECT="$(basename $BUILD_ENV_PROJECT)"
-echo "PROJECT = $PROJECT"
-
-if [ "$GOPATH" = "" ]
-then
-   echo "GOPATH not set. Please set it."
-   exit 1
-fi
-
-if [[ "$DOCKER_JENKINS_HOME" != "" ]]
-then # Set if jenkins requires a different mount point
-   MOUNT="-v $DOCKER_JENKINS_HOME -w $GOPATH/src/$PROJECT"
-else
-   MOUNT="-v $GOPATH:/go -w /go/src/$PROJECT"
-fi
-
-if [ -t 1 ]
-then
-   TTY="-t"
-fi
-
-set -x
-$BUILD_ENV_DOCKER run --rm -i $TTY $MOUNT $PROXY $USER forjj-golang-env /usr/bin/glide "$@"
+do_docker_run forjj-golang-env /usr/bin/glide "$@"
 
