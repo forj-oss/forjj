@@ -27,7 +27,7 @@ fi
 
 if [[ "$DOCKER_JENKINS_HOME" != "" ]]
 then # Set if jenkins requires a different mount point
-   MOUNT="-v $DOCKER_JENKINS_HOME -w $GOPATH/src/$PROJECT"
+   MOUNT="-v $DOCKER_JENKINS_HOME -w $GOPATH/src/$PROJECT -e GOPATH=$GOPATH"
 else
    MOUNT="-v $GOPATH:/go -w /go/src/$PROJECT"
 fi
