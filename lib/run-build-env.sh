@@ -38,5 +38,6 @@ then
 fi
 
 function do_docker_run {
+    set -x
     eval $BUILD_ENV_DOCKER run --rm -i $TTY $MOUNT $PROXY $USER "$@"
 }
