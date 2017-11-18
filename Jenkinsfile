@@ -19,8 +19,10 @@ pipeline {
         stage('Deploy') {
             when { branch 'master' }
             steps {
-                echo 'Deploying...'
-                sh('''source ./build-env.sh''')
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    sh('''source ./build-env.sh
+                    publish.sh latest''')
+                }
             }
         }
     }
