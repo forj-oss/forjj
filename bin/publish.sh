@@ -37,7 +37,7 @@ then
 fi
 if [ "$(git rev-parse --abbrev-ref HEAD)" != master ]
 then
-   echo "You must be on master branch."
+   echo "You must be on master branch. You are on '$(git rev-parse --abbrev-ref HEAD)'"
    exit 1
 fi
 
