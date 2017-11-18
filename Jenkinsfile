@@ -4,22 +4,25 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh('''ls -la
-                source ./build-env.sh --jenkins-context $WORKSPACE
-                build.sh''')
+                withEnv(["DOCKER_JENKINS_HOME=${env.DOCKER_JENKINS_MOUNT}"]) {
+                    sh('''source ./build-env.sh
+                    build.sh''')
+                }
             }
         }
         stage('Tests') {
             steps {
-                sh('''source ./build-env.sh --jenkins-context $WORKSPACE
+                sh('''source ./build-env.sh
                 go test''')
             }
         }
         stage('Deploy') {
             when { branch 'master' }
             steps {
-                echo 'Deploying...'
-                sh('''source ./build-env.sh --jenkins-context $WORKSPACE''')
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    sh('''source ./build-env.sh
+                    publish.sh latest''')
+                }
             }
         }
     }

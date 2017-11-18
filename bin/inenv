@@ -1,23 +1,17 @@
 #!/bin/bash
 #
 
-if [ "$http_proxy" != "" ]
+BUILD_SCRIPT_PATH=$(dirname $0)
+BUILD_SCRIPT_LIB=$(dirname $BUILD_SCRIPT_PATH)/lib/run-build-env.sh
+
+if [[ ! -f $BUILD_SCRIPT_LIB ]]
 then
-   PROXY="-e http_proxy=$http_proxy -e https_proxy=$http_proxy -e no_proxy=$no_proxy"
+    echo "Unable to load build-env.sh. '$BUILD_SCRIPT_LIB' not found"
+    exit 1
 fi
 
-USER="-u $(id -u)"
-PROJECT="$(basename $BUILD_ENV_PROJECT)"
-echo "PROJECT = $PROJECT"
+source $BUILD_SCRIPT_LIB
 
-if [ "$GOPATH" = "" ]
-then
-   echo "GOPATH not set. Please set it."
-   exit 1
-fi
-
-MOUNT="-v $GOPATH:/go -w /go/src/$PROJECT"
-
-$BUILD_ENV_DOCKER run --rm -it $MOUNT $PROXY $USER forjj-golang-env bash
+do_docker_run forjj-golang-env bash
 
 
