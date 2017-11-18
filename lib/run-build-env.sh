@@ -23,7 +23,7 @@ then # Set if jenkins requires a different mount point
     MOUNT="-v $DOCKER_JENKINS_MOUNT"
 else
     # TODO: To move out of generic BE script
-    MOUNT="-v $GOPATH:/go -w /go/src/$PROJECT"
+    MOUNT="-v $GOPATH:/go -w /go/src/$BE_PROJECT"
 fi
 
 if [ -t 1 ]
