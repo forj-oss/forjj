@@ -34,7 +34,7 @@ fi
 function do_docker_run {
     if [[ "$CI_WORKSPACE" != "" ]]
     then # Jenkins workspace detected.
-        START_DOCKER="$BUILD_ENV_DOCKER run -di $MOUNT $PROXY -e GOPATH=/go-workspace $USER $1"
+        START_DOCKER="$BUILD_ENV_DOCKER run -di $MOUNT $PROXY -e GOPATH=/go/workspace $USER $1"
         echo "Starting container : '$START_DOCKER'"
         CONT_ID=$($START_DOCKER /bin/cat)
         shift
@@ -45,9 +45,9 @@ function do_docker_run {
         fi
         set -xe
         $BUILD_ENV_DOCKER exec -i $CONT_ID mkdir -p $WORKSPACE/go-workspace/src
-        $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE/go-workspace /go-workspace
-        $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE /go-workspace/src/$BE_PROJECT
-        $BUILD_ENV_DOCKER exec -i $CONT_ID bash -c "cd /go-workspace/src/$BE_PROJECT ; $*"
+        $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE/go-workspace /go/workspace
+        $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE /go/workspace/src/$BE_PROJECT
+        $BUILD_ENV_DOCKER exec -i $CONT_ID bash -c "cd /go/workspace/src/$BE_PROJECT ; $*"
         $BUILD_ENV_DOCKER rm -f $CONT_ID
         set +x
     else
