@@ -12,26 +12,20 @@ fi
 
 source $BUILD_SCRIPT_LIB
 
-if [ "$GOPATH" = "" ]
-then
-   echo "GOPATH not set. Please set it."
-   exit 1
-fi
-
-if [ "$CGO_ENABLED" = "0" ]
+if [[ "$CGO_ENABLED" = "0" ]]
 then
    GOBIN="/usr/local/go/bin/go-static"
 else
    GOBIN="/usr/local/go/bin/go"
 fi
 
-if [ "$1" = "build" ] || [ "$1" = "install" ]
+if [[ "$1" = "build" ]] || [[ "$1" = "install" ]]
 then
    BUILD_BRANCH=$(git rev-parse --abbrev-ref HEAD)
    BUILD_COMMIT=$(git log --format="%H" -1)
    BUILD_DATE="$(git log --format="%ai" -1 | sed 's/ /_/g')"
    GIT_TAG="$(git tag -l --points-at HEAD)"
-   if [ "$GIT_TAG" = "" ] || [ "$GIT_TAG" = "latest" ]
+   if [[ "$GIT_TAG" = "" ]] || [[ "$GIT_TAG" = "latest" ]]
    then
       BUILD_TAG=false
    else

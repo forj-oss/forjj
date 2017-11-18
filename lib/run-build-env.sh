@@ -16,20 +16,14 @@ then
 fi
 
 USER="-u $(id -u)"
-PROJECT="$(basename $BUILD_ENV_PROJECT)"
 echo "INFO! Run from docker container."
 
-if [ "$GOPATH" = "" ]
-then
-   echo "GOPATH not set. Please set it."
-   exit 1
-fi
-
-if [[ "$DOCKER_JENKINS_HOME" != "" ]]
+if [[ "$DOCKER_JENKINS_MOUNT" != "" ]]
 then # Set if jenkins requires a different mount point
-   MOUNT="-v $DOCKER_JENKINS_HOME -w $GOPATH/src/$PROJECT -e GOPATH=$GOPATH"
+    MOUNT="-v $DOCKER_JENKINS_MOUNT"
 else
-   MOUNT="-v $GOPATH:/go -w /go/src/$PROJECT"
+    # TODO: To move out of generic BE script
+    MOUNT="-v $GOPATH:/go -w /go/src/$PROJECT"
 fi
 
 if [ -t 1 ]
@@ -38,6 +32,24 @@ then
 fi
 
 function do_docker_run {
-    set -x
-    eval $BUILD_ENV_DOCKER run --rm -i $TTY $MOUNT $PROXY $USER "$@"
+    if [[ "$CI_WORKSPACE" != "" ]]
+    then # Jenkins workspace detected.
+        START_DOCKER="$BUILD_ENV_DOCKER run -di $MOUNT $PROXY $USER $1"
+        echo "Starting container : '$START_DOCKER'"
+        CONT_ID=$($START_DOCKER /bin/cat)
+        shift
+        if [[ $CONT_ID = "" ]]
+        then
+            echo "Unable to start the container"
+            exit 1
+        fi
+        set -xe
+        $BUILD_ENV_DOCKER exec -i $CONT_ID mkdir -p /go/src
+        $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE /go/src/$BE_PROJECT
+        $BUILD_ENV_DOCKER exec -i $CONT_ID bash -c "cd /go/src/$BE_PROJECT ; $*"
+        $BUILD_ENV_DOCKER rm -f $CONT_ID
+        set +x
+    else
+        eval $BUILD_ENV_DOCKER run --rm -i $TTY $MOUNT $PROXY $USER "$@"
+    fi
 }
