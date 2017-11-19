@@ -102,12 +102,13 @@ then
     rm -f /tmp/.git.store
 else
     git push -f upstream $TAG
-fi
 
-build.sh
+    build.sh
+fi
 
 echo "Deploying $BE_PROJECT to github..."
 export GITHUB_REPO=$BE_PROJECT
+set -x
 if [ "$TAG" = latest ]
 then
    set +e
