@@ -64,12 +64,6 @@ then
     git stash # Just in case
     git fetch upstream
     git reset --hard upstream/master
-else
-    set +e
-    git remote remove upstream
-    set -e
-    git remote add upstream https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/forj-oss/forjj.git
-    git fetch upstream
 fi
 
 set +e
@@ -94,9 +88,26 @@ else
    fi
 fi
 
+if [[ "CI_ENABLED" = "TRUE" ]]
+    echo "Creating upstream remote..."
+    set +e
+    git remote remove upstream
+    set -e
+    echo "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com" > /tmp/.git.store
+    git config --local credential.helper store --file /tmp/.git.store
+    git remote add upstream https://github.com/forj-oss/forjj.git
+    echo "Fetching upstream remote..."
+    git fetch upstream
 set -e
 git tag $TAG
 git push -f upstream $TAG
+if [[ "CI_ENABLED" = "TRUE" ]]
+then
+    set +e
+    rm -f /tmp/.git.store
+    git remote remove upstream
+    set -e
+fi
 
 build.sh
 
@@ -119,3 +130,4 @@ else
 fi
 
 gothub upload --tag $TAG --name $BE_PROJECT --file $GOPATH/bin/$BE_PROJECT --replace
+
