@@ -2,12 +2,6 @@ pipeline {
     agent any
 
     stages {
-        stage('Cleanup') {
-            when { branch 'master' }
-            steps {
-                cleanWs()
-            }
-        }
         stage('Build') {
             steps {
                 withEnv(["DOCKER_JENKINS_HOME=${env.DOCKER_JENKINS_MOUNT}"]) {
@@ -32,6 +26,12 @@ pipeline {
                     publish.sh latest''')
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            deleteDir()
         }
     }
 }
