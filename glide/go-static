@@ -10,7 +10,7 @@ then
    /usr/local/go/bin/go build "$@"
    if [ -x $DEFAULT_BIN_NAME ]
    then
-       mv -v $DEFAULT_BIN_NAME /go/bin
+       mv -v $DEFAULT_BIN_NAME $GOPATH/bin
    fi
 else
    /usr/local/go/bin/go "$@"
