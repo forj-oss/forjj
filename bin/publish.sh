@@ -79,7 +79,7 @@ else
       echo "Unable to publish $TAG. Already published and released."
       exit 1
    fi
-   if [[ "$1" != "--auto" ]]
+   if [[ "$1" != "--auto" ]] && [[ "CI_ENABLED" = "FALSE" ]]
    then
       echo "You are going to publish version $TAG. Ctrl-C to interrupt or press Enter to go on"
       read
@@ -88,29 +88,25 @@ else
    fi
 fi
 
-if [[ "CI_ENABLED" = "TRUE" ]]
-    echo "Creating upstream remote..."
-    set +e
-    git remote remove upstream
-    set -e
-    echo "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com" > /tmp/.git.store
-    git config --local credential.helper store --file /tmp/.git.store
-    git remote add upstream https://github.com/forj-oss/forjj.git
-    echo "Fetching upstream remote..."
-    git fetch upstream
 set -e
+
+echo "Tagging to $TAG..."
 git tag $TAG
-git push -f upstream $TAG
+
+echo "Pushing it ..."
 if [[ "CI_ENABLED" = "TRUE" ]]
 then
-    set +e
+    git config --local credential.helper store --file /tmp/.git.store
+    echo "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com" > /tmp/.git.store
+    git push -f origin $TAG
     rm -f /tmp/.git.store
-    git remote remove upstream
-    set -e
+else
+    git push -f upstream $TAG
 fi
 
 build.sh
 
+echo "Deploying $BE_PROJECT to github..."
 export GITHUB_REPO=$BE_PROJECT
 if [ "$TAG" = latest ]
 then
@@ -120,6 +116,7 @@ then
    then
       gothub release --tag $TAG --name $BE_PROJECT --description "Latest version of $BE_PROJECT." -p
    fi
+   set -e
 else
     GOTHUB_PARS=""
    if [ "$PRE_RELEASE" = true ]
