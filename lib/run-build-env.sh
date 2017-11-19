@@ -44,7 +44,7 @@ function do_docker_run {
             exit 1
         fi
         set -xe
-        $BUILD_ENV_DOCKER exec -i $CONT_ID mkdir -p $WORKSPACE/go-workspace/src
+        $BUILD_ENV_DOCKER exec -i $CONT_ID mkdir -p $WORKSPACE/go-workspace/src $WORKSPACE/go-workspace/bin
         $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE/go-workspace /go/workspace
         $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE /go/workspace/src/$BE_PROJECT
         $BUILD_ENV_DOCKER exec -i $CONT_ID bash -c "cd /go/workspace/src/$BE_PROJECT ; $*"
