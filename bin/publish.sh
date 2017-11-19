@@ -96,7 +96,7 @@ git tag $TAG
 echo "Pushing it ..."
 if [[ "$CI_ENABLED" = "TRUE" ]]
 then
-    git config --local credential.helper store --file /tmp/.git.store
+    git config --local credential.helper 'store --file /tmp/.git.store'
     echo "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com" > /tmp/.git.store
     git push -f origin $TAG
     rm -f /tmp/.git.store
