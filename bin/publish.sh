@@ -36,7 +36,7 @@ then
    go build -o bin/gothub github.com/itchio/gothub
 fi
 
-if [[ "CI_ENABLED" = "FALSE" ]]
+if [[ "$CI_ENABLED" = "FALSE" ]]
 then
     echo  "You are going to publish manually. This is not recommended. Do it only if
     Jenkins fails to do it automatically.
@@ -79,7 +79,7 @@ else
       echo "Unable to publish $TAG. Already published and released."
       exit 1
    fi
-   if [[ "$1" != "--auto" ]] && [[ "CI_ENABLED" = "FALSE" ]]
+   if [[ "$1" != "--auto" ]] && [[ "$CI_ENABLED" = "FALSE" ]]
    then
       echo "You are going to publish version $TAG. Ctrl-C to interrupt or press Enter to go on"
       read
@@ -94,7 +94,7 @@ echo "Tagging to $TAG..."
 git tag $TAG
 
 echo "Pushing it ..."
-if [[ "CI_ENABLED" = "TRUE" ]]
+if [[ "$CI_ENABLED" = "TRUE" ]]
 then
     git config --local credential.helper store --file /tmp/.git.store
     echo "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com" > /tmp/.git.store
