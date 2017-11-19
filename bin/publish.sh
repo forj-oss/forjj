@@ -127,5 +127,5 @@ else
    gothub release --tag $TAG --name $BE_PROJECT --description "$BE_PROJECT version $TAG." $GOTHUB_PARS
 fi
 
-gothub upload --tag $TAG --name $BE_PROJECT --file $GOPATH/bin/$BE_PROJECT --replace
+gothub upload --tag $TAG --name $BE_PROJECT --file go-workspace/bin/$BE_PROJECT --replace
 
