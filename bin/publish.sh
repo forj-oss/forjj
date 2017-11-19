@@ -35,26 +35,42 @@ then
    go get -d github.com/itchio/gothub
    go build -o bin/gothub github.com/itchio/gothub
 fi
-if [ "$(git rev-parse --abbrev-ref HEAD)" != master ]
-then
-   echo "You must be on master branch. You are on '$(git rev-parse --abbrev-ref HEAD)'"
-   exit 1
-fi
 
-REMOTE="$(git remote -v | grep "^upstream")"
-if [ "$REMOTE" = "" ]
+if [[ "CI_ENABLED" = "FALSE" ]]
 then
-    echo "upstream is missing. You must have it configured (git@github.com:forj-oss/forjj.git) and rights given to push"
-    exit 1
+    echo  "You are going to publish manually. This is not recommended. Do it only if
+    Jenkins fails to do it automatically.
+
+    Press Enter to continue."
+    read
+
+    if [ "$(git rev-parse --abbrev-ref HEAD)" != master ]
+    then
+       echo "You must be on master branch. You are on '$(git rev-parse --abbrev-ref HEAD)'"
+       exit 1
+    fi
+
+    REMOTE="$(git remote -v | grep "^upstream")"
+    if [ "$REMOTE" = "" ]
+    then
+        echo "upstream is missing. You must have it configured (git@github.com:forj-oss/forjj.git) and rights given to push"
+        exit 1
+    fi
+    if [[ ! "$REMOTE" =~ git@github\.com:forj-oss/forjj\.git ]]
+    then
+        echo "upstream is wrongly configured. It must be set with git@github.com:forj-oss/forjj.git"
+        exit 1
+    fi
+    git stash # Just in case
+    git fetch upstream
+    git reset --hard upstream/master
+else
+    set +e
+    git remote remove upstream
+    set -e
+    git remote add upstream https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/forj-oss/forjj.git
+    git fetch upstream
 fi
-if [[ ! "$REMOTE" =~ git@github\.com:forj-oss/forjj\.git ]]
-then
-    echo "upstream is wrongly configured. It must be set with git@github.com:forj-oss/forjj.git"
-    exit 1
-fi
-git stash # Just in case
-git fetch upstream
-git reset --hard upstream/master
 
 set +e
 if [ "$1" = "latest" ]
@@ -83,16 +99,15 @@ git tag $TAG
 git push -f upstream $TAG
 
 build.sh
-export GITHUB_USER=forj-oss
-export GITHUB_REPO=forjj
+
+export GITHUB_REPO=$BE_PROJECT
 if [ "$TAG" = latest ]
 then
    set +e
    gothub info -t latest
    if [ $? -ne 0 ]
    then
-      # TODO: Remove hardcoded binary name.
-      gothub release --tag $TAG --name forjj --description "Latest version of forjj." -p
+      gothub release --tag $TAG --name $BE_PROJECT --description "Latest version of $BE_PROJECT." -p
    fi
 else
     GOTHUB_PARS=""
@@ -100,7 +115,7 @@ else
    then
       GOTHUB_PARS="-p"
    fi
-   gothub release --tag $TAG --name forjj --description "forjj version $TAG." $GOTHUB_PARS
+   gothub release --tag $TAG --name $BE_PROJECT --description "$BE_PROJECT version $TAG." $GOTHUB_PARS
 fi
 
-gothub upload --tag $TAG --name forjj --file $GOPATH/bin/forjj --replace
+gothub upload --tag $TAG --name $BE_PROJECT --file $GOPATH/bin/$BE_PROJECT --replace
