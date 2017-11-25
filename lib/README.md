@@ -1,21 +1,10 @@
-# Common Build env functions
+# Introduction
 
-This directory contains common functions called at source time in
-bin/shell scripts.
+This directory is maintained by BuildEnv (https://github.com/forj-oss/build-env)
 
-# TODO
+When you need to update it (bugs/features), refresh it as follow:
 
-In order to share the same code and stabilize it, we will need to
-centralize this file with a procedure to update the source code
-from the central build-env repo.
+1. load your build env with `build-env` or `source build-env.sh`
+2. refresh it with `be_update`
 
-In that way, the build-env can get fixes easily, reproducible.
-
-I imagine to define which kind of project to may be generate such files
-in bin/ like glide/go or inenv.
-
-If the project type Golang, to maintain this Golang build env.
-
-
-C Larsonneur
-Forj team
+This will update BuildEnv wrappers (bin/) and BuildEnv libs (lib/)

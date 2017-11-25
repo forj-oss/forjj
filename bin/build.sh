@@ -10,7 +10,7 @@ fi
 
 cd $BUILD_ENV_PROJECT
 
-create-build-env.sh
+create-go-build-env.sh
 
 glide i
 

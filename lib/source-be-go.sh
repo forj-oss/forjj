@@ -28,7 +28,7 @@ function go_check_and_set {
 
     if [[ -f .be-gopath ]]
     then
-       gopath="$(cat .be-gopath)"
+       local gopath="$(cat .be-gopath)"
        if [[ "$gopath" != "" ]] && [[ -d "$gopath" ]]
        then
           BUILD_ENV_GOPATH="$GOPATH"
@@ -47,10 +47,59 @@ function go_check_and_set {
 
 }
 
-function go_unset {
+function unset_go {
     if [[ "$BUILD_ENV_GOPATH" != "" ]]
     then
       GOPATH="$BUILD_ENV_GOPATH"
       unset BUILD_ENV_GOPATH
+      local fcts="`compgen -A function go_`"
+      unset -f $fcts
     fi
 }
+
+function be_create_wrapper_go {
+    case $1 in
+        go)
+            cat $BASE_DIR/modules/go/bin/go.sh >> $2
+            ;;
+        glide)
+            cat $BASE_DIR/modules/go/bin/glide.sh >> $2
+            ;;
+        create-go-build-env.sh)
+            cat $BASE_DIR/modules/go/bin/create-be.sh >> $2
+            ;;
+    esac
+}
+
+function be_go_mount_setup {
+    MOUNT="$MOUNT -v $GOPATH:/go -w /go/src/$BE_PROJECT"
+}
+
+function be_do_go_docker_run {
+    if [[ "$CI_WORKSPACE" != "" ]]
+    then # Jenkins workspace detected.
+        START_DOCKER="$BUILD_ENV_DOCKER run -di $MOUNT $PROXY -e GOPATH=/go/workspace $USER $1"
+        echo "Starting container : '$START_DOCKER'"
+        local CONT_ID=$($START_DOCKER /bin/cat)
+        shift
+        if [[ $CONT_ID = "" ]]
+        then
+            echo "Unable to start the container"
+            exit 1
+        fi
+        set -e
+        $BUILD_ENV_DOCKER exec -i $CONT_ID mkdir -p $WORKSPACE/go-workspace/src $WORKSPACE/go-workspace/bin
+        $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE/go-workspace /go/workspace
+        $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE /go/workspace/src/$BE_PROJECT
+        $BUILD_ENV_DOCKER exec -i $CONT_ID bash -c "cd /go/workspace/src/$BE_PROJECT ; eval \"$*\""
+        $BUILD_ENV_DOCKER rm -f $CONT_ID
+    else
+        eval do_docker_run "$@"
+    fi
+}
+
+function be_create_go_docker_build {
+    cp -vrp $BASE_DIR/modules/go/glide build-env-docker/
+}
+
+beWrappers["go"]="go glide create-go-build-env.sh"
