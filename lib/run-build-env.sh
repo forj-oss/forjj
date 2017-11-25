@@ -10,6 +10,7 @@ fi
 
 cd $BUILD_ENV_PROJECT
 
+source lib/build-env.fcts.sh
 MODS=(`cat build-env.modules`)
 for MOD in ${MOD[@]}
 do
@@ -33,7 +34,7 @@ else
     then
         for MOD in ${MOD[@]}
         do
-            be-${MOD}-mount-setup
+            be_${MOD}_mount_setup
         done
     fi
 fi
@@ -46,14 +47,14 @@ fi
 function docker_run {
     if [[ "$MOD" != "" ]]
     then
-        eval be_do_${MOD}_docker_run "$@"
+        be_do_${MOD}_docker_run "$@"
     else
         do_docker_run "$@"
     fi
 }
 
 function do_docker_run {
-    set -x
+    _be_set_debug
     $BUILD_ENV_DOCKER run --rm -i $TTY $MOUNT $PROXY $USER "$@"
-    set +x
+    _be_restore_debug
 }

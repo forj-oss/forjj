@@ -57,19 +57,21 @@ function unset_go {
     fi
 }
 
-function be-create-wrapper-go {
-    cat $BASE_DIR/modules/go/bin/go.sh >> $1
+function be_create_wrapper_go {
+    case $1 in
+        go)
+            cat $BASE_DIR/modules/go/bin/go.sh >> $2
+            ;;
+        glide)
+            cat $BASE_DIR/modules/go/bin/glide.sh >> $2
+            ;;
+        create-go-build-env.sh)
+            cat $BASE_DIR/modules/go/bin/create-be.sh >> $2
+            ;;
+    esac
 }
 
-function be-create-wrapper-glide {
-    cat $BASE_DIR/modules/go/bin/glide.sh >> $1
-}
-
-function be-create-wrapper-create-go-build-env.sh {
-    cat $BASE_DIR/modules/go/bin/create-be.sh >> $1
-}
-
-function be-go-mount-setup {
+function be_go_mount_setup {
     MOUNT="$MOUNT -v $GOPATH:/go -w /go/src/$BE_PROJECT"
 }
 
@@ -85,19 +87,18 @@ function be_do_go_docker_run {
             echo "Unable to start the container"
             exit 1
         fi
-        set -xe
+        set -e
         $BUILD_ENV_DOCKER exec -i $CONT_ID mkdir -p $WORKSPACE/go-workspace/src $WORKSPACE/go-workspace/bin
         $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE/go-workspace /go/workspace
         $BUILD_ENV_DOCKER exec -i $CONT_ID ln -sf $WORKSPACE /go/workspace/src/$BE_PROJECT
-        $BUILD_ENV_DOCKER exec -i $CONT_ID bash -c "cd /go/workspace/src/$BE_PROJECT ; $*"
+        $BUILD_ENV_DOCKER exec -i $CONT_ID bash -c "cd /go/workspace/src/$BE_PROJECT ; eval \"$*\""
         $BUILD_ENV_DOCKER rm -f $CONT_ID
-        set +x
     else
-        do_docker_run "$@"
+        eval do_docker_run "$@"
     fi
 }
 
-function be-create-go-docker-build {
+function be_create_go_docker_build {
     cp -vrp $BASE_DIR/modules/go/glide build-env-docker/
 }
 

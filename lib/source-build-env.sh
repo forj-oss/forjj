@@ -2,15 +2,18 @@
 
 source lib/build-env.fcts.sh
 
+unset MODS
 MODS=(`cat build-env.modules`)
-for MOD in ${MOD[@]}
+for MOD in $MODS
 do
+    echo "Loading module $MOD ..."
     source lib/source-be-$MOD.sh
 done
 
 # Core build env setup
 
-set +xe
+_be_restore_debug
+
 be_valid
 if [[ $? -ne 0 ]]
 then
