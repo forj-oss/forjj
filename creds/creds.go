@@ -106,3 +106,12 @@ func (d *YamlSecure)Get(obj_name, instance_name, key_name string) (* goforjj.Val
 	return nil, false
 }
 
+func (d *YamlSecure)GetObjectInstance(obj_name, instance_name string) (map[string]*goforjj.ValueStruct) {
+	if i, found := d.Objects[obj_name]; found {
+		if k, found := i[instance_name]; found {
+			return k
+		}
+	}
+	return nil
+}
+

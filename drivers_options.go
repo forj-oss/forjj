@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"github.com/forj-oss/forjj-modules/cli"
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
@@ -319,9 +320,21 @@ func (a *Forj)copyCliData(flag_name, def_value string) {
 }
 
 func (a *Forj)moveSecureObjectData(object_name, instance, flag_name string, missing_required bool) error {
-	if v, found := a.f.Get(object_name, instance, flag_name) ; found {
+	if v, found := a.f.Get(object_name, instance, "secret_" + flag_name); found {
+		// each key can have a secret_<key> value defined, stored in secret and can be refered in the Forjfile
+		// with {{ Current.Creds.<flag_name> }}
 		a.s.SetObjectValue(object_name, instance, flag_name, v)
 		a.f.Remove(object_name, instance, flag_name)
+		gotrace.Trace("Removing and setting secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
+			object_name, instance, "secret_" + flag_name)
+	}
+	if v, found := a.f.Get(object_name, instance, flag_name) ; found {
+		a.s.SetObjectValue(object_name, instance, flag_name, v)
+		// When no template value is set in Forjfile flag value, (default case in next code line)
+		// forjj will consider this string '{{ .Current.Creds.<flag_name> }}' as way to extract it
+		// The Forjfile can define that flag value to a different template. A simple string is not
+		// permitted for such secured data.
+		a.f.Remove(object_name, instance, flag_name) // To let Forjj get default way.
 		gotrace.Trace("Moving secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
 			object_name, instance, flag_name)
 		return nil
@@ -333,6 +346,18 @@ func (a *Forj)moveSecureObjectData(object_name, instance, flag_name string, miss
 	}
 	if _, found3 := a.s.Get(object_name, instance, flag_name) ; ! found3 && missing_required {
 		return fmt.Errorf("Missing required %s %s flag '%s' value.", object_name, instance, flag_name)
+	}
+	return nil
+}
+
+func (a *Forj)setSecureObjectData(object_name, instance, flag_name string, missing_required bool) error {
+	if v, found := a.f.Get(object_name, instance, "secret-" + flag_name); found {
+		// each key can have a secret_<key> value defined, stored in secret and can be referred in the Forjfile
+		// with {{ Current.Creds.<flag_name> }}
+		a.s.SetObjectValue(object_name, instance, flag_name, v)
+		a.f.Remove(object_name, instance, "secret-" + flag_name)
+		gotrace.Trace("Moving secret Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
+			object_name, instance, "secret-" + flag_name)
 	}
 	return nil
 }
@@ -425,27 +450,13 @@ func (a *Forj)ScanAndSetObjectData(missing bool) error {
 				}
 
 				// Object flags
-				for flag2_name, flag2 := range obj.Flags {
-					if ! flag2.Options.Secure {
-						a.copyCliObjectData(object_name, instance_name, flag2_name, flag2.Options.Default)
-						continue
-					}
-					if err := a.moveSecureObjectData(object_name, instance_name, flag2_name,
-						missing && flag2.Options.Required) ; err != nil {
-						return err
-					}
+				if err := a.DispatchObjectFlags(object_name, instance_name, "", missing, obj.Flags); err != nil {
+					return err
 				}
 				// Object group flags
 				for group_name, group := range obj.Groups {
-					for flag3_name, flag3 := range group.Flags {
-						if ! flag3.Options.Secure {
-							a.copyCliObjectData(object_name, instance_name, group_name + "-" + flag3_name, flag3.Options.Default)
-							continue
-						}
-						if err := a.moveSecureObjectData(object_name, instance_name, group_name + "-" + flag3_name,
-							missing && flag3.Options.Required) ; err != nil {
-							return err
-						}
+					if err := a.DispatchObjectFlags(object_name, instance_name, group_name + "-", missing, group.Flags) ; err != nil {
+						return err
 					}
 				}
 
@@ -453,6 +464,34 @@ func (a *Forj)ScanAndSetObjectData(missing bool) error {
 		}
 	}
 	return nil
+}
+
+// DispatchObjectFlags is dispatching Forjfile template data between Forjfile and creds
+// All plugin defined flags set with secret ON, are moving to creds
+// All plugin undefined flags named with "secret_" as prefix are considered as required to be moved to
+// creds
+//
+// The secret transfered flag value is moved to creds functions
+// while in Forjfile the moved value is set to {{ .creds.<flag_name> }}
+// a golang template is then used for Forfile to get the data from the default credential structure.
+func (a *Forj) DispatchObjectFlags(object_name, instance_name, flag_prefix string, missing bool, flags map[string]goforjj.YamlFlag) (err error) {
+	for flag_name, flag := range flags {
+		// treat 'secret_' flag type.
+		if err = a.setSecureObjectData(object_name, instance_name, flag_prefix + flag_name,
+			missing && flag.Options.Required) ; err != nil {
+			return err
+		}
+		if ! flag.Options.Secure {
+			// Forjfile flag already loaded. We can update it from cli or default otherwise
+			a.copyCliObjectData(object_name, instance_name, flag_prefix + flag_name, flag.Options.Default)
+			continue
+		}
+		if err = a.moveSecureObjectData(object_name, instance_name, flag_prefix + flag_name,
+			missing && flag.Options.Required) ; err != nil {
+			return err
+		}
+	}
+	return
 }
 
 // IsRepoManaged check is the upstream driver is the repository owner.
@@ -518,11 +557,13 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 				value := new(goforjj.ValueStruct)
 				if flag.Options.Secure {
 					// From creds.yml
-					if v, found := a.s.Get(object_name, instance_name, key) ; !found {
-						continue
-					} else {
-						value.Set(v)
+					def_value := "{{ (index .Current.Creds \"" + key + "\").GetString }}"
+					if v, found := a.f.Get(object_name, instance_name, key) ; found {
+						if s := v.GetString(); strings.HasPrefix("{{", s) {
+							def_value = s
+						}
 					}
+					value.Set(def_value)
 				} else {
 					// From Forjfile
 					if v, found := a.f.Get(object_name, instance_name, key) ; !found {
