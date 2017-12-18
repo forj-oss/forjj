@@ -18,6 +18,7 @@ import (
 	"forjj/repo"
 	"forjj/creds"
 	"strings"
+	"github.com/forj-oss/goforjj"
 )
 
 // TODO: Support multiple contrib sources.
@@ -128,6 +129,7 @@ type ForjCurrentModel struct {
 	Type string
 	Name string
 	Data interface{}
+	Creds map[string]*goforjj.ValueStruct
 }
 
 func (a *Forj) Model(object_name, instance_name string) *ForjModel {
@@ -137,6 +139,7 @@ func (a *Forj) Model(object_name, instance_name string) *ForjModel {
 			Type: object_name,
 			Name: instance_name,
 			Data: a.f.GetObjectInstance(object_name, instance_name),
+			Creds: a.s.GetObjectInstance(object_name, instance_name),
 		},
 	}
 	return &data
