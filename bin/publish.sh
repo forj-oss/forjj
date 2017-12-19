@@ -106,6 +106,7 @@ else
     build.sh
 fi
 
+go-workspace/bin/$BE_PROJECT --version
 echo "Deploying $BE_PROJECT to github..."
 export GITHUB_REPO=$BE_PROJECT
 set -x
