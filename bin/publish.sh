@@ -105,7 +105,13 @@ else
 
     build.sh
 fi
-
+COMMIT_ID=$(git log --format=format:%H -1)
+if [[ "$($GOPATH/bin/$BE_PROJECT --version | grep $COMMIT_ID)" = "" ]]
+then
+   echo "forjj binary is not in sync with current commit $COMMIT_ID"
+   $GOPATH/bin/$BE_PROJECT --version
+   exit 1
+fi
 go-workspace/bin/$BE_PROJECT --version
 echo "Deploying $BE_PROJECT to github..."
 export GITHUB_REPO=$BE_PROJECT
@@ -128,5 +134,17 @@ else
    gothub release --tag $TAG --name $BE_PROJECT --description "$BE_PROJECT version $TAG." $GOTHUB_PARS
 fi
 
-gothub upload --tag $TAG --name $BE_PROJECT --file go-workspace/bin/$BE_PROJECT --replace
+gothub upload --tag $TAG --name $BE_PROJECT --file $GOPATH/bin/$BE_PROJECT --replace
 
+mkdir tmp
+wget -O tmp/$BE_PROJECT https://github.com/forj-oss/forjj/releases/download/$TAG/$BE_PROJECT
+chmod +x tmp/$BE_PROJECT
+
+if [[ "$(tmp/$BE_PROJECT --version | grep $COMMIT_ID)" = "" ]]
+then
+   echo "forjj binary is not in sync with current commit $COMMIT_ID"
+   tmp/$BE_PROJECT --version
+   exit 1
+fi
+
+rm tmp/$BE_PROJECT
