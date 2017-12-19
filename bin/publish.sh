@@ -117,16 +117,12 @@ fi
 
 echo "Deploying $BE_PROJECT to github..."
 export GITHUB_REPO=$BE_PROJECT
-set -x
+# Removing the release everytime and ignore error.
+gothub delete -t $TAG
+set -ex
 if [ "$TAG" = latest ]
 then
-   set +e
-   gothub info -t latest
-   if [ $? -ne 0 ]
-   then
-      gothub release --tag $TAG --name $BE_PROJECT --description "Latest version of $BE_PROJECT." -p
-   fi
-   set -e
+   gothub release --tag $TAG --name $BE_PROJECT --description "Latest version of $BE_PROJECT." -p
 else
     GOTHUB_PARS=""
    if [ "$PRE_RELEASE" = true ]
