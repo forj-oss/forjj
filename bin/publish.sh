@@ -70,6 +70,7 @@ set +e
 if [ "$1" = "latest" ]
 then
    TAG=latest
+   git fetch --tags
    git tag -d $TAG
 else
    TAG="$(grep VERSION version.go | sed 's/const VERSION="\(.*\)"/\1/g')"
@@ -100,6 +101,7 @@ then
     echo "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com" > /tmp/.git.store
     git push -f origin $TAG
     rm -f /tmp/.git.store
+    GOPATH=go-workspace
 else
     git push -f upstream $TAG
 
@@ -112,7 +114,7 @@ then
    $GOPATH/bin/$BE_PROJECT --version
    exit 1
 fi
-go-workspace/bin/$BE_PROJECT --version
+
 echo "Deploying $BE_PROJECT to github..."
 export GITHUB_REPO=$BE_PROJECT
 set -x
