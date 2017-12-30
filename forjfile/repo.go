@@ -32,9 +32,14 @@ type RepoStruct struct {
 	GitRemote    string `yaml:"git-remote,omitempty"`
 	remote       goforjj.PluginRepoRemoteUrl // Git remote string to use/set
 	Title        string `yaml:",omitempty"`
-	Flow         string `yaml:",omitempty"`
 	RepoTemplate string `yaml:"repo-template,omitempty"`
+	Flow         RepoFlow `yaml:",omitempty"`
 	More         map[string]string `yaml:",inline"`
+}
+
+type RepoFlow struct {
+	Name string
+	objects map[string]map[string]string
 }
 
 func (r *RepoStruct)Owner() string {
@@ -108,7 +113,7 @@ func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	case "title":
 		return value.SetIfFound(r.Title, (r.Title != ""))
 	case "flow":
-		return value.SetIfFound(r.Flow, (r.Flow != ""))
+		return value.SetIfFound(r.Flow.Name, (r.Flow.Name != ""))
 	case "repo-template":
 		return value.SetIfFound(r.RepoTemplate, (r.RepoTemplate != ""))
 	default:
@@ -168,8 +173,8 @@ func (r *RepoStruct)Set(field, value string) {
 			r.forge.dirty()
 		}
 	case "flow":
-		if r.Flow != value {
-			r.Flow = value
+		if r.Flow.Name != value {
+			r.Flow.Name = value
 			r.forge.dirty()
 		}
 	default:

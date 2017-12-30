@@ -17,8 +17,15 @@ type AppYamlStruct struct {
 	Version string
 	// TODO: Support for object dedicated to the application instance (not shared)
 	// Objects map[string]map[string]string
+	Flows map[string]AppFlowYaml `yaml:",omitempty"`
 	more   ForjValues
 	More   map[string]string `yaml:",inline"`
+}
+
+type AppFlowYaml struct {
+	name string
+	Service string `yaml:"used-as,omitempty"`
+	Options map[string]string
 }
 
 // TODO: Add struct unit tests

@@ -126,9 +126,8 @@ func (a *Forj) Create() error {
 
 	// Now, we are in the infra repo root directory and at least, the 1st commit exist
 
-	// TODO: flow_start to execute instructions before creating source code for new apps in appropriate branch.
-	// Possible if a flow is already implemented otherwise git must stay in master branch
-	// flow_start()
+	// Enhance forjfile inMemory representation with Flow definition.
+	a.FlowInit()
 
 	defer func() {
 		// save infra repository location in the workspace.
