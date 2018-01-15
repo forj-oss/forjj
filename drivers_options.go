@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"forjj/drivers"
 	"forjj/forjfile"
+	"forjj/utils"
 )
 
 // Load driver options to a Command requested.
@@ -76,7 +77,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 	ContribRepoUri := *a.ContribRepo_uri
 	ContribRepoUri.Path = path.Join(ContribRepoUri.Path, driver.DriverType, driver.Name, driver.Name+".yaml")
 
-	if yaml_data, err = read_document_from(&ContribRepoUri); err != nil {
+	if yaml_data, err = utils.ReadDocumentFrom(&ContribRepoUri); err != nil {
 		return
 	}
 

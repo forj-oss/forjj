@@ -19,6 +19,7 @@ import (
 	"forjj/creds"
 	"strings"
 	"github.com/forj-oss/goforjj"
+	"forjj/flow"
 )
 
 // TODO: Support multiple contrib sources.
@@ -62,7 +63,6 @@ type Forj struct {
 	Branch               string   // Update feature branch name
 	ContribRepo_uri      *url.URL // URL to github raw files for plugin files.
 	RepotemplateRepo_uri *url.URL // URL to github raw files for RepoTemplates.
-	FlowRepo_uri         *url.URL // URL to github raw files for Flows.
 	appMapEntries        map[string]AppMapEntry
 	no_maintain          *bool    // At create time. true to not start maintain task at the end of create.
 	debug_instances      []string // List of instances in debug mode
@@ -76,6 +76,8 @@ type Forj struct {
 	w forjfile.Workspace       // Data structure to stored in the workspace. See workspace.go
 	s creds.YamlSecure         // credential file support.
 	o ForjjOptions             // Data structured stored in the root of the infra repo. See forjj-options.go
+
+	flows flow.Flows
 
 	i repository.GitRepoStruct // Infra Repository management.
 }
@@ -102,7 +104,7 @@ const (
 	repo      = "repo"
 	infra     = "infra"
 	app       = "app"
-	flow      = "flow"
+	flow_obj  = "flow"
 )
 
 const (
@@ -338,9 +340,9 @@ func (a *Forj) init() {
 	}
 
 	// Flow - Not fully defined.
-	if a.cli.NewObject(flow, "flow over applications", "internal").NoFields().
+	if a.cli.NewObject(flow_obj, "flow over applications", "internal").NoFields().
 		DefineActions(add_act, rem_act, list_act) == nil {
-		log.Printf("infra: %s", a.cli.GetObject(flow).Error())
+		log.Printf("infra: %s", a.cli.GetObject(flow_obj).Error())
 	}
 
 	// Enhance create action. Plugins can add options to create with `only-for-actions`

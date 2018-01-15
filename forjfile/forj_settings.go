@@ -120,3 +120,7 @@ func (s *DefaultSettingsStruct) Set(key string, value string) {
 func (d *DefaultSettingsStruct) set_forge(f *ForgeYaml) {
 	d.forge = f
 }
+
+func (d *DefaultSettingsStruct) getFlow() string {
+	return d.Flow
+}

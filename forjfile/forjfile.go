@@ -778,3 +778,21 @@ func (f *ForgeYaml)set_defaults() {
 func (f *ForgeYaml) dirty() {
 	f.updated = true
 }
+
+func (f *Forge)GetDeclaredFlows() (result []string) {
+	flows := make(map[string]bool)
+	for _, repo := range f.yaml.Repos {
+		if repo.Flow.Name != "" {
+			flows[repo.Flow.Name] = true
+		}
+	}
+	if flow := f.yaml.ForjSettings.Default.getFlow() ; flow != "" {
+		flows[flow] = true
+	}
+
+	result = make([]string, 0, len(flows))
+	for name := range flows {
+		result = append(result, name)
+	}
+	return
+}

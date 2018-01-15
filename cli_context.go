@@ -94,7 +94,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		return fmt.Errorf("Contribs repository url issue: %s", err), false
 	}
 	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
-		a.FlowRepo_uri = v
+		a.flows.AddRepoPath(v)
 		gotrace.Trace("Using '%s' for '%s'", v, "flows-repo")
 	} else {
 		gotrace.Error("Flow repository url issue: %s", err)

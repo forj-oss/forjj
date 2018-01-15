@@ -124,10 +124,14 @@ func (a *Forj) Create() error {
 		return err
 	}
 
-	// Now, we are in the infra repo root directory and at least, the 1st commit exist
+	// Now, we are in the infra repo root directory and at least, the 1st commit exist with a Forjfile created/updated
+	// The Forjfile in memory has been saved and won't be saved later in the process.
+	// The flow will update it in memory to apply all integration and automation
 
 	// Enhance forjfile inMemory representation with Flow definition.
-	a.FlowInit()
+	if err := a.FlowInit() ; err != nil {
+		return err
+	}
 
 	defer func() {
 		// save infra repository location in the workspace.
