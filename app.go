@@ -123,6 +123,7 @@ const (
 type ForjModel struct {
 	Forjfile *forjfile.ForgeYaml
 	Current ForjCurrentModel
+	Secret string
 }
 
 type ForjCurrentModel struct {
@@ -132,7 +133,7 @@ type ForjCurrentModel struct {
 	Creds map[string]*goforjj.ValueStruct
 }
 
-func (a *Forj) Model(object_name, instance_name string) *ForjModel {
+func (a *Forj) Model(object_name, instance_name, key string) *ForjModel {
 	data := ForjModel{
 		Forjfile: a.f.Forjfile(),
 		Current: ForjCurrentModel{
@@ -141,6 +142,10 @@ func (a *Forj) Model(object_name, instance_name string) *ForjModel {
 			Data: a.f.GetObjectInstance(object_name, instance_name),
 			Creds: a.s.GetObjectInstance(object_name, instance_name),
 		},
+	}
+	data.Secret = ""
+	if v, found := data.Current.Creds[key]; found {
+		data.Secret = v.GetString()
 	}
 	return &data
 }

@@ -572,7 +572,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 						value.Set(v)
 					}
 				}
-				if err := value.Evaluate(a.Model(object_name, instance_name)) ; err != nil {
+				if err := value.Evaluate(a.Model(object_name, instance_name, key)) ; err != nil {
 					return fmt.Errorf("Unable to evaluate '%s'. %s", value.GetString(), err)
 				}
 				gotrace.Trace("%s/%s: Key '%s' has been set to '%s'", object_name, instance_name, key, value.GetString())
