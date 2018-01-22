@@ -138,7 +138,7 @@ Where forjj helps?
 # Use the Minimal DevOps Solution
 OK! And concretely what next could we do?
 
-**!! Not yet implemented !!**
+**Warning! What is described here is currently not yet implemented !!**
 
 Well. Let's say you are a Team leader or project leader and you want to
 start a new project. And so you need a Repository... but not just that!
