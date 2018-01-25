@@ -37,3 +37,20 @@ func Touch(file string) error {
 	}
 }
 
+func InStringList(element string, elements ...string) string {
+	for _, value := range elements {
+		if element == value {
+			return value
+		}
+	}
+	return ""
+}
+
+func ArrayStringDelete(a []string, element string) []string {
+	for index, value := range a {
+		if value == element {
+			return append(a[:index], a[index+1:]...)
+		}
+	}
+	return a
+}

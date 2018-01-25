@@ -781,6 +781,7 @@ func (f *ForgeYaml) dirty() {
 
 func (f *Forge)GetDeclaredFlows() (result []string) {
 	flows := make(map[string]bool)
+
 	for _, repo := range f.yaml.Repos {
 		if repo.Flow.Name != "" {
 			flows[repo.Flow.Name] = true
@@ -788,6 +789,10 @@ func (f *Forge)GetDeclaredFlows() (result []string) {
 	}
 	if flow := f.yaml.ForjSettings.Default.getFlow() ; flow != "" {
 		flows[flow] = true
+	}
+
+	if len(flows) == 0 {
+		flows["default"] = true // Default is always loaded when nothing is declared.
 	}
 
 	result = make([]string, 0, len(flows))

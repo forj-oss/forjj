@@ -2,11 +2,11 @@ package utils
 
 import (
 	"net/url"
-	"github.com/opencontainers/runc/libcontainer/utils"
 	"io/ioutil"
 	"net/http"
 	"fmt"
 	"strings"
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 
@@ -22,7 +22,7 @@ func ReadDocumentFrom(s *url.URL) ([]byte, error) {
 
 // Read from the filesystem. If the path start with ~, replaced by the user homedir. In some context, this won't work well, like in container.
 func read_document_from_fs(source string) (_ []byte, err error) {
-	if source, err = utils.Abs(source) ; err != nil {
+	if source, err = Abs(source) ; err != nil {
 		return
 	}
 	gotrace.Trace("Load file definition at '%s'", source)

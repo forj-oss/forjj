@@ -122,7 +122,7 @@ func (a *Forj) get_valid_driver_actions() (validObjectActions, validCommandActio
 	validObjectActions = make([]string, 0, len(actions))
 	validCommandActions = make([]string, 0, len(actions))
 	for action_name := range actions {
-		if inStringList(action_name, cr_act, upd_act, maint_act) == "" {
+		if utils.InStringList(action_name, cr_act, upd_act, maint_act) == "" {
 			validObjectActions = append(validObjectActions, action_name)
 		} else {
 			validCommandActions = append(validCommandActions, action_name)

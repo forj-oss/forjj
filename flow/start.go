@@ -1,5 +1,5 @@
 package flow
 
-func (f *FlowDefine)Start() {
+func (f *Flows)Start() {
 
 }
