@@ -2,57 +2,18 @@ package flow
 
 import (
 	"net/url"
-	"path"
-	"forjj/utils"
 	"fmt"
 	"strings"
-	"gopkg.in/yaml.v2"
-	"github.com/forj-oss/forjj-modules/trace"
 	"forjj/forjfile"
+	"github.com/forj-oss/forjj-modules/trace"
+	"path"
+	"forjj/utils"
+	"gopkg.in/yaml.v2"
 )
 
 type Flows struct {
 	all map[string]*FlowDefine
 	paths []*url.URL
-}
-
-type FlowDefine struct { // Yaml structure
-	Name   string
-	Title  string // Flow title
-	Define map[string]FlowPluginTypeDef
-	OnForjfile map[string]FlowTaskDef `yaml:"on-forjfile-do"`
-}
-
-type FlowPluginTypeDef struct {
-	MaxInstances int `yaml:"max_instances"`
-	Roles        []string
-}
-
-type FlowTaskDef struct {
-	Description string
-	OnList []FlowTaskList      `yaml:"on_list"`
-
-	IfFound string             `yaml:"if_found"`
-	IfEach FlowTaskListIfEach  `yaml:"if_each"`
-
-	Set map[string]map[string]forjfile.ForjValues // key1: object, key2: instance, key3: value key, then value
-}
-
-type FlowTaskListIfEach struct {
-	List []string
-	Filter string
-}
-
-type FlowTaskList struct {
-	Name string
-	Object string
-	FilteredBy []FlowListFilter `yaml:"filtered-by"`
-	Extract []map[string]string
-}
-
-type FlowListFilter struct {
-	Filter string
-	Fields forjfile.ForjValues `yaml:",inline"`
 }
 
 //
@@ -121,4 +82,15 @@ func (fs* Flows)AddRepoPath(path_str *url.URL) (bool, error) {
 	fs.paths = append(paths, path_str)
 	gotrace.Info("Flow path '%s' added.", path_str.String())
 	return true, nil
+}
+
+func (f *Flows)Apply(flowName string, repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) error {
+	var flow *FlowDefine
+
+	if af, found := f.all[flowName] ; !found {
+		return fmt.Errorf("Internal Error! Unable to find '%s' flow in memory", flowName)
+	} else {
+		flow = af
+	}
+	return flow.apply(repo, Forjfile)
 }

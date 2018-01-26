@@ -4,6 +4,8 @@ import (
 	"github.com/forj-oss/goforjj"
 	"forjj/drivers"
 	"github.com/forj-oss/forjj-modules/trace"
+	"strings"
+	"fmt"
 )
 
 type ReposStruct map[string]*RepoStruct
@@ -35,6 +37,7 @@ type RepoStruct struct {
 	RepoTemplate string `yaml:"repo-template,omitempty"`
 	Flow         RepoFlow `yaml:",omitempty"`
 	More         map[string]string `yaml:",inline"`
+	apps         map[string]*AppStruct // List of applications connected to this repo.
 }
 
 type RepoFlow struct {
@@ -234,4 +237,82 @@ func (r *RepoStruct)set_forge(f *ForgeYaml) {
 	}
 
 	r.forge = f
+}
+
+// HasApps return a bool if rules are all true on at least one application.
+// a rule is a string formatted as '<key>:<value>'
+// a rule is true on an application if it has the key value set to <value>
+//
+// If the rule is not well formatted, an error is returned.
+// If the repo has no application, HasApps return false.
+// If no rules are provided and at least one application exist, HasApps return true.
+//
+// TODO: Write Unit test of HasApps
+func (r *RepoStruct)HasApps(rules ...string) (found bool, err error) {
+	if r.apps == nil {
+		return
+	}
+	for _, app:= range r.apps {
+		found = true
+		for _, rule := range rules {
+			ruleToCheck := strings.Split(rule, ":")
+			if len(rule) != 2 {
+				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
+				return
+			}
+			if v, found := app.Get(ruleToCheck[0]); found && v.GetString() != ruleToCheck[1] {
+				found = false
+				break
+			}
+		}
+		if found {
+			return
+		}
+	}
+	return
+}
+
+func (r *RepoStruct)GetApps(rules ...string) (apps map[string]*AppStruct , err error) {
+	if r.apps == nil {
+		return
+	}
+	apps = make(map[string]*AppStruct)
+	found := false
+	for app_name, app:= range r.apps {
+		found = true
+		for _, rule := range rules {
+			ruleToCheck := strings.Split(rule, ":")
+			if len(rule) != 2 {
+				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
+				return
+			}
+			if v, found := app.Get(ruleToCheck[0]); found && v.GetString() != ruleToCheck[1] {
+				found = false
+				break
+			}
+		}
+		if found {
+			apps[app_name] = app
+		}
+	}
+	return
+}
+
+func (r *RepoStruct)HasValues(rules ...string) (found bool, err error) {
+	found = true
+	for _, rule := range rules {
+		ruleToCheck := strings.Split(rule, ":")
+		if len(rule) != 2 {
+			err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
+			return
+		}
+		if v, found := r.Get(ruleToCheck[0]); found && v.GetString() != ruleToCheck[1] {
+			found = false
+			break
+		}
+	}
+	if found {
+		return
+	}
+	return
 }
