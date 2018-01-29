@@ -9,6 +9,7 @@ import (
 	"forjj/utils"
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
+	"strings"
 )
 
 // ForjfileTmpl is the Memory expansion of an external Forjfile (used to create a Forge)
@@ -102,6 +103,9 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
 	// Setting defaults
 	f.yaml.set_defaults()
+	for _, repo := range f.yaml.Repos {
+		repo.LoadRelApps()
+	}
 	loaded = true
 	return
 }
@@ -798,6 +802,39 @@ func (f *Forge)GetDeclaredFlows() (result []string) {
 	result = make([]string, 0, len(flows))
 	for name := range flows {
 		result = append(result, name)
+	}
+	return
+}
+
+// HasApps return a bool if rules are all true on at least one application.
+// a rule is a string formatted as '<key>:<value>'
+// a rule is true on an application if it has the key value set to <value>
+//
+// If the rule is not well formatted, an error is returned.
+// If the repo has no application, HasApps return false.
+// If no rules are provided and at least one application exist, HasApps return true.
+//
+// TODO: Write Unit test of HasApps
+func (f *ForgeYaml)HasApps(rules ...string) (found bool, err error) {
+	if f.Apps == nil {
+		return
+	}
+	for _, app := range f.Apps {
+		found = true
+		for _, rule := range rules {
+			ruleToCheck := strings.Split(rule, ":")
+			if len(rule) != 2 {
+				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
+				return
+			}
+			if v, found := app.Get(ruleToCheck[0]); found && v.GetString() != ruleToCheck[1] {
+				found = false
+				break
+			}
+		}
+		if found {
+			return
+		}
 	}
 	return
 }

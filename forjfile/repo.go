@@ -38,6 +38,7 @@ type RepoStruct struct {
 	Flow         RepoFlow `yaml:",omitempty"`
 	More         map[string]string `yaml:",inline"`
 	apps         map[string]*AppStruct // List of applications connected to this repo.
+	Apps         map[string]string `yaml:"in-relation-with"`// key: <AppRelName>, value: <appName>
 }
 
 type RepoFlow struct {
@@ -136,6 +137,47 @@ func (r *RepoStruct)SetHandler(from func(field string)(string, bool), keys...str
 			r.Set(key, v)
 		}
 	}
+}
+
+func (r *RepoStruct)SetApp(appRelName, appName string) (_ bool) {
+	if r == nil {
+		return
+	}
+	if r.forge == nil {
+		return
+	}
+	if r.apps == nil {
+		r.apps = make(map[string]*AppStruct)
+	}
+
+	if v, found := r.forge.Apps[appName] ; found {
+		r.apps[appRelName] = v
+		return true
+	}
+	return
+}
+
+func (r *RepoStruct)LoadRelApps() (_ error) {
+	if r.forge == nil {
+		return fmt.Errorf("Internal issue: %s", "Forge reference is missing.")
+	}
+	for relAppName, appName := range r.Apps {
+		if ! r.SetApp(relAppName, appName) {
+			return fmt.Errorf("Application '%s' not defined.", appName)
+		}
+	}
+
+	// set from Defaults
+	for relAppName, appName := range r.forge.ForjSettings.RepoApps {
+		if v1, found1 := r.forge.Apps[appName]; !found1 {
+			return fmt.Errorf("Default repo app: Application '%s' not defined.", appName)
+		} else if _, found2 := r.apps[relAppName] ; ! found2 {
+			r.apps[relAppName] = v1
+		}
+
+	}
+
+	return
 }
 
 func (r *RepoStruct)Set(field, value string) {
