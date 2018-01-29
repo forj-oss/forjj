@@ -15,12 +15,15 @@ type FlowDefine struct { // Yaml structure
 }
 
 func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) error {
+	bInError := false
 	for _, flowTask := range fd.OnRepo {
 		gotrace.Trace("flow '%s': %s on repository %s", fd.Name, flowTask.Description, repo.GetString("name"))
 
 		task_to_set, err := flowTask.if_section(repo, Forjfile)
 		if err != nil {
-			return fmt.Errorf("Flow: '%s'. Unable to apply flow task '%s'.", fd.Name, err)
+			gotrace.Error("Flow '%s' - if section: Unable to apply flow task '%s'.", fd.Name, err)
+			bInError = true
+			continue
 		}
 
 		if ! task_to_set {
@@ -34,7 +37,8 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) 
 
 		if flowTask.List == nil {
 			if err := flowTask.Set.apply(tmpl_data, Forjfile); err != nil {
-				return fmt.Errorf("Unable to apply flow task '%s' on repo '%s'. %s", fd.Name, repo.GetString("name"), err)
+				gotrace.Error("Unable to apply flow task '%s' on repo '%s'. %s", fd.Name, repo.GetString("name"), err)
+				continue
 			}
 			gotrace.Trace("flow task '%s' applied on repo '%s'.", fd.Name, repo.GetString("name"))
 			continue
@@ -58,13 +62,18 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) 
 			}
 
 			if err := flowTask.Set.apply(tmpl_data, Forjfile); err != nil {
-				return fmt.Errorf("Unable to apply flow task '%s' on repo '%s'. %s", fd.Name, repo.GetString("name"), err)
+				gotrace.Error("Unable to apply flow task '%s' on repo '%s'. %s", fd.Name, repo.GetString("name"), err)
+			} else {
+				gotrace.Trace("flow task '%s' applied on repo '%s'.", fd.Name, repo.GetString("name"))
 			}
-			gotrace.Trace("flow task '%s' applied on repo '%s'.", fd.Name, repo.GetString("name"))
 
 			looplist.Increment()
 		}
 	}
+	if bInError {
+		return fmt.Errorf("Failed to apply '%s'. Errors detected.", fd.Name)
+	}
+
 	return nil
 }
 

@@ -1,9 +1,15 @@
 package main
 
+import (
+	"fmt"
+	"github.com/forj-oss/forjj-modules/trace"
+)
+
 // FlowStart load the flow in memory,
 // configure it with Forjfile information
 // and update Forjfile inMemory object data.
 func (a *Forj)FlowInit() error {
+	bInError := false
 	if err := a.flows.Load(a.f.GetDeclaredFlows() ...) ; err != nil {
 		return err
 	}
@@ -17,8 +23,13 @@ func (a *Forj)FlowInit() error {
 		}
 
 		if err := a.flows.Apply(flow_to_apply, repo, &a.f) ; err != nil {// Applying Flow to Forjfile
-			return err
+			gotrace.Error("Repo '%s': %s", repo.GetString("name"), err)
+			bInError = true
 		}
+	}
+
+	if bInError {
+		return fmt.Errorf("Several errors has been detected when trying to apply flows on Repositories. %s", "Please review and fix them.")
 	}
 
 	return nil

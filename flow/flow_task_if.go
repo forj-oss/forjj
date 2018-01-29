@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"strconv"
 	"strings"
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 type FlowTaskIf struct {
@@ -27,6 +28,7 @@ func (fti *FlowTaskIf)IfEvaluate(repo *forjfile.RepoStruct, Forjfile *forjfile.F
 		}
 
 		result := doc.String()
+		gotrace.Trace("'%s' evaluated to '%s'", fti.Rule, result)
 		switch strings.ToLower(result) {
 		case "", "not found" :
 			return
