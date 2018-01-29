@@ -16,7 +16,7 @@ type FlowDefine struct { // Yaml structure
 
 func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) error {
 	for _, flowTask := range fd.OnRepo {
-		gotrace.Trace("flow '%s': %s", fd.Name, flowTask.Description)
+		gotrace.Trace("flow '%s': %s on repository %s", fd.Name, flowTask.Description, repo.GetString("name"))
 
 		task_to_set, err := flowTask.if_section(repo, Forjfile)
 		if err != nil {

@@ -10,7 +10,7 @@ type FlowTaskDef struct {
 
 	If []FlowTaskIf
 
-	List []*FlowTaskList `yaml:"loop-on-list"`
+	List FlowTaskLists `yaml:"loop-on-list"`
 
 	Set FlowTaskSet // key1: object, key2: instance, key3: value key, then value
 }

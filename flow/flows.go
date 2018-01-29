@@ -44,6 +44,7 @@ func (fs* Flows)load_flow(flow_name string) (*FlowDefine, error) {
 			if err = yaml.Unmarshal(data, flow) ; err != nil {
 				return nil, fmt.Errorf("Unable to load the flow '%s'. %s", flow_url.String(), err)
 			}
+			flow.Name = flow_name
 			return flow, nil
 		}
 	}

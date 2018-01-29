@@ -16,7 +16,9 @@ func (a *Forj)FlowInit() error {
 			flow_to_apply = repo.Flow.Name
 		}
 
-		a.flows.Apply(flow_to_apply, repo, &a.f)// Applying Flow to Forjfile
+		if err := a.flows.Apply(flow_to_apply, repo, &a.f) ; err != nil {// Applying Flow to Forjfile
+			return err
+		}
 	}
 
 	return nil

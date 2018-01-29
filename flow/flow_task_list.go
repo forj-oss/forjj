@@ -2,6 +2,8 @@ package flow
 
 import "forjj/forjfile"
 
+type FlowTaskLists []*FlowTaskList
+
 type FlowTaskList struct {
 	Name string
 	List string
