@@ -12,12 +12,27 @@ type FlowDefine struct { // Yaml structure
 	Title  string // Flow title
 	Define map[string]FlowPluginTypeDef
 	OnRepo map[string]FlowTaskDef `yaml:"on-repo-do"`
+	OnForj map[string]FlowTaskDef `yaml:"on-forjfile-do"`
 }
 
 func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) error {
 	bInError := false
-	for _, flowTask := range fd.OnRepo {
-		gotrace.Trace("flow '%s': %s on repository %s", fd.Name, flowTask.Description, repo.GetString("name"))
+
+	var tasks map[string]FlowTaskDef
+	if repo == nil {
+		tasks = fd.OnForj
+	} else {
+		tasks = fd.OnRepo
+	}
+
+	for _, flowTask := range tasks {
+		onWhat := "Forjfile"
+		if repo != nil {
+			onWhat = fmt.Sprintf("repository '%s'", repo.GetString("name"))
+		} else {
+
+		}
+		gotrace.Trace("flow '%s': %s on %s", fd.Name, flowTask.Description, onWhat)
 
 		task_to_set, err := flowTask.if_section(repo, Forjfile)
 		if err != nil {
@@ -27,20 +42,20 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) 
 		}
 
 		if ! task_to_set {
-			gotrace.Trace("Flow task not applied to repo '%s'. if condition fails.", repo.GetString("name"))
+			gotrace.Trace("Flow task not applied to %s. if condition fails.", onWhat)
 			continue
 		}
 
-		gotrace.Trace("Flow task '%s' applying to repo '%s'.", fd.Name, repo.GetString("name"))
+		gotrace.Trace("Flow task '%s' applying to %s.", fd.Name, onWhat)
 
 		tmpl_data := New_FlowTaskModel(repo, Forjfile.Forjfile())
 
 		if flowTask.List == nil {
 			if err := flowTask.Set.apply(tmpl_data, Forjfile); err != nil {
-				gotrace.Error("Unable to apply flow task '%s' on repo '%s'. %s", fd.Name, repo.GetString("name"), err)
+				gotrace.Error("Unable to apply flow task '%s' on %s. %s", fd.Name, onWhat, err)
 				continue
 			}
-			gotrace.Trace("flow task '%s' applied on repo '%s'.", fd.Name, repo.GetString("name"))
+			gotrace.Trace("flow task '%s' applied on %s.", fd.Name, repo.GetString("name"))
 			continue
 		}
 
@@ -62,9 +77,9 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) 
 			}
 
 			if err := flowTask.Set.apply(tmpl_data, Forjfile); err != nil {
-				gotrace.Error("Unable to apply flow task '%s' on repo '%s'. %s", fd.Name, repo.GetString("name"), err)
+				gotrace.Error("Unable to apply flow task '%s' on %s. %s", fd.Name, onWhat, err)
 			} else {
-				gotrace.Trace("flow task '%s' applied on repo '%s'.", fd.Name, repo.GetString("name"))
+				gotrace.Trace("flow task '%s' applied on %s.", fd.Name, onWhat)
 			}
 
 			looplist.Increment()
