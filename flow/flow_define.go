@@ -46,16 +46,16 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) 
 			continue
 		}
 
-		gotrace.Trace("Flow task '%s' applying to %s.", fd.Name, onWhat)
+		gotrace.Trace("'%s' flow task \"%s\" applying to %s.", fd.Name, flowTask.Description, onWhat)
 
 		tmpl_data := New_FlowTaskModel(repo, Forjfile.Forjfile())
 
 		if flowTask.List == nil {
 			if err := flowTask.Set.apply(tmpl_data, Forjfile); err != nil {
-				gotrace.Error("Unable to apply flow task '%s' on %s. %s", fd.Name, onWhat, err)
+				gotrace.Error("Unable to apply '%s' flow task '%s' on %s. %s", fd.Name, flowTask.Description, onWhat, err)
 				continue
 			}
-			gotrace.Trace("flow task '%s' applied on %s.", fd.Name, repo.GetString("name"))
+			gotrace.Trace("'%s' flow task '%s' applied on %s.", fd.Name, flowTask.Description, repo.GetString("name"))
 			continue
 		}
 

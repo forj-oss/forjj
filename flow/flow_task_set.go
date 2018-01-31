@@ -5,6 +5,7 @@ import (
 	"text/template"
 	"forjj/utils"
 	"fmt"
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 type FlowTaskSet map[string]map[string]forjfile.ForjValues
@@ -29,6 +30,7 @@ func (fts FlowTaskSet)apply(tmpl_data *FlowTaskModel, Forjfile *forjfile.Forge) 
 					return fmt.Errorf("Unable to evaluate instance '%s' key '%s' value '%s'. %s", instance_name, key, value, err)
 				} else {
 					Forjfile.Set(object_name, instance_name, key, v)
+					gotrace.Trace("instance '%s/%s' key '%s' value '%s' added.", object_name, instance_name, key, value.Get())
 				}
 			}
 		}

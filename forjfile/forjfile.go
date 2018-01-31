@@ -617,7 +617,7 @@ func (f *Forge) SetHandler(object, name string, from func(string) (string, bool)
 			newrepo.set_forge(f.yaml)
 			f.yaml.Repos[name] = &newrepo
 		}
-	case "settings":
+	case "settings", "forj-settings":
 		f.yaml.ForjSettings.SetHandler(name, from, keys...)
 	default:
 		f.setHandler(object, name, from, set, keys...)
@@ -833,8 +833,10 @@ func (f *ForgeYaml)HasApps(rules ...string) (found bool, err error) {
 			}
 		}
 		if found {
+			gotrace.Trace("Found an application which meets '%s'", rules)
 			return
 		}
 	}
+	gotrace.Trace("NO application found which meets '%s'", rules)
 	return
 }
