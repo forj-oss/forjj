@@ -24,6 +24,12 @@ func (r ReposStruct) MarshalYAML() (interface{}, error) {
 	return to_marshal, nil
 }
 
+func (r ReposStruct) LoadRelApps() {
+	for _, repo := range r {
+		repo.LoadRelApps()
+	}
+}
+
 type RepoStruct struct {
 	name         string
 	is_infra     bool

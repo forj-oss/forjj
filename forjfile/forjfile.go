@@ -103,9 +103,7 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
 	// Setting defaults
 	f.yaml.set_defaults()
-	for _, repo := range f.yaml.Repos {
-		repo.LoadRelApps()
-	}
+	f.yaml.Repos.LoadRelApps()
 	loaded = true
 	return
 }

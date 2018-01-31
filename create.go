@@ -107,6 +107,7 @@ func (a *Forj) Create() error {
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
 	a.DefineDefaultUpstream()
+	a.f.Forjfile().Repos.LoadRelApps()
 
 	// TODO: Set/clone infra git remote when git-remote is set.
 
