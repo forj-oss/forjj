@@ -823,11 +823,11 @@ func (f *ForgeYaml)HasApps(rules ...string) (found bool, err error) {
 		found = true
 		for _, rule := range rules {
 			ruleToCheck := strings.Split(rule, ":")
-			if len(rule) != 2 {
+			if len(ruleToCheck) != 2 {
 				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
 				return
 			}
-			if v, found := app.Get(ruleToCheck[0]); found && v.GetString() != ruleToCheck[1] {
+			if v, found2 := app.Get(ruleToCheck[0]); found2 && v.GetString() != ruleToCheck[1] {
 				found = false
 				break
 			}
