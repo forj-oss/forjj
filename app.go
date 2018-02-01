@@ -391,7 +391,7 @@ func (a *Forj) init() {
 	// Add Forjfile/cli mapping for simple forj data getter
 	a.AddMap(orga_f, workspace, "", orga_f, "settings", "", orga_f)
 	a.AddMap(infra_name_f, infra, "", infra_name_f, infra, "", "name")
-	a.AddMap(infra_upstream_f, infra, "", infra_upstream_f, infra, "", "upstream")
+	a.AddMap(infra_upstream_f, infra, "", infra_upstream_f, infra, "", "apps:upstream")
 	a.AddMap(infra_path_f, workspace, "", infra_path_f, workspace, "", infra_path_f)
 	// TODO: Add git-remote cli mapping
 }

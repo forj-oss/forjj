@@ -495,7 +495,7 @@ func (a *Forj) DispatchObjectFlags(object_name, instance_name, flag_prefix strin
 	return
 }
 
-// IsRepoManaged check is the upstream driver is the repository owner.
+// IsRepoManaged check if the upstream driver is the repository owner.
 // It returns the repo owner declared and true if the upstream driver is that owner.
 func (a *Forj) IsRepoManaged(d *drivers.Driver, object_name, instance_name string) (repo_upstream string, is_owner bool) {
 	// Determine if the upstream instance is set to this instance.
@@ -518,10 +518,7 @@ func (a *Forj) RepoManagedBy(object_name, instance_name string) (_ string) {
 	if v, found := a.f.GetString(object_name, instance_name, "git-remote"); found && v != "" {
 		return
 	}
-	if v, found := a.f.GetString(object_name, instance_name, "upstream"); found {
-		return v
-	}
-	if v, found := a.f.GetString("settings", "default", "upstream-instance"); found {
+	if v, found := a.f.GetString(object_name, instance_name, "apps:upstream"); found {
 		return v
 	}
 	return

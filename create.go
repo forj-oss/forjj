@@ -100,7 +100,7 @@ func (a *Forj) Create() error {
 		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
 	}
 
-	if ok, err := a.f.Forjfile().Repos.AllHasAppWith("upstream:*") ; err != nil {
+	if ok, err := a.f.Forjfile().Repos.AllHasAppWith("appRelName:upstream") ; err != nil {
 		return err
 	} else if err = a.DefineDefaultUpstream() ; ok && err != nil {
 		gotrace.Warning("%s", err)

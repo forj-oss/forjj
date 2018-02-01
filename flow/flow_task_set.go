@@ -20,6 +20,11 @@ func (fts FlowTaskSet)apply(tmpl_data *FlowTaskModel, Forjfile *forjfile.Forge) 
 			} else {
 				instance_name = v
 			}
+			if len(instance_data) == 0 {
+				Forjfile.Set(object_name, instance_name, "", "")
+				gotrace.Trace("instance '%s/%s' added with no keys.", object_name, instance_name)
+				continue
+			}
 			for key, value:= range instance_data {
 				if v, err := utils.Evaluate(key, tmpl, tmpl_data, funcs) ; err != nil {
 					return fmt.Errorf("Unable to evaluate instance key '%s'. %s", instance_name, err)

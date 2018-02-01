@@ -24,7 +24,7 @@ func (r ReposStruct) MarshalYAML() (interface{}, error) {
 	return to_marshal, nil
 }
 
-func (r ReposStruct) SetRelapps(relAppName, appName string) error {
+func (r ReposStruct) SetRelapps(relAppName, appName string) (_ error) {
 	for _, repo := range r {
 		if _, err := repo.SetInternalRelApp(relAppName, appName) ; err != nil {
 			return err
@@ -136,11 +136,27 @@ func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	if r == nil {
 		return
 	}
-	switch field {
+	switch field_sel := strings.Split(field, ":") ; field_sel[0] {
 	case "name":
 		return value.SetIfFound(r.name, (r.name != ""))
-	case "upstream":
-		return value.SetIfFound(r.Upstream, (r.Upstream != ""))
+	case "apps", "upstream":
+		if field == "upstream" {
+			gotrace.Warning("*RepoStruct.Get(): Field '%s' is obsolete. Change the code to use 'apps:upstream'.", field)
+		} else if len(field_sel) >1 {
+			field = field_sel[1]
+		}
+		if v, found := r.apps[field] ; found {
+			return value.SetIfFound(v.name, v != nil && v.name != "")
+		}
+		if v, found := r.Apps[field] ; found {
+			return value.SetIfFound(v, found && (v != ""))
+		}
+		if field == "upstream" && r.Upstream != "" {
+			gotrace.Warning("the '%s' in /repositories/%s is obsolete. Define it as /repositories/%s/apps/%s", field,
+				r.name, r.name, field)
+			return value.SetIfFound(r.Upstream, (r.Upstream != ""))
+		}
+		return value.SetIfFound("", false)
 	case "git-remote":
 		return value.SetIfFound(r.GitRemote, (r.GitRemote != ""))
 	case "remote":
@@ -219,19 +235,19 @@ func (r *RepoStruct)SetApp(appRelName, appName string) (updated *bool, _ error) 
 	return
 }
 
-func (r *RepoStruct)initApp() error {
+func (r *RepoStruct)initApp() (_ error) {
 	if r == nil {
-		return nil, fmt.Errorf("Internal: repo object is nil.")
+		return fmt.Errorf("Internal: repo object is nil.")
 	}
 	if r.forge == nil {
-		return nil, fmt.Errorf("Internal: forge ref not set.")
+		return fmt.Errorf("Internal: forge ref not set.")
 	}
 
 	if r.apps == nil {
 		r.apps = make(map[string]*AppStruct)
 	}
 	if r.Apps == nil {
-		r.Apps = make(map[string]*AppStruct)
+		r.Apps = make(map[string]string)
 	}
 	return
 }
@@ -240,14 +256,19 @@ func (r *RepoStruct)Set(field, value string) {
 	if r == nil {
 		return
 	}
-	switch field {
+	switch field_sel := strings.Split(field, ":") ; field_sel[0] {
 	case "name":
 		if r.name != value {
 			r.name = value
 		}
+	case "apps":
+		if len(field_sel) > 1{
+			r.SetApp(field_sel[1], value)
+			r.forge.dirty()
+		}
 	case "upstream":
-		if r.Upstream != value {
-			r.Upstream = value
+		if v, found := r.Apps["upstream"] ; !found || (found && v != value) {
+			r.SetApp("upstream", value)
 			r.forge.dirty()
 		}
 	case "git-remote":
@@ -350,7 +371,7 @@ func (r *RepoStruct)HasApps(rules ...string) (found bool, err error) {
 	if r.apps == nil {
 		return
 	}
-	for _, app:= range r.apps {
+	for appRelName, app:= range r.apps {
 		found = true
 		for _, rule := range rules {
 			ruleToCheck := strings.Split(rule, ":")
@@ -358,18 +379,31 @@ func (r *RepoStruct)HasApps(rules ...string) (found bool, err error) {
 				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
 				return
 			}
+			if ruleToCheck[0] == "appRelName" {
+			    if appRelName == ruleToCheck[0] {
+					continue
+				}
+				found = false
+				break
+			}
 			v, found2 := app.Get(ruleToCheck[0])
 			if ruleToCheck[1] == "*" {
-				found = found2
+				if found2 {
+					continue
+				}
+				found = false
+				break
 			} else if found2 && v.GetString() != ruleToCheck[1] {
 				found = false
 				break
 			}
 		}
 		if found {
+			gotrace.Trace("Found an application which meets '%s'", rules)
 			return
 		}
 	}
+	gotrace.Trace("NO application found which meets '%s'", rules)
 	return
 }
 
@@ -387,9 +421,20 @@ func (r *RepoStruct)GetApps(rules ...string) (apps map[string]*AppStruct , err e
 				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
 				return
 			}
+			if ruleToCheck[0] == "appRelName" {
+				if app_name == ruleToCheck[0] {
+					continue
+				}
+				found = false
+				break
+			}
 			v, found2 := app.Get(ruleToCheck[0])
 			if ruleToCheck[1] == "*" {
-				found = found2
+				if found2 {
+					continue
+				}
+				found = false
+				break
 			} else if found2 && v.GetString() != ruleToCheck[1] {
 				found = false
 				break
