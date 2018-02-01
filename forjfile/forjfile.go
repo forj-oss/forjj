@@ -36,7 +36,7 @@ type ForgeYaml struct {
 	ForjSettings ForjSettingsStruct `yaml:"forj-settings"`
 	Infra *RepoStruct
 	Repos ReposStruct `yaml:"repositories"`
-	Apps map[string]*AppStruct `yaml:"applications"`
+	Apps AppsStruct `yaml:"applications"`
 	Users map[string]*UserStruct
 	Groups map[string]*GroupStruct
 	// Collection of Object/Name/Keys=values
@@ -103,7 +103,6 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
 	// Setting defaults
 	f.yaml.set_defaults()
-	f.yaml.Repos.LoadRelApps()
 	loaded = true
 	return
 }

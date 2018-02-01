@@ -100,14 +100,18 @@ func (a *Forj) Create() error {
 		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
 	}
 
+	if ok, err := a.f.Forjfile().Repos.AllHasAppWith("upstream:*") ; err != nil {
+		return err
+	} else if err = a.DefineDefaultUpstream() ; ok && err != nil {
+		gotrace.Warning("%s", err)
+	}
+
+
 	if err := a.define_infra_upstream(); err != nil {
 		return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
 	}
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
-
-	a.DefineDefaultUpstream()
-	a.f.Forjfile().Repos.LoadRelApps()
 
 	// TODO: Set/clone infra git remote when git-remote is set.
 

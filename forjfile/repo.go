@@ -24,10 +24,37 @@ func (r ReposStruct) MarshalYAML() (interface{}, error) {
 	return to_marshal, nil
 }
 
-func (r ReposStruct) LoadRelApps() {
+func (r ReposStruct) SetRelapps(relAppName, appName string) error {
 	for _, repo := range r {
-		repo.LoadRelApps()
+		if _, err := repo.SetInternalRelApp(relAppName, appName) ; err != nil {
+			return err
+		}
 	}
+	return
+}
+
+// AllHasAppWith verify rules on all repos and returned true if all respect the rule.
+func (r ReposStruct) AllHasAppWith(rules ...string) (found bool, err error) {
+	for _, repo := range r {
+		if found, err = repo.HasApps(rules ...); err != nil {
+			return
+		} else if !found {
+			return
+		}
+	}
+	return
+}
+
+// HasAppWith return true if at least one repo respect the rule.
+func (r ReposStruct) HasAppWith(rules ...string) (found bool, err error) {
+	for _, repo := range r {
+		if found, err = repo.HasApps(rules ...); err != nil {
+			return
+		} else if found {
+			return
+		}
+	}
+	return
 }
 
 type RepoStruct struct {
@@ -43,7 +70,7 @@ type RepoStruct struct {
 	RepoTemplate string `yaml:"repo-template,omitempty"`
 	Flow         RepoFlow `yaml:",omitempty"`
 	More         map[string]string `yaml:",inline"`
-	apps         map[string]*AppStruct // List of applications connected to this repo.
+	apps         map[string]*AppStruct // List of applications connected to this repo. Defaults are added automatically.
 	Apps         map[string]string `yaml:"in-relation-with"`// key: <AppRelName>, value: <appName>
 }
 
@@ -145,44 +172,67 @@ func (r *RepoStruct)SetHandler(from func(field string)(string, bool), keys...str
 	}
 }
 
-func (r *RepoStruct)SetApp(appRelName, appName string) (_ bool) {
-	if r == nil {
-		return
-	}
-	if r.forge == nil {
-		return
-	}
-	if r.apps == nil {
-		r.apps = make(map[string]*AppStruct)
+// SetInternalRelApp will set the appName connected to the repo
+// But if the Forjfile has a setup, this one will forcefully used.
+// return:
+// updated bool : true if the app has been updated.
+// error : set if error has been found. updated is then nil.
+func (r *RepoStruct)SetInternalRelApp(appRelName, appName string) (updated *bool, _ error) {
+	if err := r.initApp() ; err != nil {
+		return nil, err
 	}
 
-	if v, found := r.forge.Apps[appName] ; found {
-		r.apps[appRelName] = v
-		return true
+	if v, found := r.Apps[appRelName] ; found {
+		appName = v // Set always declared one.
+	}
+
+	if app, err := r.forge.Apps.Found(appName) ; err != nil {
+		return nil, fmt.Errorf("Unable to set %s:%s. %s.", appRelName, appName, err)
+	} else if v, found :=  r.apps[appRelName] ; !found || (found && v.name != appName) {
+		r.apps[appRelName] = app
+		updated = new(bool)
+		*updated = true
+	}
+
+	return
+}
+
+// SetApp Define the Forjfile application name to link with the repo.
+//
+// return:
+// updated bool : true if the app has been updated.
+// error : set if error has been found. updated is then nil.
+func (r *RepoStruct)SetApp(appRelName, appName string) (updated *bool, _ error) {
+	if err := r.initApp() ; err != nil {
+		return nil, err
+	}
+
+	updated = new(bool)
+	if v, found := r.Apps[appRelName] ; !found || (found && v != appName) {
+		*updated = true
+	}
+	r.Apps[appRelName] = appName
+
+	if set, err := r.SetInternalRelApp(appRelName, appName) ; set == nil {
+		return set, err
 	}
 	return
 }
 
-func (r *RepoStruct)LoadRelApps() (_ error) {
+func (r *RepoStruct)initApp() error {
+	if r == nil {
+		return nil, fmt.Errorf("Internal: repo object is nil.")
+	}
 	if r.forge == nil {
-		return fmt.Errorf("Internal issue: %s", "Forge reference is missing.")
-	}
-	for relAppName, appName := range r.Apps {
-		if ! r.SetApp(relAppName, appName) {
-			return fmt.Errorf("Application '%s' not defined.", appName)
-		}
+		return nil, fmt.Errorf("Internal: forge ref not set.")
 	}
 
-	// set from Defaults
-	for relAppName, appName := range r.forge.ForjSettings.RepoApps {
-		if v1, found1 := r.forge.Apps[appName]; !found1 {
-			return fmt.Errorf("Default repo app: Application '%s' not defined.", appName)
-		} else if _, found2 := r.apps[relAppName] ; ! found2 {
-			r.apps[relAppName] = v1
-		}
-
+	if r.apps == nil {
+		r.apps = make(map[string]*AppStruct)
 	}
-
+	if r.Apps == nil {
+		r.Apps = make(map[string]*AppStruct)
+	}
 	return
 }
 
@@ -308,7 +358,10 @@ func (r *RepoStruct)HasApps(rules ...string) (found bool, err error) {
 				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
 				return
 			}
-			if v, found2 := app.Get(ruleToCheck[0]); found2 && v.GetString() != ruleToCheck[1] {
+			v, found2 := app.Get(ruleToCheck[0])
+			if ruleToCheck[1] == "*" {
+				found = found2
+			} else if found2 && v.GetString() != ruleToCheck[1] {
 				found = false
 				break
 			}
@@ -334,7 +387,10 @@ func (r *RepoStruct)GetApps(rules ...string) (apps map[string]*AppStruct , err e
 				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
 				return
 			}
-			if v, found2 := app.Get(ruleToCheck[0]); found2 && v.GetString() != ruleToCheck[1] {
+			v, found2 := app.Get(ruleToCheck[0])
+			if ruleToCheck[1] == "*" {
+				found = found2
+			} else if found2 && v.GetString() != ruleToCheck[1] {
 				found = false
 				break
 			}

@@ -3,6 +3,7 @@ package forjfile
 import (
 	"github.com/forj-oss/goforjj"
 	"forjj-contribs/ci/jenkins/.glide/cache/src/https-github.com-forj-oss-forjj-modules/trace"
+	"strings"
 )
 
 // forj/settings: Collection of key/value pair
@@ -15,7 +16,7 @@ type ForjSettingsStruct struct {
 
 type ForjSettingsStructTmpl struct {
 	Default DefaultSettingsStruct
-	RepoApps map[string]string `yaml:"default-repo-apps,omitempty"` // Default repo Application
+	RepoApps DefaultRepoAppSettingsStruct `yaml:"default-repo-apps,omitempty"` // Default repo Application
 	More map[string]string `yaml:",inline"`
 }
 
@@ -76,6 +77,12 @@ func (s *ForjSettingsStruct) Set(instance, key string, value string) {
 			s.RepoApps = make(map[string]string)
 		}
 		s.RepoApps[key] = value
+		relApp := strings.Split(value, ":")
+		if len(relApp) == 1 {
+			s.forge.Repos.SetRelapps(key, value)
+		} else {
+			s.forge.Repos.SetRelapps(relApp[0], relApp[1])
+		}
 		s.forge.dirty()
 		return
 	}
