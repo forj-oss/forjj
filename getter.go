@@ -51,7 +51,7 @@ func (a *Forj)GetPrefs(field string) (string, bool, error) {
 		err = nil
 	}
 	if found && !isdefault {
-		gotrace.Trace("Found Forjfile setting '%s' from cli : %s", entry.forj_field, v)
+		gotrace.Trace("Found Forjfile setting '%s' from cli : %s", entry.cli_field, v)
 		return v, found, err
 	}
 	if v2, found2 := a.f.GetString(entry.forj_section, entry.forj_instance, entry.forj_field); found2 {
@@ -59,9 +59,9 @@ func (a *Forj)GetPrefs(field string) (string, bool, error) {
 		return v2, found2, nil
 	}
 	if found {
-		gotrace.Trace("Found Forjfile setting '%s' from cli default: %s", entry.forj_field, v)
+		gotrace.Trace("Found Forjfile setting '%s' from cli default: %s", entry.cli_field, v)
 	} else {
-		gotrace.Trace("Local setting '%s' not found from any of cli, Forjfile or cli default", entry.forj_field)
+		gotrace.Trace("Local setting '%s' not found from any of cli, Forjfile or cli default", field)
 	}
 	return v, found, err
 }
