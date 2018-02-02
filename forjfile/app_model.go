@@ -6,7 +6,7 @@ type AppModel struct {
 	app *AppStruct
 }
 
-func (r *AppModel)Get(field string) (_ string) {
+func (r AppModel)Get(field string) (_ string) {
 	if r.app == nil {
 		return
 	}
