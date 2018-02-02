@@ -661,6 +661,7 @@ func (f *Forge) setHandler(object, instance string, from func(string) (string, b
 	} else {
 		f.yaml.updated = true
 		object_d = make(map[string]ForjValues)
+		f.yaml.More[object] = object_d
 	}
 	if i, found := object_d[instance] ; found && i != nil {
 		instance_d = i
