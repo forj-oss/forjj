@@ -24,7 +24,7 @@ func (fti *FlowTaskIf)IfEvaluate(repo *forjfile.RepoStruct, Forjfile *forjfile.F
 				}).Parse(fti.Rule); err != nil {
 			return false, fmt.Errorf("Error in template evaluation. %s", err)
 		} else {
-				t.Execute(&doc, New_FlowTaskModel(repo, Forjfile.Forjfile()))
+				t.Execute(&doc, New_FlowTaskModel(repo, Forjfile))
 		}
 
 		result := doc.String()

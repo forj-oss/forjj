@@ -844,3 +844,11 @@ func (f *ForgeYaml)HasApps(rules ...string) (found bool, err error) {
 	gotrace.Trace("NO application found which meets '%s'", rules)
 	return
 }
+
+func (f *Forge)Model() ForgeModel {
+	model := ForgeModel{
+		forge: f,
+	}
+
+	return model
+}

@@ -19,10 +19,10 @@ func (ftl *FlowTaskList)Get(repo *forjfile.RepoStruct, _ *forjfile.Forge) (list 
 		if ftl.Parameters == nil {
 			ftl.Parameters = []string{}
 		}
-		if r , err := repo.GetApps(ftl.Parameters...) ; err == nil {
-			list = make([]interface{}, 0, len(r))
-			for _, value := range r {
-				list = append(list, value)
+		if a , err := repo.GetApps(ftl.Parameters...) ; err == nil {
+			list = make([]interface{}, 0, len(a))
+			for _, value := range a {
+				list = append(list, value.Model())
 			}
 		}
 	}

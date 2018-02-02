@@ -3,15 +3,15 @@ package flow
 import "forjj/forjfile"
 
 type FlowTaskModel struct {
-	Current *forjfile.RepoStruct
-	Forjfile *forjfile.ForgeYaml
+	Repo forjfile.RepoModel
+	Forjfile forjfile.ForgeModel
 	List map[string]interface{}
 }
 
-func New_FlowTaskModel(current *forjfile.RepoStruct, forjf *forjfile.ForgeYaml) (ret *FlowTaskModel) {
+func New_FlowTaskModel(current *forjfile.RepoStruct, forjf *forjfile.Forge) (ret *FlowTaskModel) {
 	ret = new(FlowTaskModel)
 
-	ret.Current = current
-	ret.Forjfile = forjf
+	ret.Repo = current.Model()
+	ret.Forjfile = forjf.Model()
 	return
 }

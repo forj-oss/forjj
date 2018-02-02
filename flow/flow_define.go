@@ -32,7 +32,7 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) 
 		} else {
 
 		}
-		gotrace.Trace("flow '%s': %s on %s is being checked.", fd.Name, flowTask.Description, onWhat)
+		gotrace.Trace("flow '%s': %s on %s is being checked.\n---", fd.Name, flowTask.Description, onWhat)
 
 		task_to_set, err := flowTask.if_section(repo, Forjfile)
 		if err != nil {
@@ -48,14 +48,14 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) 
 
 		gotrace.Trace("'%s' flow task \"%s\" applying to %s.", fd.Name, flowTask.Description, onWhat)
 
-		tmpl_data := New_FlowTaskModel(repo, Forjfile.Forjfile())
+		tmpl_data := New_FlowTaskModel(repo, Forjfile)
 
 		if flowTask.List == nil {
 			if err := flowTask.Set.apply(tmpl_data, Forjfile); err != nil {
 				gotrace.Error("Unable to apply '%s' flow task '%s' on %s. %s", fd.Name, flowTask.Description, onWhat, err)
 				continue
 			}
-			gotrace.Trace("'%s' flow task '%s' applied on %s.", fd.Name, flowTask.Description, onWhat)
+			gotrace.Trace("'%s' flow task '%s' applied on %s.\n---", fd.Name, flowTask.Description, onWhat)
 			continue
 		}
 
@@ -79,7 +79,7 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) 
 			if err := flowTask.Set.apply(tmpl_data, Forjfile); err != nil {
 				gotrace.Error("Unable to apply flow task '%s' on %s. %s", fd.Name, onWhat, err)
 			} else {
-				gotrace.Trace("flow task '%s' applied on %s.", fd.Name, onWhat)
+				gotrace.Trace("flow task '%s' applied on %s.\n---", fd.Name, onWhat)
 			}
 
 			looplist.Increment()
