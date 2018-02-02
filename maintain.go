@@ -30,6 +30,9 @@ func (a *Forj) Maintain() error {
 
 	// Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
+	if err := a.FlowInit(); err != nil {
+		return err
+	}
 	// Load drivers from forjj-options.yml
 	// loop from options/Repos and keep them in a.drivers
 

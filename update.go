@@ -50,8 +50,9 @@ func (a *Forj) Update() error {
 
 	// Now, we are in the infra repo root directory and at least, the 1st commit exist.
 
-	// TODO: flow_start to execute instructions before updating source code for existing apps in appropriate branch. Possible if a flow is already implemented otherwise git must stay in master branch
-	// flow_start()
+	if err := a.FlowInit(); err != nil {
+		return err
+	}
 
 	// Disabled as not ready.
 	//if err := a.MoveToFixBranch(*a.Actions["update"].argsv["branch"]) ; err != nil {
