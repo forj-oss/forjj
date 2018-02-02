@@ -12,6 +12,7 @@ func Evaluate(value string, tmpl *template.Template, data interface{}, funcs tem
 	if ! strings.Contains(value, "{{") {
 		return value, nil
 	}
+	value = strings.Replace(value, "\\\n", "", -1)
 	if _, err := tmpl.Funcs(funcs).Parse(value) ; err != nil {
 		return "", err
 	}
