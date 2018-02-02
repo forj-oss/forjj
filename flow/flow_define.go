@@ -79,7 +79,7 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) 
 			if err := flowTask.Set.apply(tmpl_data, Forjfile); err != nil {
 				gotrace.Error("Unable to apply flow task '%s' on %s. %s", fd.Name, onWhat, err)
 			} else {
-				gotrace.Trace("flow task '%s' applied on %s.\n---", fd.Name, onWhat)
+				gotrace.Trace("'%s' flow task '%s' applied on %s.\n---", fd.Name, flowTask.Description, onWhat)
 			}
 
 			looplist.Increment()
