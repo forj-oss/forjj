@@ -1,18 +1,17 @@
-package main
+package utils
 
 import (
-	"fmt"
-	"github.com/forj-oss/forjj-modules/trace"
+	"net/url"
 	"io/ioutil"
 	"net/http"
-	"net/url"
+	"fmt"
 	"strings"
-	"forjj/utils"
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 
 // Function to read a document from a url like github raw or directly from a local path
-func read_document_from(s *url.URL) ([]byte, error) {
+func ReadDocumentFrom(s *url.URL) ([]byte, error) {
 	if s.Scheme == "" {
 		// File to read locally
 		return read_document_from_fs(s.Path)
@@ -23,7 +22,7 @@ func read_document_from(s *url.URL) ([]byte, error) {
 
 // Read from the filesystem. If the path start with ~, replaced by the user homedir. In some context, this won't work well, like in container.
 func read_document_from_fs(source string) (_ []byte, err error) {
-	if source, err = utils.Abs(source) ; err != nil {
+	if source, err = Abs(source) ; err != nil {
 		return
 	}
 	gotrace.Trace("Load file definition at '%s'", source)
@@ -49,22 +48,4 @@ func read_document_from_url(source string) (yaml_data []byte, err error) {
 		yaml_data = d
 	}
 	return
-}
-
-func arrayStringDelete(a []string, element string) []string {
-	for index, value := range a {
-		if value == element {
-			return append(a[:index], a[index+1:]...)
-		}
-	}
-	return a
-}
-
-func inStringList(element string, elements ...string) string {
-	for _, value := range elements {
-		if element == value {
-			return value
-		}
-	}
-	return ""
 }

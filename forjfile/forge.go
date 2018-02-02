@@ -9,6 +9,7 @@ import (
 	"forjj/utils"
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
+	"strings"
 )
 
 // ForjfileTmpl is the Memory expansion of an external Forjfile (used to create a Forge)
@@ -35,7 +36,7 @@ type ForgeYaml struct {
 	ForjSettings ForjSettingsStruct `yaml:"forj-settings"`
 	Infra *RepoStruct
 	Repos ReposStruct `yaml:"repositories"`
-	Apps map[string]*AppStruct `yaml:"applications"`
+	Apps AppsStruct `yaml:"applications"`
 	Users map[string]*UserStruct
 	Groups map[string]*GroupStruct
 	// Collection of Object/Name/Keys=values
@@ -401,9 +402,16 @@ func (f *Forge) GetInstances(object string) (ret []string) {
 	return
 }
 
-func (f *Forge) GetInfraInstance() string {
-	if f == nil { return "" }
-	if f.yaml.Infra == nil { return "" }
+func (f *Forge) GetInfraInstance() (_ string) {
+	if f == nil || f.yaml.Infra == nil || f.yaml.Infra.apps == nil {
+		return
+	}
+	if v, found := f.yaml.Infra.apps["upstream"] ; found && v != nil {
+		return v.name
+	}
+	if v, found := f.yaml.Infra.Apps["upstream"]; found {
+		return v
+	}
 	return f.yaml.Infra.Upstream
 }
 
@@ -613,7 +621,7 @@ func (f *Forge) SetHandler(object, name string, from func(string) (string, bool)
 			newrepo.set_forge(f.yaml)
 			f.yaml.Repos[name] = &newrepo
 		}
-	case "settings":
+	case "settings", "forj-settings":
 		f.yaml.ForjSettings.SetHandler(name, from, keys...)
 	default:
 		f.setHandler(object, name, from, set, keys...)
@@ -653,6 +661,7 @@ func (f *Forge) setHandler(object, instance string, from func(string) (string, b
 	} else {
 		f.yaml.updated = true
 		object_d = make(map[string]ForjValues)
+		f.yaml.More[object] = object_d
 	}
 	if i, found := object_d[instance] ; found && i != nil {
 		instance_d = i
@@ -777,4 +786,70 @@ func (f *ForgeYaml)set_defaults() {
 
 func (f *ForgeYaml) dirty() {
 	f.updated = true
+}
+
+func (f *Forge)GetDeclaredFlows() (result []string) {
+	flows := make(map[string]bool)
+
+	for _, repo := range f.yaml.Repos {
+		if repo.Flow.Name != "" {
+			flows[repo.Flow.Name] = true
+		}
+	}
+	if flow := f.yaml.ForjSettings.Default.getFlow() ; flow != "" {
+		flows[flow] = true
+	}
+
+	if len(flows) == 0 {
+		flows["default"] = true // Default is always loaded when nothing is declared.
+	}
+
+	result = make([]string, 0, len(flows))
+	for name := range flows {
+		result = append(result, name)
+	}
+	return
+}
+
+// HasApps return a bool if rules are all true on at least one application.
+// a rule is a string formatted as '<key>:<value>'
+// a rule is true on an application if it has the key value set to <value>
+//
+// If the rule is not well formatted, an error is returned.
+// If the repo has no application, HasApps return false.
+// If no rules are provided and at least one application exist, HasApps return true.
+//
+// TODO: Write Unit test of HasApps
+func (f *ForgeYaml)HasApps(rules ...string) (found bool, err error) {
+	if f.Apps == nil {
+		return
+	}
+	for _, app := range f.Apps {
+		found = true
+		for _, rule := range rules {
+			ruleToCheck := strings.Split(rule, ":")
+			if len(ruleToCheck) != 2 {
+				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
+				return
+			}
+			if v, found2 := app.Get(ruleToCheck[0]); found2 && v.GetString() != ruleToCheck[1] {
+				found = false
+				break
+			}
+		}
+		if found {
+			gotrace.Trace("Found an application which meets '%s'", rules)
+			return
+		}
+	}
+	gotrace.Trace("NO application found which meets '%s'", rules)
+	return
+}
+
+func (f *Forge)Model() ForgeModel {
+	model := ForgeModel{
+		forge: f,
+	}
+
+	return model
 }

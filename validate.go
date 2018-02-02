@@ -47,6 +47,19 @@ func (a *Forj)ValidateForjfile() (_ error) {
 		}
 	}
 
+	// Repository apps connection
+	for _, repo := range f.Repos {
+		if repo.Apps == nil {
+			continue
+		}
+
+		for relAppName, appName := range repo.Apps {
+			if _, err := repo.SetInternalRelApp(relAppName, appName) ; err != nil {
+				return fmt.Errorf("Repo '%s' has an invalid Application reference '%s: %s'. %s", repo.GetString("name"), relAppName, appName, err)
+			}
+		}
+	}
+
 	// UserStruct.More
 
 	// GroupStruct.More

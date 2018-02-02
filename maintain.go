@@ -6,7 +6,7 @@ import (
 	"forjj/git"
 )
 
-// Call docker to create the Solution source code from scratch with validated parameters.
+// Maintain call docker to create the Solution source code from scratch with validated parameters.
 // This container do the real stuff (git/call drivers)
 // I would expect to have this go tool to have a do_create to replace the shell script.
 // But this would be a next version and needs to be validated before this decision is made.

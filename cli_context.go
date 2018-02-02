@@ -52,7 +52,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	a.w.Load()
 
 	// Read definition file from repo.
-	is_valid_action := (inStringList(action, val_act, cr_act, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "")
+	is_valid_action := (utils.InStringList(action, val_act, cr_act, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "")
 	need_to_create := (action == cr_act)
 	need_to_validate := (action == val_act)
 	if err := a.f.SetInfraPath(a.w.InfraPath(), is_valid_action && (need_to_create || need_to_validate)) ; err != nil {
@@ -63,7 +63,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	// Load Forjfile from infra repo, if found.
 	if err := a.LoadForge() ; err != nil {
-		if inStringList(action, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "" {
+		if utils.InStringList(action, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "" {
 			a.w.SetError(fmt.Errorf("Forjfile not loaded. %s", err))
 			return nil, false
 		}
@@ -94,7 +94,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		return fmt.Errorf("Contribs repository url issue: %s", err), false
 	}
 	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
-		a.FlowRepo_uri = v
+		a.flows.AddRepoPath(v)
 		gotrace.Trace("Using '%s' for '%s'", v, "flows-repo")
 	} else {
 		gotrace.Error("Flow repository url issue: %s", err)

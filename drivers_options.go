@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"forjj/drivers"
 	"forjj/forjfile"
+	"forjj/utils"
 )
 
 // Load driver options to a Command requested.
@@ -76,7 +77,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 	ContribRepoUri := *a.ContribRepo_uri
 	ContribRepoUri.Path = path.Join(ContribRepoUri.Path, driver.DriverType, driver.Name, driver.Name+".yaml")
 
-	if yaml_data, err = read_document_from(&ContribRepoUri); err != nil {
+	if yaml_data, err = utils.ReadDocumentFrom(&ContribRepoUri); err != nil {
 		return
 	}
 
@@ -121,7 +122,7 @@ func (a *Forj) get_valid_driver_actions() (validObjectActions, validCommandActio
 	validObjectActions = make([]string, 0, len(actions))
 	validCommandActions = make([]string, 0, len(actions))
 	for action_name := range actions {
-		if inStringList(action_name, cr_act, upd_act, maint_act) == "" {
+		if utils.InStringList(action_name, cr_act, upd_act, maint_act) == "" {
 			validObjectActions = append(validObjectActions, action_name)
 		} else {
 			validCommandActions = append(validCommandActions, action_name)
@@ -494,7 +495,7 @@ func (a *Forj) DispatchObjectFlags(object_name, instance_name, flag_prefix strin
 	return
 }
 
-// IsRepoManaged check is the upstream driver is the repository owner.
+// IsRepoManaged check if the upstream driver is the repository owner.
 // It returns the repo owner declared and true if the upstream driver is that owner.
 func (a *Forj) IsRepoManaged(d *drivers.Driver, object_name, instance_name string) (repo_upstream string, is_owner bool) {
 	// Determine if the upstream instance is set to this instance.
@@ -517,10 +518,7 @@ func (a *Forj) RepoManagedBy(object_name, instance_name string) (_ string) {
 	if v, found := a.f.GetString(object_name, instance_name, "git-remote"); found && v != "" {
 		return
 	}
-	if v, found := a.f.GetString(object_name, instance_name, "upstream"); found {
-		return v
-	}
-	if v, found := a.f.GetString("settings", "default", "upstream-instance"); found {
+	if v, found := a.f.GetString(object_name, instance_name, "apps:upstream"); found {
 		return v
 	}
 	return

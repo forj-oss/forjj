@@ -100,13 +100,18 @@ func (a *Forj) Create() error {
 		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
 	}
 
+	if ok, err := a.f.Forjfile().Repos.AllHasAppWith("appRelName:upstream") ; err != nil {
+		return err
+	} else if err = a.DefineDefaultUpstream() ; ok && err != nil {
+		gotrace.Warning("%s", err)
+	}
+
+
 	if err := a.define_infra_upstream(); err != nil {
 		return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
 	}
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
-
-	a.DefineDefaultUpstream()
 
 	// TODO: Set/clone infra git remote when git-remote is set.
 
@@ -124,11 +129,14 @@ func (a *Forj) Create() error {
 		return err
 	}
 
-	// Now, we are in the infra repo root directory and at least, the 1st commit exist
+	// Now, we are in the infra repo root directory and at least, the 1st commit exist with a Forjfile created/updated
+	// The Forjfile in memory has been saved and won't be saved later in the process.
+	// The flow will update it in memory to apply all integration and automation
 
-	// TODO: flow_start to execute instructions before creating source code for new apps in appropriate branch.
-	// Possible if a flow is already implemented otherwise git must stay in master branch
-	// flow_start()
+	// Enhance forjfile inMemory representation with Flow definition.
+	if err := a.FlowInit() ; err != nil {
+		return err
+	}
 
 	defer func() {
 		// save infra repository location in the workspace.

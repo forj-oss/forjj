@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"forjj/drivers"
+	"forjj/utils"
 )
 
 // initDriverObjectFlags internally used by init_driver_flags()
@@ -189,7 +190,7 @@ func (id *initDriverObjectFlags) add_object_field_to_cmds(flag_name string, flag
 
 	// We can export only to recognized Command actions (create/update/maintain)
 	for _, action := range flag_det.CliCmdActions {
-		if inStringList(action, id.validCommandActions...) == "" {
+		if utils.InStringList(action, id.validCommandActions...) == "" {
 			gotrace.Warning("FORJJ Driver '%s-%s': object '%s' flag '%s'. cli-exported-for-actions declares invalid action '%s'. ignored.",
 				id.d.DriverType, id.d.Name, id.object_name, flag_name, action)
 			continue
@@ -230,12 +231,12 @@ func (id *initDriverObjectFlags) add_object_fields(flag_name string, flag_det *g
 	// Checking flag actions definition.
 	if flag_det.Actions != nil {
 		for _, action := range flag_det.Actions {
-			action_name := inStringList(action, id.validActions...)
+			action_name := utils.InStringList(action, id.validActions...)
 			if action_name == "" {
 				log.Printf("FORJJ Driver '%s-%s': Invalid action '%s' for field '%s'. Accept only '%s'. Ignored.",
 					id.d.DriverType, id.d.Name, action, flag_name, id.validActions)
 				// Remove this bad Action name from yaml loaded driver.
-				flag_det.Actions = arrayStringDelete(flag_det.Actions, action)
+				flag_det.Actions = utils.ArrayStringDelete(flag_det.Actions, action)
 				flag_updated = true
 				continue
 			}
