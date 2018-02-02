@@ -3,6 +3,10 @@ function go_jenkins_context {
     return
 }
 
+function go_set_path {
+    PATH=$GOPATH/bin:$PATH
+}
+
 function go_check_and_set {
     if [[ "$CI_ENABLED" = "TRUE" ]]
     then # The CI will configure the GOPATH automatically at docker call.

@@ -64,7 +64,11 @@ function be_common_load {
        export BUILD_ENV_LOADED=true
        export BUILD_ENV_PROJECT=$(pwd)
        BUILD_ENV_PATH=$PATH
-       export PATH=$(pwd)/bin:$PATH:$GOPATH/bin
+       for MOD in $MODS
+       do
+           ${MOD}_set_path
+       done
+       export PATH=$(pwd)/bin:$PATH
        PROMPT_ADDONS_BUILD_ENV="BE: $(basename ${BUILD_ENV_PROJECT})"
        echo "Build env loaded. To unload it, call 'build-env-unset'"
        alias build-env-unset='cd $BUILD_ENV_PROJECT && source build-unset.sh'
@@ -109,13 +113,14 @@ function be_create_wrapper {
     then
         cat $BASE_DIR/bin/post-wrapper.sh >> bin/$1
     fi
+    chmod +x bin/$1
     echo "$2 Wrapper 'bin/$1' created."
 
 }
 
-function be_create_wrapper_inenv {
-    echo "# Added from $BASE_DIR/bin/inenv" >> $1
-    cat $BASE_DIR/bin/inenv.sh >> bin/$1
+function be_create_wrapper_core {
+    echo "# Added from $BASE_DIR/bin/inenv" >> $2
+    cat $BASE_DIR/bin/inenv.sh >> $2
 
 }
 
@@ -208,8 +213,12 @@ function be_update {
     fi
 
     local MODS=(`cat build-env.modules`)
-    for MOD in $MODS
+    for MOD in $MODS core
     do
+        if [[ $MOD = core ]]
+        then
+            docker_build_env $MOD
+        fi
         if [[ -d $BASE_DIR/modules/$MOD ]]
         then
             cp -v $BASE_DIR/modules/$MOD/lib/*.sh lib/
@@ -229,11 +238,14 @@ function docker_build_env {
     then
         return
     fi
-    source $BASE_DIR/modules/$MOD/lib/source-be-$1.sh
+    if [[ $1 != core ]]
+    then
+        source $BASE_DIR/modules/$MOD/lib/source-be-$1.sh
+    fi
 
     be_create_wrappers $1
 
-    if [[ "$1" != "" ]]
+    if [[ "$1" != core ]]
     then
         be_create_${1}_docker_build
     fi
