@@ -43,8 +43,10 @@ fi
 
 be_docker_setup
 
-# TODO: Be able to load from a defined list of build env type. Here it is GO
-go_check_and_set "$@"
+for MOD in $MODS
+do
+    ${MOD}_check_and_set "$@"
+done
 
 be_common_load
 
