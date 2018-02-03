@@ -31,8 +31,6 @@ func (a *Forj) Update() error {
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-	a.DefineDefaultUpstream()
-
 	// missing:true to check if some required values are missing.
 	if err := a.ScanAndSetObjectData(true) ; err != nil {
 		return fmt.Errorf("Unable to update. %s", err)
@@ -49,10 +47,6 @@ func (a *Forj) Update() error {
 	}
 
 	// Now, we are in the infra repo root directory and at least, the 1st commit exist.
-
-	if err := a.FlowInit(); err != nil {
-		return err
-	}
 
 	// Disabled as not ready.
 	//if err := a.MoveToFixBranch(*a.Actions["update"].argsv["branch"]) ; err != nil {

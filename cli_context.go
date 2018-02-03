@@ -146,6 +146,22 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		a.debug_instances = strings.Split(i, ",")
 	}
 	a.contextDisplayed()
+
+	if err := a.DefineDefaultUpstream(); err != nil {
+		if ok, err2 := a.f.Forjfile().Repos.AllHasAppWith("appRelName:upstream"); err != nil {
+			return err2, false
+		} else if ok {
+			gotrace.Warning("%s", err)
+		} else {
+			return err, false
+		}
+	}
+
+	// Enhance forjfile inMemory representation with Flow definition.
+	if err := a.FlowInit(); err != nil {
+		return err, false
+	}
+
 	return nil, true
 }
 
