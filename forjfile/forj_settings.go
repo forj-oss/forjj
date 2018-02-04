@@ -1,23 +1,23 @@
 package forjfile
 
 import (
+	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
-	"forjj-contribs/ci/jenkins/.glide/cache/src/https-github.com-forj-oss-forjj-modules/trace"
 	"strings"
 )
 
 // forj/settings: Collection of key/value pair
 type ForjSettingsStruct struct {
-	is_template bool
-	forge *ForgeYaml
-	Organization string
+	is_template            bool
+	forge                  *ForgeYaml
+	Organization           string
 	ForjSettingsStructTmpl `yaml:",inline"`
 }
 
 type ForjSettingsStructTmpl struct {
-	Default DefaultSettingsStruct
+	Default  DefaultSettingsStruct
 	RepoApps DefaultRepoAppSettingsStruct `yaml:"default-repo-apps,omitempty"` // Default repo Application
-	More map[string]string `yaml:",inline"`
+	More     map[string]string            `yaml:",inline"`
 }
 
 type DefaultRepoAppSettingsStruct map[string]string
@@ -58,9 +58,9 @@ func (s *ForjSettingsStruct) GetInstance(instance string) interface{} {
 	return s
 }
 
-func (r *ForjSettingsStruct) SetHandler(instance string, from func(field string)(string, bool), keys...string) {
+func (r *ForjSettingsStruct) SetHandler(instance string, from func(field string) (string, bool), keys ...string) {
 	for _, key := range keys {
-		if v, found := from(key) ; found {
+		if v, found := from(key); found {
 			r.Set(instance, key, v)
 		}
 	}
@@ -92,7 +92,7 @@ func (s *ForjSettingsStruct) Set(instance, key string, value string) {
 		s.forge.dirty()
 		return
 	default:
-		if v, found := s.More[key] ; found && v != value {
+		if v, found := s.More[key]; found && v != value {
 			s.forge.dirty()
 			s.More[key] = value
 		}
@@ -103,5 +103,3 @@ func (g *ForjSettingsStruct) set_forge(f *ForgeYaml) {
 	g.forge = f
 	g.Default.set_forge(f)
 }
-
-
