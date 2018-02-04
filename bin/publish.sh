@@ -135,7 +135,7 @@ fi
 gothub upload --tag $TAG --name $BE_PROJECT --file $GOPATH/bin/$BE_PROJECT --replace
 
 mkdir tmp
-curl -o tmp/$BE_PROJECT https://github.com/forj-oss/forjj/releases/download/$TAG/$BE_PROJECT
+curl -Lo tmp/$BE_PROJECT https://github.com/forj-oss/forjj/releases/download/$TAG/$BE_PROJECT
 chmod +x tmp/$BE_PROJECT
 
 if [[ "$(tmp/$BE_PROJECT --version | grep $COMMIT_ID)" = "" ]]
