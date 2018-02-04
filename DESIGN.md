@@ -32,3 +32,9 @@ Mainly the core is made in a function called `ScanAndSetObjects`
 1. dispatch to creds for secure data
 2. Set defaults on all plugins objects instances.
 
+## Future
+
+We may need to develop a layered data structure, so that we can set
+anytime the appropriate layer and get the result by extracting a layered
+merge like config-layers (ruby code)
+
