@@ -134,7 +134,8 @@ fi
 
 gothub upload --tag $TAG --name $BE_PROJECT --file $GOPATH/bin/$BE_PROJECT --replace
 
-mkdir tmp
+mkdir -p tmp
+rm -f tmp/$BE_PROJECT
 curl -Lo tmp/$BE_PROJECT https://github.com/forj-oss/forjj/releases/download/$TAG/$BE_PROJECT
 chmod +x tmp/$BE_PROJECT
 
