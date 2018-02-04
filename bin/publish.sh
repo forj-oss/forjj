@@ -132,6 +132,14 @@ else
    gothub release --tag $TAG --name $BE_PROJECT --description "$BE_PROJECT version $TAG." $GOTHUB_PARS
 fi
 
+# Checking binary build info
+if [[ "$($GOPATH/bin/$BE_PROJECT --version | grep $COMMIT_ID)" = "" ]]
+then
+   echo "forjj binary is not in sync with current commit $COMMIT_ID"
+   tmp/$BE_PROJECT --version
+   exit 1
+fi
+
 gothub upload --tag $TAG --name $BE_PROJECT --file $GOPATH/bin/$BE_PROJECT --replace
 
 mkdir -p tmp
