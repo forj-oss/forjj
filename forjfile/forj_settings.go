@@ -1,7 +1,7 @@
 package forjfile
 
 import (
-	"forjj-contribs/ci/jenkins/.glide/cache/src/https-github.com-forj-oss-forjj-modules/trace"
+	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
 	"strings"
 )
