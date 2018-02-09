@@ -7,7 +7,7 @@ For details about the POC, read [this](POC.md).
 
 # Note about Devops and Forjj
 
-Forjj is NOT a DevOps tool, mainly because DevOps is mainly a Culture minset.
+Forjj is NOT a DevOps tool, mainly because DevOps is mainly a Culture mindset.
 So, you can't consider that adopting Forjj will ensure you are DevOps!
 
 But as soon as you want to adopt a DevOps Culture for any reasons, Forjj
