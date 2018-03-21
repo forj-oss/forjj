@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/forj-oss/forjj-modules/cli"
-	"github.com/forj-oss/forjj-modules/trace"
+	"forjj/utils"
 	"log"
 	"net/url"
-	"path"
 	"os"
-	"forjj/utils"
+	"path"
 	"strings"
+
+	"github.com/forj-oss/forjj-modules/cli"
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 const Workspace_Name = ".forj-workspace"
@@ -29,21 +30,21 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	var action string
 
 	// Load Forjfile templates in case of 'create' task.
-	if cmds := c.GetCurrentCommand() ; cmds != nil && len(cmds) >= 1 {
+	if cmds := c.GetCurrentCommand(); cmds != nil && len(cmds) >= 1 {
 		action = cmds[0].FullCommand()
 	} else {
 		return nil, false
 	}
 	if action == cr_act || action == val_act {
 		// Detect and load a Forjfile template given.
-		if err := a.LoadForjfile(action) ; err != nil {
+		if err := a.LoadForjfile(action); err != nil {
 			a.w.SetError(err)
 			return nil, false
 		}
 	}
 
 	// Define workspace
-	if err := a.setWorkspace() ; err != nil {
+	if err := a.setWorkspace(); err != nil {
 		// failure test exit is made after parse time.
 		return err, false
 	}
@@ -55,14 +56,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	is_valid_action := (utils.InStringList(action, val_act, cr_act, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "")
 	need_to_create := (action == cr_act)
 	need_to_validate := (action == val_act)
-	if err := a.f.SetInfraPath(a.w.InfraPath(), is_valid_action && (need_to_create || need_to_validate)) ; err != nil {
+	if err := a.f.SetInfraPath(a.w.InfraPath(), is_valid_action && (need_to_create || need_to_validate)); err != nil {
 		a.w.SetError(err)
 		return nil, false
 	}
 
-
 	// Load Forjfile from infra repo, if found.
-	if err := a.LoadForge() ; err != nil {
+	if err := a.LoadForge(); err != nil {
 		if utils.InStringList(action, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "" {
 			a.w.SetError(fmt.Errorf("Forjfile not loaded. %s", err))
 			return nil, false
@@ -71,13 +71,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	}
 
 	// Set organization name to use.
-	if err := a.set_organization_name() ; err != nil {
+	if err := a.set_organization_name(); err != nil {
 		a.w.SetError(err)
 		return nil, false
 	}
 
 	// Setting infra repository name
-	if err := a.set_infra_name(action) ; err != nil {
+	if err := a.set_infra_name(action); err != nil {
 		a.w.SetError(err)
 		return nil, false
 	}
@@ -88,7 +88,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// The value is not set in flagsv. But is in the parser context.
 
 	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
-		a.ContribRepo_uri = v
+		a.ContribRepoURIs = append(a.ContribRepoURIs, v)
 		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
 	} else {
 		return fmt.Errorf("Contribs repository url issue: %s", err), false
@@ -226,7 +226,7 @@ func (a *Forj) set_organization_name() error {
 		}
 	}
 	if a.w.Organization != "" {
-		if err := a.SetPrefs(orga_f, a.w.Organization) ; err != nil {
+		if err := a.SetPrefs(orga_f, a.w.Organization); err != nil {
 			return err
 		}
 		log.Printf("Organization : '%s'", a.w.Organization)
@@ -251,7 +251,7 @@ func (a *Forj) setWorkspace() error {
 		gotrace.Trace("Unable to find '%s' value. %s Trying to detect it.", infra_path_f, err)
 	}
 	if !found {
-		if pwd, e := os.Getwd() ; err != nil {
+		if pwd, e := os.Getwd(); err != nil {
 			return e
 		} else {
 			workspace_path = path.Join(pwd, Workspace_Name)
@@ -295,7 +295,7 @@ func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error
 	}
 
 	// no cli, neither stored one. Use cli default value if exist.
-	if found && def{
+	if found && def {
 		if u, e = url.Parse(value); e == nil {
 			*store = u.String()
 			return

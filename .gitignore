@@ -10,6 +10,7 @@ tasks.json
 .glide
 .be-*
 samples/forjj*/Forjfile
+samples/test*/Forjfile
 .publish_lacws
 forjj
 bin/gothub

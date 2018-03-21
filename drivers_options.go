@@ -3,15 +3,15 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"strings"
-	"github.com/forj-oss/forjj-modules/cli"
-	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
-	"path"
-	"text/template"
 	"forjj/drivers"
 	"forjj/forjfile"
 	"forjj/utils"
+	"strings"
+	"text/template"
+
+	"github.com/forj-oss/forjj-modules/cli"
+	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 )
 
 // Load driver options to a Command requested.
@@ -26,7 +26,7 @@ func (a *Forj) load_driver_options(instance_name string) error {
 		return nil // Do not set plugin flags in validate mode.
 	}
 	if a.drivers[instance_name].Plugin.Yaml.Name != "" { // if true => Driver Def loaded
-		if err := a.init_driver_flags(instance_name) ; err != nil {
+		if err := a.init_driver_flags(instance_name); err != nil {
 			return err
 		}
 	}
@@ -51,7 +51,7 @@ func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{})
 	// Loop on drivers to pre-initialized drivers flags.
 	gotrace.Trace("Number of plugins provided from parameters: %d", len(list))
 	for _, d := range list {
-		if err := a.add_driver(d.GetString("driver"), d.GetString("type"), d.GetString("name"), true) ; err != nil {
+		if err := a.add_driver(d.GetString("driver"), d.GetString("type"), d.GetString("name"), true); err != nil {
 			gotrace.Trace("%s", err)
 			continue
 		}
@@ -74,10 +74,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 		return
 	}
 
-	ContribRepoUri := *a.ContribRepo_uri
-	ContribRepoUri.Path = path.Join(ContribRepoUri.Path, driver.DriverType, driver.Name, driver.Name+".yaml")
-
-	if yaml_data, err = utils.ReadDocumentFrom(&ContribRepoUri); err != nil {
+	if yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, ".yaml", driver.Name); err != nil {
 		return
 	}
 
@@ -159,7 +156,7 @@ func (a *Forj) init_driver_flags(instance_name string) error {
 	}
 
 	// Add Application(app) instance name to cli, if not set itself by cli input.
-	if err := a.init_driver_set_cli_app_instance(instance_name) ; err != nil {
+	if err := a.init_driver_set_cli_app_instance(instance_name); err != nil {
 		return fmt.Errorf("Unable to initialize driver instance '%s'. %s", instance_name, err)
 	}
 
@@ -240,7 +237,6 @@ func (a *Forj) init_driver_flags(instance_name string) error {
 	return nil
 }
 
-
 func (a *Forj) add_defined_driver(app *forjfile.AppStruct) error {
 	if _, found := a.drivers[app.Name()]; !found {
 		driver := new(drivers.Driver)
@@ -263,7 +259,7 @@ func (a *Forj) add_driver(driver, driver_type, instance string, cli_requested bo
 	if instance == "" {
 		instance = driver
 	}
-	if _, found := a.drivers[instance] ; found {
+	if _, found := a.drivers[instance]; found {
 		return nil
 	}
 	a.drivers[instance] = drivers.NewDriver(driver, driver_type, instance, true)
@@ -290,14 +286,14 @@ func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action
 	}
 }
 
-func (a *Forj)moveSecureAppData(flag_name string, missing_required bool) error {
-	if v, found := a.f.GetString("settings", "", flag_name) ; found {
+func (a *Forj) moveSecureAppData(flag_name string, missing_required bool) error {
+	if v, found := a.f.GetString("settings", "", flag_name); found {
 		a.s.SetForjValue(flag_name, v)
 		a.f.Remove("settings", "", flag_name)
 		gotrace.Trace("Moving secure flag data '%s' from Forjfile to creds.yaml", flag_name)
 		return nil
 	}
-	if v, error := a.cli.GetAppStringValue(flag_name) ; error == nil {
+	if v, error := a.cli.GetAppStringValue(flag_name); error == nil {
 		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
 		a.s.SetForjValue(flag_name, v)
 		return nil
@@ -308,8 +304,8 @@ func (a *Forj)moveSecureAppData(flag_name string, missing_required bool) error {
 	return nil
 }
 
-func (a *Forj)copyCliData(flag_name, def_value string) {
-	if v, error := a.cli.GetAppStringValue(flag_name) ; error == nil && v != "" {
+func (a *Forj) copyCliData(flag_name, def_value string) {
+	if v, error := a.cli.GetAppStringValue(flag_name); error == nil && v != "" {
 		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
 		a.s.SetForjValue(flag_name, v)
 	} else {
@@ -320,16 +316,16 @@ func (a *Forj)copyCliData(flag_name, def_value string) {
 	}
 }
 
-func (a *Forj)moveSecureObjectData(object_name, instance, flag_name string, missing_required bool) error {
-	if v, found := a.f.Get(object_name, instance, "secret_" + flag_name); found {
+func (a *Forj) moveSecureObjectData(object_name, instance, flag_name string, missing_required bool) error {
+	if v, found := a.f.Get(object_name, instance, "secret_"+flag_name); found {
 		// each key can have a secret_<key> value defined, stored in secret and can be refered in the Forjfile
 		// with {{ Current.Creds.<flag_name> }}
 		a.s.SetObjectValue(object_name, instance, flag_name, v)
 		a.f.Remove(object_name, instance, flag_name)
 		gotrace.Trace("Removing and setting secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
-			object_name, instance, "secret_" + flag_name)
+			object_name, instance, "secret_"+flag_name)
 	}
-	if v, found := a.f.Get(object_name, instance, flag_name) ; found {
+	if v, found := a.f.Get(object_name, instance, flag_name); found {
 		a.s.SetObjectValue(object_name, instance, flag_name, v)
 		// When no template value is set in Forjfile flag value, (default case in next code line)
 		// forjj will consider this string '{{ .Current.Creds.<flag_name> }}' as way to extract it
@@ -340,31 +336,31 @@ func (a *Forj)moveSecureObjectData(object_name, instance, flag_name string, miss
 			object_name, instance, flag_name)
 		return nil
 	}
-	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found {
+	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name); found {
 		a.s.SetObjectValue(object_name, instance, flag_name, new(goforjj.ValueStruct).Set(v))
 		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
 		return nil
 	}
-	if _, found3 := a.s.Get(object_name, instance, flag_name) ; ! found3 && missing_required {
+	if _, found3 := a.s.Get(object_name, instance, flag_name); !found3 && missing_required {
 		return fmt.Errorf("Missing required %s %s flag '%s' value.", object_name, instance, flag_name)
 	}
 	return nil
 }
 
-func (a *Forj)setSecureObjectData(object_name, instance, flag_name string, missing_required bool) error {
-	if v, found := a.f.Get(object_name, instance, "secret-" + flag_name); found {
+func (a *Forj) setSecureObjectData(object_name, instance, flag_name string, missing_required bool) error {
+	if v, found := a.f.Get(object_name, instance, "secret-"+flag_name); found {
 		// each key can have a secret_<key> value defined, stored in secret and can be referred in the Forjfile
 		// with {{ Current.Creds.<flag_name> }}
 		a.s.SetObjectValue(object_name, instance, flag_name, v)
-		a.f.Remove(object_name, instance, "secret-" + flag_name)
+		a.f.Remove(object_name, instance, "secret-"+flag_name)
 		gotrace.Trace("Moving secret Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
-			object_name, instance, "secret-" + flag_name)
+			object_name, instance, "secret-"+flag_name)
 	}
 	return nil
 }
 
 // objectGetInstances returns the merge of instances of an object found in cli and Forjfile
-func (a *Forj)objectGetInstances(object_name string) (ret []string) {
+func (a *Forj) objectGetInstances(object_name string) (ret []string) {
 	cli_obj := a.cli.GetObject(object_name)
 	if cli_obj == nil {
 		return
@@ -389,8 +385,8 @@ func (a *Forj)objectGetInstances(object_name string) (ret []string) {
 	return
 }
 
-func (a *Forj)copyCliObjectData(object_name, instance, flag_name, def_value string) {
-	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name) ; found && v != "" {
+func (a *Forj) copyCliObjectData(object_name, instance, flag_name, def_value string) {
+	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name); found && v != "" {
 		a.f.Set(object_name, instance, flag_name, v)
 		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
 	} else {
@@ -406,7 +402,7 @@ func (a *Forj)copyCliObjectData(object_name, instance, flag_name, def_value stri
 // - move Forjfile creds to creds.yml
 // - copy cli creds data to creds.yml
 // - copy cli non creds data to Forjfile
-func (a *Forj)ScanAndSetObjectData(missing bool) error {
+func (a *Forj) ScanAndSetObjectData(missing bool) error {
 	for _, driver := range a.drivers {
 		// Tasks flags
 		for _, task := range driver.Plugin.Yaml.Tasks {
@@ -416,7 +412,7 @@ func (a *Forj)ScanAndSetObjectData(missing bool) error {
 					continue
 				}
 				if err := a.moveSecureAppData(flag_name,
-					missing && flag.Options.Required) ; err != nil {
+					missing && flag.Options.Required); err != nil {
 					return err
 				}
 			}
@@ -427,21 +423,23 @@ func (a *Forj)ScanAndSetObjectData(missing bool) error {
 			instances := a.objectGetInstances(object_name)
 			for _, instance_name := range instances {
 				// Do not set app object values for a driver of a different application.
-				if object_name == "app" && instance_name != driver.InstanceName { continue }
+				if object_name == "app" && instance_name != driver.InstanceName {
+					continue
+				}
 
 				if object_name == "repo" {
-					if instance_owner, is_owner := a.IsRepoManaged(driver, object_name, instance_name) ; is_owner {
+					if instance_owner, is_owner := a.IsRepoManaged(driver, object_name, instance_name); is_owner {
 						Repo := a.f.GetObjectInstance(object_name, instance_name).(*forjfile.RepoStruct)
 						// Getting the owner from the upstream plugins result
-						if v, found := a.drivers[instance_owner] ; found && v.Plugin.Result != nil {
-							if v2, found2 := v.Plugin.Result.Data.Repos[instance_name] ; found2 {
+						if v, found := a.drivers[instance_owner]; found && v.Plugin.Result != nil {
+							if v2, found2 := v.Plugin.Result.Data.Repos[instance_name]; found2 {
 								Repo.SetInstanceOwner(v2.Owner)
 							} else {
-								gotrace.Warning("Unable to set Repository Owner. Unable to find '%s' repository from " +
-								"upstream '%s' driver data Result.", instance_name, instance_owner)
+								gotrace.Warning("Unable to set Repository Owner. Unable to find '%s' repository from "+
+									"upstream '%s' driver data Result.", instance_name, instance_owner)
 							}
 						} else {
-							gotrace.Warning("Unable to set Repository Owner. Unable to find '%s' repository from " +
+							gotrace.Warning("Unable to set Repository Owner. Unable to find '%s' repository from "+
 								"upstream '%s' driver data Result.", instance_name, instance_owner)
 						}
 					} else {
@@ -456,7 +454,7 @@ func (a *Forj)ScanAndSetObjectData(missing bool) error {
 				}
 				// Object group flags
 				for group_name, group := range obj.Groups {
-					if err := a.DispatchObjectFlags(object_name, instance_name, group_name + "-", missing, group.Flags) ; err != nil {
+					if err := a.DispatchObjectFlags(object_name, instance_name, group_name+"-", missing, group.Flags); err != nil {
 						return err
 					}
 				}
@@ -478,17 +476,17 @@ func (a *Forj)ScanAndSetObjectData(missing bool) error {
 func (a *Forj) DispatchObjectFlags(object_name, instance_name, flag_prefix string, missing bool, flags map[string]goforjj.YamlFlag) (err error) {
 	for flag_name, flag := range flags {
 		// treat 'secret_' flag type.
-		if err = a.setSecureObjectData(object_name, instance_name, flag_prefix + flag_name,
-			missing && flag.Options.Required) ; err != nil {
+		if err = a.setSecureObjectData(object_name, instance_name, flag_prefix+flag_name,
+			missing && flag.Options.Required); err != nil {
 			return err
 		}
-		if ! flag.Options.Secure {
+		if !flag.Options.Secure {
 			// Forjfile flag already loaded. We can update it from cli or default otherwise
-			a.copyCliObjectData(object_name, instance_name, flag_prefix + flag_name, flag.Options.Default)
+			a.copyCliObjectData(object_name, instance_name, flag_prefix+flag_name, flag.Options.Default)
 			continue
 		}
-		if err = a.moveSecureObjectData(object_name, instance_name, flag_prefix + flag_name,
-			missing && flag.Options.Required) ; err != nil {
+		if err = a.moveSecureObjectData(object_name, instance_name, flag_prefix+flag_name,
+			missing && flag.Options.Required); err != nil {
 			return err
 		}
 	}
@@ -531,11 +529,13 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 		Obj_instances := a.f.GetInstances(object_name)
 		for _, instance_name := range Obj_instances {
 			// filter on current app
-			if object_name == "app" && instance_name != d.InstanceName { continue }
+			if object_name == "app" && instance_name != d.InstanceName {
+				continue
+			}
 
 			// Filter on repo to be supported by the driver instance.
 			if object_name == "repo" {
-				if _, is_owner := a.IsRepoManaged(d, object_name, instance_name) ; ! is_owner {
+				if _, is_owner := a.IsRepoManaged(d, object_name, instance_name); !is_owner {
 					continue
 				}
 			}
@@ -545,8 +545,8 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 			flags := Obj.FlagsRange("setup")
 
 			for key, flag := range flags {
-				if v, found := a.GetInternalForjData(key) ; found {
-					if value := new(goforjj.ValueStruct).Set(v) ; value != nil {
+				if v, found := a.GetInternalForjData(key); found {
+					if value := new(goforjj.ValueStruct).Set(v); value != nil {
 						keys[key] = value
 					}
 					continue
@@ -556,7 +556,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 				if flag.Options.Secure {
 					// From creds.yml
 					def_value := "{{ (index .Current.Creds \"" + key + "\").GetString }}"
-					if v, found := a.f.Get(object_name, instance_name, key) ; found {
+					if v, found := a.f.Get(object_name, instance_name, key); found {
 						if s := v.GetString(); strings.HasPrefix("{{", s) {
 							def_value = s
 						}
@@ -564,13 +564,13 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 					value.Set(def_value)
 				} else {
 					// From Forjfile
-					if v, found := a.f.Get(object_name, instance_name, key) ; !found {
+					if v, found := a.f.Get(object_name, instance_name, key); !found {
 						continue
 					} else {
 						value.Set(v)
 					}
 				}
-				if err := value.Evaluate(a.Model(object_name, instance_name, key)) ; err != nil {
+				if err := value.Evaluate(a.Model(object_name, instance_name, key)); err != nil {
 					return fmt.Errorf("Unable to evaluate '%s'. %s", value.GetString(), err)
 				}
 				gotrace.Trace("%s/%s: Key '%s' has been set to '%s'", object_name, instance_name, key, value.GetString())
