@@ -74,7 +74,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 		return
 	}
 
-	if yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, ".yaml", driver.Name); err != nil {
+	if yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, ".yaml", driver.Name, driver.DriverType); err != nil {
 		return
 	}
 

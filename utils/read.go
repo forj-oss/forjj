@@ -18,7 +18,7 @@ const PluginTag = "<plugin>"
 // It supports file or url stored in url.URL structure
 // each urls can be defined with a plugin tag "<plugin>" which will be replaced by the document name(document)
 // the file name and the extension is added at the end of the string.
-func ReadDocumentFrom(urls []*url.URL, extension, document string) ([]byte, error) {
+func ReadDocumentFrom(urls []*url.URL, extension, document, docType string) ([]byte, error) {
 	if urls == nil {
 		return nil, fmt.Errorf("url parameter is nil")
 	}
@@ -26,7 +26,7 @@ func ReadDocumentFrom(urls []*url.URL, extension, document string) ([]byte, erro
 		var fileName string
 		if s.Scheme == "" {
 			// File to read locally
-			fileName = BuildURLPath(s.Path, document, extension)
+			fileName = BuildURLPath(s.Path, docType, document, extension)
 
 			if found, data, err := readDocumentFromFS(fileName); err != nil || found {
 				return data, err
@@ -34,7 +34,7 @@ func ReadDocumentFrom(urls []*url.URL, extension, document string) ([]byte, erro
 			continue
 		}
 		// File to read from an url. Usually, a raw from github.
-		fileName = BuildURLPath(s.String(), document, extension)
+		fileName = BuildURLPath(s.String(), docType, document, extension)
 		if found, data, err := readDocumentFromURL(s.String()); err != nil || found {
 			return data, err
 		}
@@ -44,11 +44,15 @@ func ReadDocumentFrom(urls []*url.URL, extension, document string) ([]byte, erro
 
 // BuildURLPath build the path logic introducing the pluginTag to replace.
 //
-func BuildURLPath(aPath, document, extension string) (fullFileName string) {
+func BuildURLPath(aPath, docType, document, extension string) (fullFileName string) {
 	fileName := document + extension
 
 	if strings.Contains(aPath, PluginTag) {
 		aPath = strings.Replace(aPath, PluginTag, document, -1)
+	} else {
+		if docType != "" {
+			aPath = path.Join(aPath, docType, document)
+		}
 	}
 	fullFileName = path.Join(aPath, fileName)
 	return
