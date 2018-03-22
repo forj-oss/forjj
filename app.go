@@ -123,6 +123,12 @@ const (
 	message_f       = "message"
 )
 
+const (
+	default_contribs_repo = "https://github.com/forj-oss/forjj-contribs/raw"
+	default_plugin_repo = "https://github.com/forj-oss/forjj-<plugin>/raw"
+	default_repo_branch = "master"
+)
+
 type ForjModel struct {
 	Forjfile *forjfile.ForgeYaml
 	Current  ForjCurrentModel
@@ -163,7 +169,7 @@ func (a *Forj) init() {
 	// Define options
 	opts_required := cli.Opts().Required()
 	//opts_ssh_dir := cli.Opts().Default(fmt.Sprintf("%s/.ssh", os.Getenv("HOME")))
-	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default("https://github.com/forj-oss/forjj-contribs/raw/master")
+	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default(default_contribs_repo)
 	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default("https://github.com/forj-oss/forjj-flows/raw/master")
 	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default("https://github.com/forj-oss/forjj-repotemplates/raw/master")
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")

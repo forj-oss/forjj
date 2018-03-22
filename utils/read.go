@@ -12,7 +12,7 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
-const pluginTag = "<plugin>"
+const PluginTag = "<plugin>"
 
 // ReadDocumentFrom is used to read a document from a url like github raw or directly from a local path
 // It supports file or url stored in url.URL structure
@@ -26,7 +26,7 @@ func ReadDocumentFrom(urls []*url.URL, extension, document string) ([]byte, erro
 		var fileName string
 		if s.Scheme == "" {
 			// File to read locally
-			fileName = buildURLPath(s.Path, document, extension)
+			fileName = BuildURLPath(s.Path, document, extension)
 
 			if found, data, err := readDocumentFromFS(fileName); err != nil || found {
 				return data, err
@@ -34,7 +34,7 @@ func ReadDocumentFrom(urls []*url.URL, extension, document string) ([]byte, erro
 			continue
 		}
 		// File to read from an url. Usually, a raw from github.
-		fileName = buildURLPath(s.String(), document, extension)
+		fileName = BuildURLPath(s.String(), document, extension)
 		if found, data, err := readDocumentFromURL(s.String()); err != nil || found {
 			return data, err
 		}
@@ -42,13 +42,13 @@ func ReadDocumentFrom(urls []*url.URL, extension, document string) ([]byte, erro
 	return nil, fmt.Errorf("Document not found from URLs given")
 }
 
-// buildURLPath build the path logic introducing the pluginTag to replace.
+// BuildURLPath build the path logic introducing the pluginTag to replace.
 //
-func buildURLPath(aPath, document, extension string) (fullFileName string) {
+func BuildURLPath(aPath, document, extension string) (fullFileName string) {
 	fileName := document + extension
 
-	if strings.Contains(aPath, pluginTag) {
-		aPath = strings.Replace(aPath, pluginTag, document, -1)
+	if strings.Contains(aPath, PluginTag) {
+		aPath = strings.Replace(aPath, PluginTag, document, -1)
 	}
 	fullFileName = path.Join(aPath, fileName)
 	return
