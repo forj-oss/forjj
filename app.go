@@ -124,17 +124,19 @@ const (
 )
 
 const (
-	default_contribs_repo = "https://github.com/forj-oss/forjj-contribs/raw"
-	default_plugin_repo = "https://github.com/forj-oss/forjj-<plugin>/raw"
-	default_repo_branch = "master"
+	default_contribs_repo = "https://github.com/forj-oss/forjj-contribs/raw/master"
+	default_plugin_repo   = "https://github.com/forj-oss/forjj-<plugin>/raw/master"
+	default_repo_branch   = "master"
 )
 
+// ForjModel is used by template mechanism
 type ForjModel struct {
 	Forjfile *forjfile.ForgeYaml
 	Current  ForjCurrentModel
 	Secret   string
 }
 
+// ForjCurrentModel is a sub struct of ForjModel
 type ForjCurrentModel struct {
 	Type  string
 	Name  string
@@ -142,6 +144,7 @@ type ForjCurrentModel struct {
 	Creds map[string]*goforjj.ValueStruct
 }
 
+// Model is used to build a Model to use by text/templates
 func (a *Forj) Model(object_name, instance_name, key string) *ForjModel {
 	data := ForjModel{
 		Forjfile: a.f.Forjfile(),
