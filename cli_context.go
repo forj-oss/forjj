@@ -15,6 +15,13 @@ import (
 
 const Workspace_Name = ".forj-workspace"
 
+const (
+	inCli=3
+	inStore=2
+	inDefault=1
+	notFound=0
+)
+
 // ParseContext : Load cli context to adapt the list of options/flags from the driver definition.
 //
 // It will
@@ -89,21 +96,24 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	defaultPluginURL := new(url.URL)
 	url.Parse(default_plugin_repo)
-	a.ContribRepoURIs = append(make([]*url.URL, 0, 2), defaultPluginURL)
+	a.ContribRepoURIs = make([]*url.URL, 0, 2)
 
-	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
+	if w, v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
+		if w == inDefault || w == notFound {
+			a.ContribRepoURIs = append(a.ContribRepoURIs, defaultPluginURL)
+		}
 		a.ContribRepoURIs = append(a.ContribRepoURIs, v)
 		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
 	} else {
 		return fmt.Errorf("Contribs repository url issue: %s", err), false
 	}
-	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
+	if _, v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
 		a.flows.AddRepoPath(v)
 		gotrace.Trace("Using '%s' for '%s'", v, "flows-repo")
 	} else {
 		gotrace.Error("Flow repository url issue: %s", err)
 	}
-	if v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err == nil {
+	if _, v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err == nil {
 		a.RepotemplateRepo_uri = v
 		gotrace.Trace("Using '%s' for '%s'", v, "repotemplates-repo")
 	} else {
@@ -276,15 +286,22 @@ func (a *Forj) setWorkspace() error {
 // flag : Application flag value (from cli module)
 //
 // store : string address where this flag will be stored
-func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error) {
+//
+// where return:
+// 3: if found in cli
+// 2: if found in the store
+// 1: if found from default
+// 0: if not found
+func (a *Forj) set_from_urlflag(flag string, store *string) (where int, u *url.URL, e error) {
 	value, found, def, err := a.cli.GetStringValue(workspace, "", flag)
 	if err != nil {
 		gotrace.Trace("%s", err)
-		return nil, err
+		return notFound, nil, err
 	}
 
 	// cli define an url
 	if found && !def {
+		where = inCli
 		if u, e = url.Parse(value); e == nil {
 			*store = u.String()
 			return
@@ -293,6 +310,7 @@ func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error
 
 	// no cli definition. Use the stored url.
 	if *store != "" {
+		where = inStore
 		if u, e = url.Parse(*store); e == nil {
 			return
 		}
@@ -300,6 +318,7 @@ func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error
 
 	// no cli, neither stored one. Use cli default value if exist.
 	if found && def {
+		where = inDefault
 		if u, e = url.Parse(value); e == nil {
 			*store = u.String()
 			return
@@ -307,5 +326,6 @@ func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error
 	}
 
 	// Not found return nil with last error detected
+	where = notFound
 	return
 }
