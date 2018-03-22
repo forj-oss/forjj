@@ -2,17 +2,25 @@ package main
 
 import (
 	"fmt"
-	"github.com/forj-oss/forjj-modules/cli"
-	"github.com/forj-oss/forjj-modules/trace"
+	"forjj/utils"
 	"log"
 	"net/url"
-	"path"
 	"os"
-	"forjj/utils"
+	"path"
 	"strings"
+
+	"github.com/forj-oss/forjj-modules/cli"
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 const Workspace_Name = ".forj-workspace"
+
+const (
+	inCli=3
+	inStore=2
+	inDefault=1
+	notFound=0
+)
 
 // ParseContext : Load cli context to adapt the list of options/flags from the driver definition.
 //
@@ -29,21 +37,21 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	var action string
 
 	// Load Forjfile templates in case of 'create' task.
-	if cmds := c.GetCurrentCommand() ; cmds != nil && len(cmds) >= 1 {
+	if cmds := c.GetCurrentCommand(); cmds != nil && len(cmds) >= 1 {
 		action = cmds[0].FullCommand()
 	} else {
 		return nil, false
 	}
 	if action == cr_act || action == val_act {
 		// Detect and load a Forjfile template given.
-		if err := a.LoadForjfile(action) ; err != nil {
+		if err := a.LoadForjfile(action); err != nil {
 			a.w.SetError(err)
 			return nil, false
 		}
 	}
 
 	// Define workspace
-	if err := a.setWorkspace() ; err != nil {
+	if err := a.setWorkspace(); err != nil {
 		// failure test exit is made after parse time.
 		return err, false
 	}
@@ -55,14 +63,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	is_valid_action := (utils.InStringList(action, val_act, cr_act, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "")
 	need_to_create := (action == cr_act)
 	need_to_validate := (action == val_act)
-	if err := a.f.SetInfraPath(a.w.InfraPath(), is_valid_action && (need_to_create || need_to_validate)) ; err != nil {
+	if err := a.f.SetInfraPath(a.w.InfraPath(), is_valid_action && (need_to_create || need_to_validate)); err != nil {
 		a.w.SetError(err)
 		return nil, false
 	}
 
-
 	// Load Forjfile from infra repo, if found.
-	if err := a.LoadForge() ; err != nil {
+	if err := a.LoadForge(); err != nil {
 		if utils.InStringList(action, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "" {
 			a.w.SetError(fmt.Errorf("Forjfile not loaded. %s", err))
 			return nil, false
@@ -71,13 +78,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	}
 
 	// Set organization name to use.
-	if err := a.set_organization_name() ; err != nil {
+	if err := a.set_organization_name(); err != nil {
 		a.w.SetError(err)
 		return nil, false
 	}
 
 	// Setting infra repository name
-	if err := a.set_infra_name(action) ; err != nil {
+	if err := a.set_infra_name(action); err != nil {
 		a.w.SetError(err)
 		return nil, false
 	}
@@ -87,27 +94,34 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// Identifying appropriate Contribution Repository.
 	// The value is not set in flagsv. But is in the parser context.
 
-	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
-		a.ContribRepo_uri = v
+	defaultPluginURL := new(url.URL)
+	url.Parse(default_plugin_repo)
+	a.ContribRepoURIs = make([]*url.URL, 0, 2)
+
+	if w, v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
+		if w == inDefault || w == notFound {
+			a.ContribRepoURIs = append(a.ContribRepoURIs, defaultPluginURL)
+		}
+		a.ContribRepoURIs = append(a.ContribRepoURIs, v)
 		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
 	} else {
 		return fmt.Errorf("Contribs repository url issue: %s", err), false
 	}
-	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
+	if _, v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
 		a.flows.AddRepoPath(v)
 		gotrace.Trace("Using '%s' for '%s'", v, "flows-repo")
 	} else {
 		gotrace.Error("Flow repository url issue: %s", err)
 	}
-	if v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err == nil {
+	if _, v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err == nil {
 		a.RepotemplateRepo_uri = v
 		gotrace.Trace("Using '%s' for '%s'", v, "repotemplates-repo")
 	} else {
 		gotrace.Error("RepoTemplates repository url issue: %s", err)
 	}
 
-	if file_desc, err := a.cli.GetAppStringValue(cred_f); err == nil && file_desc != "" {
-		a.s.SetFile(file_desc)
+	if fileDesc, err := a.cli.GetAppStringValue(cred_f); err == nil && fileDesc != "" {
+		a.s.SetFile(fileDesc)
 	} else {
 		a.s.SetPath(a.w.Path())
 	}
@@ -226,7 +240,7 @@ func (a *Forj) set_organization_name() error {
 		}
 	}
 	if a.w.Organization != "" {
-		if err := a.SetPrefs(orga_f, a.w.Organization) ; err != nil {
+		if err := a.SetPrefs(orga_f, a.w.Organization); err != nil {
 			return err
 		}
 		log.Printf("Organization : '%s'", a.w.Organization)
@@ -251,7 +265,7 @@ func (a *Forj) setWorkspace() error {
 		gotrace.Trace("Unable to find '%s' value. %s Trying to detect it.", infra_path_f, err)
 	}
 	if !found {
-		if pwd, e := os.Getwd() ; err != nil {
+		if pwd, e := os.Getwd(); err != nil {
 			return e
 		} else {
 			workspace_path = path.Join(pwd, Workspace_Name)
@@ -272,15 +286,22 @@ func (a *Forj) setWorkspace() error {
 // flag : Application flag value (from cli module)
 //
 // store : string address where this flag will be stored
-func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error) {
+//
+// where return:
+// 3: if found in cli
+// 2: if found in the store
+// 1: if found from default
+// 0: if not found
+func (a *Forj) set_from_urlflag(flag string, store *string) (where int, u *url.URL, e error) {
 	value, found, def, err := a.cli.GetStringValue(workspace, "", flag)
 	if err != nil {
 		gotrace.Trace("%s", err)
-		return nil, err
+		return notFound, nil, err
 	}
 
 	// cli define an url
 	if found && !def {
+		where = inCli
 		if u, e = url.Parse(value); e == nil {
 			*store = u.String()
 			return
@@ -289,13 +310,15 @@ func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error
 
 	// no cli definition. Use the stored url.
 	if *store != "" {
+		where = inStore
 		if u, e = url.Parse(*store); e == nil {
 			return
 		}
 	}
 
 	// no cli, neither stored one. Use cli default value if exist.
-	if found && def{
+	if found && def {
+		where = inDefault
 		if u, e = url.Parse(value); e == nil {
 			*store = u.String()
 			return
@@ -303,5 +326,6 @@ func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error
 	}
 
 	// Not found return nil with last error detected
+	where = notFound
 	return
 }
