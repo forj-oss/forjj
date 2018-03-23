@@ -1,55 +1,70 @@
 package forjfile
 
 import (
+	"fmt"
+	"forjj/utils"
+	"io/ioutil"
 	"os"
 	"path"
-	"fmt"
-	"io/ioutil"
-	"gopkg.in/yaml.v2"
-	"forjj/utils"
+	"strings"
+
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
-	"strings"
+	"gopkg.in/yaml.v2"
 )
 
 // ForjfileTmpl is the Memory expansion of an external Forjfile (used to create a Forge)
 type ForjfileTmpl struct {
 	file_loaded string
-	Workspace WorkspaceStruct // See workspace.go
-	yaml ForgeYaml
+	Workspace   WorkspaceStruct // See workspace.go
+	yaml        ForgeYaml
 }
 
 // Forge is the Memory expand of a repository Forjfile.
 type Forge struct {
-	file_loaded string
+	file_loaded     string
 	tmplfile_loaded string
-	updated_msg string
-	infra_path string // Infra path used to create/save/load Forjfile
-	file_name string // Relative path to the Forjfile.
-	yaml *ForgeYaml
+	updated_msg     string
+	infra_path      string // Infra path used to create/save/load Forjfile
+	file_name       string // Relative path to the Forjfile.
+	yaml            *ForgeYaml
 }
 
+// ForgeYaml represents the master Forjfile or a piece of the Forjfile template.
 type ForgeYaml struct {
+	Deployments map[string]DeploymentStruct
+	More        DeployForgeYaml `yaml:",inline"`
+}
+
+// DeployForgeYaml represents a dedicated deployed Forge.
+type DeployForgeYaml struct {
 	updated bool
 	// LocalSettings should not be used from a Forjfile except if this one is a template one.
-	LocalSettings WorkspaceStruct `yaml:"local-settings,omitempty"` // ignored if Normal Forjfile
-	ForjSettings ForjSettingsStruct `yaml:"forj-settings"`
-	Infra *RepoStruct
-	Repos ReposStruct `yaml:"repositories"`
-	Apps AppsStruct `yaml:"applications"`
-	Users map[string]*UserStruct
-	Groups map[string]*GroupStruct
+	LocalSettings WorkspaceStruct    `yaml:"local-settings,omitempty"` // ignored if Normal Forjfile
+	ForjSettings  ForjSettingsStruct `yaml:"forj-settings"`
+	Infra         *RepoStruct
+	Repos         ReposStruct `yaml:"repositories"`
+	Apps          AppsStruct  `yaml:"applications"`
+	Users         map[string]*UserStruct
+	Groups        map[string]*GroupStruct
 	// Collection of Object/Name/Keys=values
 	More map[string]map[string]ForjValues `yaml:",inline,omitempty"`
-
 }
 
+// DeploymentStruct represent the data structure of all deployment.
+type DeploymentStruct struct {
+	Desc string            `yaml:"description,omitempty"`
+	Pars map[string]string `yaml:"parameters"`
+	More DeployForgeYaml   `yaml:",inline"`
+}
+
+// WorkspaceStruct represents the yaml structure of a workspace.
 type WorkspaceStruct struct {
-	updated bool
-	DockerBinPath          string `yaml:"docker-exe-path"`    // Docker static binary path
-	Contrib_repo_path      string `yaml:"contribs-repo"`      // Contrib Repo path used.
-	Flow_repo_path         string `yaml:"flows-repo"`         // Flow repo path used.
-	Repotemplate_repo_path string `yaml:"repotemplates-repo"` // Repotemplate Path used.
+	updated                bool
+	DockerBinPath          string            `yaml:"docker-exe-path"`    // Docker static binary path
+	Contrib_repo_path      string            `yaml:"contribs-repo"`      // Contrib Repo path used.
+	Flow_repo_path         string            `yaml:"flows-repo"`         // Flow repo path used.
+	Repotemplate_repo_path string            `yaml:"repotemplates-repo"` // Repotemplate Path used.
 	More                   map[string]string `yaml:",inline"`
 }
 
@@ -57,7 +72,7 @@ const file_name = "Forjfile"
 
 // TODO: Load multiple templates that will be merged.
 
-// LoadTmpl: Search for Forjfile in `aPath` and load it.
+// LoadTmpl Search for Forjfile in `aPath` and load it.
 // This file combines the Forjfile in the infra repository and the Workspace
 func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	var (
@@ -65,9 +80,12 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	)
 
 	var forj_path string
-	forj_path, err = utils.Abs(aPath) ; if err != nil { return }
-	if  forj_path != "." {
-		if fi, e := os.Stat(forj_path) ; err != nil {
+	forj_path, err = utils.Abs(aPath)
+	if err != nil {
+		return
+	}
+	if forj_path != "." {
+		if fi, e := os.Stat(forj_path); err != nil {
 			err = e
 			return
 		} else {
@@ -83,7 +101,7 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 		return
 	}
 
-	if fi, d, e := loadFile(file) ; e != nil {
+	if fi, d, e := loadFile(file); e != nil {
 		err = e
 		return
 	} else {
@@ -94,12 +112,12 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	f = new(ForjfileTmpl)
 
 	f.file_loaded = file
-	if e := yaml.Unmarshal(yaml_data, &f.yaml) ; e != nil {
+	if e := yaml.Unmarshal(yaml_data, &f.yaml); e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
 	}
 
-	f.Workspace = f.yaml.LocalSettings
+	f.Workspace = f.yaml.More.LocalSettings
 	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
 	// Setting defaults
 	f.yaml.set_defaults()
@@ -107,50 +125,54 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	return
 }
 
-func (f *Forge)GetForjfileTemplateFileLoaded() string {
+func (f *Forge) GetForjfileTemplateFileLoaded() string {
 	return f.tmplfile_loaded
 }
 
-func (f *Forge)GetForjfileFileLoaded() string {
+func (f *Forge) GetForjfileFileLoaded() string {
 	return f.file_loaded
 }
 
-func (f *Forge)SetInfraAsRepo() {
+func (f *Forge) SetInfraAsRepo() {
 	// Copy the infra repo in list of repositories, tagged as infra.
-	if !f.Init() { return }
-
-	var repo *RepoStruct
-
-	if v, found := f.yaml.Infra.More["name"] ; found && v != "" {
-		f.yaml.Infra.name = v
-	}
-
-	if f.yaml.Infra.name == "" || f.yaml.Infra.name == "none" {
+	if !f.Init() {
 		return
 	}
 
-	if r, found_repo := f.yaml.Repos[f.yaml.Infra.name]; found_repo {
+	var repo *RepoStruct
+
+	if v, found := f.yaml.More.Infra.More["name"]; found && v != "" {
+		f.yaml.More.Infra.name = v
+	}
+
+	if f.yaml.More.Infra.name == "" || f.yaml.More.Infra.name == "none" {
+		return
+	}
+
+	if r, found_repo := f.yaml.More.Repos[f.yaml.More.Infra.name]; found_repo {
 		repo = r
 	}
 	if repo == nil {
 		repo = new(RepoStruct)
-		f.yaml.Repos[f.yaml.Infra.name] = repo
+		f.yaml.More.Repos[f.yaml.More.Infra.name] = repo
 	}
-	repo.setFromInfra(f.yaml.Infra)
+	repo.setFromInfra(f.yaml.More.Infra)
 }
 
-func (f *Forge)GetInfraName() string {
-	return f.yaml.Infra.name
+func (f *Forge) GetInfraName() string {
+	return f.yaml.More.Infra.name
 }
 
 // Load : Load Forjfile stored in a Repository.
-func (f *Forge)Load() (loaded bool, err error) {
+func (f *Forge) Load() (loaded bool, err error) {
 	var (
 		yaml_data []byte
-		file string
+		file      string
 	)
 
-	if ! f.Init() { return false, fmt.Errorf("Forge is nil.") }
+	if !f.Init() {
+		return false, fmt.Errorf("Forge is nil.")
+	}
 
 	if f.infra_path != "" {
 		if _, err = os.Stat(f.infra_path); err != nil {
@@ -159,7 +181,7 @@ func (f *Forge)Load() (loaded bool, err error) {
 	}
 
 	aPath := path.Join(f.infra_path, f.Forjfile_name())
-	if fi, d, e := loadFile(aPath) ; e != nil {
+	if fi, d, e := loadFile(aPath); e != nil {
 		err = e
 		return
 	} else {
@@ -168,7 +190,7 @@ func (f *Forge)Load() (loaded bool, err error) {
 	}
 
 	f.file_loaded = aPath
-	if e := yaml.Unmarshal(yaml_data, &f.yaml) ; e != nil {
+	if e := yaml.Unmarshal(yaml_data, &f.yaml); e != nil {
 		err = fmt.Errorf("Unable to load %s. %s", file, e)
 		return
 	}
@@ -179,16 +201,18 @@ func (f *Forge)Load() (loaded bool, err error) {
 	return
 }
 
-func (f *Forge)Forjfile() *ForgeYaml {
+func (f *Forge) Forjfile() *ForgeYaml {
 	return f.yaml
 }
 
-func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
+func loadFile(aPath string) (file string, yaml_data []byte, err error) {
 	file, err = utils.Abs(aPath)
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 
-	if fi, e := os.Stat(file) ; e == nil {
-		if ! fi.Mode().IsRegular() {
+	if fi, e := os.Stat(file); e == nil {
+		if !fi.Mode().IsRegular() {
 			err = fmt.Errorf("%s must be a regular file.", file)
 			return
 		}
@@ -197,7 +221,7 @@ func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
 		return
 	}
 
-	if fd, e := ioutil.ReadFile(file) ; e != nil {
+	if fd, e := ioutil.ReadFile(file); e != nil {
 		err = e
 		return
 	} else {
@@ -206,15 +230,17 @@ func loadFile(aPath string) (file string, yaml_data[]byte, err error) {
 	return
 }
 
-func (f *Forge)SetFromTemplate(ft *ForjfileTmpl) {
-	if !f.Init() { return }
+func (f *Forge) SetFromTemplate(ft *ForjfileTmpl) {
+	if !f.Init() {
+		return
+	}
 
 	*f.yaml = ft.yaml
 	f.yaml.updated = true
 	f.tmplfile_loaded = ft.file_loaded
 }
 
-func (f *Forge)Init() bool {
+func (f *Forge) Init() bool {
 	if f == nil {
 		return false
 	}
@@ -250,7 +276,7 @@ func (f *Forge)Init() bool {
 // - a Forjfile is found
 // - is stored in a repository in root path.
 func (f *Forge) CheckInfraPath(infraAbsPath string) error {
-	if fi, err := os.Stat(infraAbsPath) ; err != nil {
+	if fi, err := os.Stat(infraAbsPath); err != nil {
 		return fmt.Errorf("Not a valid infra path '%s': %s", infraAbsPath, err)
 	} else if !fi.IsDir() {
 		return fmt.Errorf("Not a valid infra path: '%s' must be a directory.", infraAbsPath)
@@ -280,11 +306,11 @@ func (f *Forge) SetInfraPath(infraPath string, create_request bool) error {
 	}
 
 	if create_request {
-		if fi, err := os.Stat(aPath) ; err == nil && !fi.IsDir() {
+		if fi, err := os.Stat(aPath); err == nil && !fi.IsDir() {
 			return fmt.Errorf("Unable to set infra PATH to '%s'. Must be a directory.", aPath)
 		}
 	} else {
-		if err := f.CheckInfraPath(aPath) ; err != nil {
+		if err := f.CheckInfraPath(aPath); err != nil {
 			return err
 		}
 	}
@@ -307,7 +333,7 @@ func (f *Forge) Forjfile_name() string {
 }
 
 func (f *Forge) Save() error {
-	if err := f.save(path.Join(f.infra_path, f.Forjfile_name())) ; err != nil {
+	if err := f.save(path.Join(f.infra_path, f.Forjfile_name())); err != nil {
 		return err
 	}
 	f.Saved()
@@ -315,7 +341,9 @@ func (f *Forge) Save() error {
 }
 
 func (f *Forge) save(file string) error {
-	if ! f.Init() { return fmt.Errorf("Forge is nil.") }
+	if !f.Init() {
+		return fmt.Errorf("Forge is nil.")
+	}
 	yaml_data, err := yaml.Marshal(f.yaml)
 	if err != nil {
 		return err
@@ -344,11 +372,15 @@ func SaveTmpl(aPath string, f *Forge) error {
 }
 
 func (f *Forge) GetInstances(object string) (ret []string) {
-	if ! f.Init() { return nil }
+	if !f.Init() {
+		return nil
+	}
 	ret = []string{}
 	switch object {
 	case "user":
-		if f.yaml.Users == nil { return }
+		if f.yaml.Users == nil {
+			return
+		}
 
 		ret = make([]string, len(f.yaml.Users))
 		iCount := 0
@@ -358,7 +390,9 @@ func (f *Forge) GetInstances(object string) (ret []string) {
 		}
 		return
 	case "group":
-		if f.yaml.Groups == nil { return }
+		if f.yaml.Groups == nil {
+			return
+		}
 
 		ret = make([]string, len(f.yaml.Groups))
 		iCount := 0
@@ -368,7 +402,9 @@ func (f *Forge) GetInstances(object string) (ret []string) {
 		}
 		return
 	case "app":
-		if f.yaml.Apps == nil { return }
+		if f.yaml.Apps == nil {
+			return
+		}
 
 		ret = make([]string, len(f.yaml.Apps))
 		iCount := 0
@@ -378,7 +414,9 @@ func (f *Forge) GetInstances(object string) (ret []string) {
 		}
 		return
 	case "repo":
-		if f.yaml.Repos == nil { return }
+		if f.yaml.Repos == nil {
+			return
+		}
 
 		ret = make([]string, len(f.yaml.Repos))
 		iCount := 0
@@ -390,7 +428,7 @@ func (f *Forge) GetInstances(object string) (ret []string) {
 	case "infra", "settings":
 		return
 	default:
-		if instances, found := f.yaml.More[object] ; found {
+		if instances, found := f.yaml.More[object]; found {
 			ret = make([]string, len(instances))
 			iCount := 0
 			for instance := range instances {
@@ -406,7 +444,7 @@ func (f *Forge) GetInfraInstance() (_ string) {
 	if f == nil || f.yaml.Infra == nil || f.yaml.Infra.apps == nil {
 		return
 	}
-	if v, found := f.yaml.Infra.apps["upstream"] ; found && v != nil {
+	if v, found := f.yaml.Infra.apps["upstream"]; found && v != nil {
 		return v.name
 	}
 	if v, found := f.yaml.Infra.Apps["upstream"]; found {
@@ -421,7 +459,9 @@ func (f *Forge) GetString(object, instance, key string) (string, bool) {
 }
 
 func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _ bool) {
-	if ! f.Init() { return }
+	if !f.Init() {
+		return
+	}
 	switch object {
 	case "infra":
 		if f.yaml.Infra == nil {
@@ -431,7 +471,7 @@ func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _
 			if f.yaml.Infra.More == nil {
 				return
 			}
-			if v, found := f.yaml.Infra.More["name"] ; found && v != "" {
+			if v, found := f.yaml.Infra.More["name"]; found && v != "" {
 				return value.Set(v), true
 			}
 			if f.yaml.Infra.name != "" {
@@ -443,7 +483,7 @@ func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _
 		if f.yaml.Users == nil {
 			return
 		}
-		if user, found := f.yaml.Users[instance] ; found {
+		if user, found := f.yaml.Users[instance]; found {
 			return user.Get(key)
 		}
 	case "group":
@@ -457,7 +497,7 @@ func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _
 		if f.yaml.Apps == nil {
 			return
 		}
-		if app, found := f.yaml.Apps[instance] ; found {
+		if app, found := f.yaml.Apps[instance]; found {
 			return app.Get(key)
 		}
 	case "repo":
@@ -476,13 +516,15 @@ func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _
 }
 
 func (f *Forge) GetObjectInstance(object, instance string) interface{} {
-	if ! f.Init() { return nil }
+	if !f.Init() {
+		return nil
+	}
 	switch object {
 	case "user":
 		if f.yaml.Users == nil {
 			return nil
 		}
-		if user, found := f.yaml.Users[instance] ; found {
+		if user, found := f.yaml.Users[instance]; found {
 			return user
 		}
 	case "group":
@@ -496,7 +538,7 @@ func (f *Forge) GetObjectInstance(object, instance string) interface{} {
 		if f.yaml.Apps == nil {
 			return nil
 		}
-		if app, found := f.yaml.Apps[instance] ; found {
+		if app, found := f.yaml.Apps[instance]; found {
 			return app
 		}
 	case "repo":
@@ -514,8 +556,10 @@ func (f *Forge) GetObjectInstance(object, instance string) interface{} {
 	return nil
 }
 
-func (f *Forge) ObjectLen(object string) (int) {
-	if ! f.Init() { return 0 }
+func (f *Forge) ObjectLen(object string) int {
+	if !f.Init() {
+		return 0
+	}
 	switch object {
 	case "infra":
 		return 1
@@ -542,7 +586,7 @@ func (f *Forge) ObjectLen(object string) (int) {
 	case "settings":
 		return 1
 	default:
-		if v, found := f.yaml.More[object] ; found {
+		if v, found := f.yaml.More[object]; found {
 			return len(v)
 		}
 		return 0
@@ -550,10 +594,12 @@ func (f *Forge) ObjectLen(object string) (int) {
 	return 0
 }
 
-func (f *Forge) get(object, instance, key string)(value *goforjj.ValueStruct, found bool)  {
-	if ! f.Init() { return }
-	if obj, f1 := f.yaml.More[object] ; f1 {
-		if instance, f2 := obj[instance] ; f2 {
+func (f *Forge) get(object, instance, key string) (value *goforjj.ValueStruct, found bool) {
+	if !f.Init() {
+		return
+	}
+	if obj, f1 := f.yaml.More[object]; f1 {
+		if instance, f2 := obj[instance]; f2 {
 			v, f3 := instance[key]
 			value, found = value.SetIfFound(v.Get(), f3)
 		}
@@ -562,18 +608,21 @@ func (f *Forge) get(object, instance, key string)(value *goforjj.ValueStruct, fo
 }
 
 func (f *Forge) getInstance(object, instance string) (_ map[string]ForjValue) {
-	if ! f.Init() { return }
-	if obj, f1 := f.yaml.More[object] ; f1 {
-		if i, f2 := obj[instance] ; f2 {
+	if !f.Init() {
+		return
+	}
+	if obj, f1 := f.yaml.More[object]; f1 {
+		if i, f2 := obj[instance]; f2 {
 			return i
 		}
 	}
 	return
 }
 
-
-func (f *Forge) SetHandler(object, name string, from func(string) (string, bool), set func(*ForjValue, string) (bool), keys ...string) {
-	if ! f.Init() { return }
+func (f *Forge) SetHandler(object, name string, from func(string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
+	if !f.Init() {
+		return
+	}
 	switch object {
 	case "infra":
 		f.yaml.Infra.SetHandler(from, keys...)
@@ -650,20 +699,22 @@ func (f *Forge) SetDefault(object, name, key, value string) {
 	f.SetHandler(object, name, from, (*ForjValue).SetDefault, key)
 }
 
-func (f *Forge) setHandler(object, instance string, from func(string) (string, bool), set func(*ForjValue, string) (bool), keys ...string)  {
+func (f *Forge) setHandler(object, instance string, from func(string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
 	var object_d map[string]ForjValues
 	var instance_d ForjValues
 
-	if ! f.Init() { return }
+	if !f.Init() {
+		return
+	}
 
-	if o, found := f.yaml.More[object] ; found && o != nil {
+	if o, found := f.yaml.More[object]; found && o != nil {
 		object_d = o
 	} else {
 		f.yaml.updated = true
 		object_d = make(map[string]ForjValues)
 		f.yaml.More[object] = object_d
 	}
-	if i, found := object_d[instance] ; found && i != nil {
+	if i, found := object_d[instance]; found && i != nil {
 		instance_d = i
 	} else {
 		f.yaml.updated = true
@@ -672,12 +723,12 @@ func (f *Forge) setHandler(object, instance string, from func(string) (string, b
 	}
 	for _, key := range keys {
 		var value string
-		if v, found := from(key) ; !found {
+		if v, found := from(key); !found {
 			continue
 		} else {
 			value = v
 		}
-		if v, found := instance_d[key] ; found && v.Get() != value {
+		if v, found := instance_d[key]; found && v.Get() != value {
 			set(&v, value)
 			instance_d[key] = v
 			f.yaml.updated = true
@@ -693,25 +744,31 @@ func (f *Forge) setHandler(object, instance string, from func(string) (string, b
 }
 
 func (f *Forge) IsDirty() bool {
-	if ! f.Init() { return false }
+	if !f.Init() {
+		return false
+	}
 
 	return f.yaml.updated
 }
 
 func (f *Forge) Saved() {
-	if ! f.Init() { return }
+	if !f.Init() {
+		return
+	}
 
 	f.yaml.updated = false
 }
 
-func (f *Forge) Apps() (map[string]*AppStruct) {
-	if ! f.Init() { return nil }
+func (f *Forge) Apps() map[string]*AppStruct {
+	if !f.Init() {
+		return nil
+	}
 
 	return f.yaml.Apps
 }
 
 // Initialize the forge. (Forjfile in repository infra)
-func (f *ForgeYaml)Init() {
+func (f *ForgeYaml) Init() {
 	if f.Groups == nil {
 		f.Groups = make(map[string]*GroupStruct)
 	}
@@ -736,13 +793,15 @@ func (f *ForgeYaml)Init() {
 
 }
 
-func (f *ForgeYaml)set_defaults() {
+func (f *ForgeYaml) set_defaults() {
 	// Cleanup LocalSettings to ensure no local setting remain in a Forjfile
 	f.LocalSettings = WorkspaceStruct{}
 
 	if f.Apps != nil {
 		for name, app := range f.Apps {
-			if app == nil { continue }
+			if app == nil {
+				continue
+			}
 			app.name = name
 			if app.Driver == "" {
 				app.Driver = name
@@ -767,19 +826,25 @@ func (f *ForgeYaml)set_defaults() {
 	}
 	if f.Users != nil {
 		for name, user := range f.Users {
-			if user == nil { continue }
+			if user == nil {
+				continue
+			}
 			user.set_forge(f)
 			f.Users[name] = user
 		}
 	}
 	if f.Groups != nil {
 		for name, group := range f.Groups {
-			if group == nil { continue }
+			if group == nil {
+				continue
+			}
 			group.set_forge(f)
 			f.Groups[name] = group
 		}
 	}
-	if f.Infra == nil { f.Infra = new(RepoStruct) }
+	if f.Infra == nil {
+		f.Infra = new(RepoStruct)
+	}
 	f.Infra.set_forge(f)
 	f.ForjSettings.set_forge(f)
 }
@@ -788,7 +853,7 @@ func (f *ForgeYaml) dirty() {
 	f.updated = true
 }
 
-func (f *Forge)GetDeclaredFlows() (result []string) {
+func (f *Forge) GetDeclaredFlows() (result []string) {
 	flows := make(map[string]bool)
 
 	for _, repo := range f.yaml.Repos {
@@ -796,7 +861,7 @@ func (f *Forge)GetDeclaredFlows() (result []string) {
 			flows[repo.Flow.Name] = true
 		}
 	}
-	if flow := f.yaml.ForjSettings.Default.getFlow() ; flow != "" {
+	if flow := f.yaml.ForjSettings.Default.getFlow(); flow != "" {
 		flows[flow] = true
 	}
 
@@ -820,7 +885,7 @@ func (f *Forge)GetDeclaredFlows() (result []string) {
 // If no rules are provided and at least one application exist, HasApps return true.
 //
 // TODO: Write Unit test of HasApps
-func (f *ForgeYaml)HasApps(rules ...string) (found bool, err error) {
+func (f *ForgeYaml) HasApps(rules ...string) (found bool, err error) {
 	if f.Apps == nil {
 		return
 	}
@@ -846,7 +911,7 @@ func (f *ForgeYaml)HasApps(rules ...string) (found bool, err error) {
 	return
 }
 
-func (f *Forge)Model() ForgeModel {
+func (f *Forge) Model() ForgeModel {
 	model := ForgeModel{
 		forge: f,
 	}
