@@ -34,8 +34,14 @@ func ReadDocumentFrom(urls []*url.URL, extension, document, docType string) ([]b
 			continue
 		}
 		// File to read from an url. Usually, a raw from github.
-		fileName = BuildURLPath(s.String(), docType, document, extension)
-		if found, data, err := readDocumentFromURL(s.String()); err != nil || found {
+		urlData := ""
+		if u, err := url.PathUnescape(s.String()); err != nil {
+			return nil, fmt.Errorf("Url path issue: %s", err)
+		} else {
+			urlData = u
+		}
+		fileName = BuildURLPath(urlData, docType, document, extension)
+		if found, data, err := readDocumentFromURL(fileName); err != nil || found {
 			return data, err
 		}
 	}
@@ -54,7 +60,8 @@ func BuildURLPath(aPath, docType, document, extension string) (fullFileName stri
 			aPath = path.Join(aPath, docType, document)
 		}
 	}
-	fullFileName = path.Join(aPath, fileName)
+	// path.Join is not usable on a url as it replaces // by /
+	fullFileName = aPath + "/" + fileName
 	return
 }
 

@@ -16,10 +16,10 @@ import (
 const Workspace_Name = ".forj-workspace"
 
 const (
-	inCli=3
-	inStore=2
-	inDefault=1
-	notFound=0
+	inCli     = 3
+	inStore   = 2
+	inDefault = 1
+	notFound  = 0
 )
 
 // ParseContext : Load cli context to adapt the list of options/flags from the driver definition.
@@ -108,6 +108,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		return fmt.Errorf("Contribs repository url issue: %s", err), false
 	}
 	if _, v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
+		v.Path = path.Join(v.Path, "<plugin>")
 		a.flows.AddRepoPath(v)
 		gotrace.Trace("Using '%s' for '%s'", v, "flows-repo")
 	} else {
