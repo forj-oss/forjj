@@ -163,7 +163,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	a.contextDisplayed()
 
 	if err := a.DefineDefaultUpstream(); err != nil {
-		if ok, err2 := a.f.Forjfile().Repos.AllHasAppWith("appRelName:upstream"); err != nil {
+		if ok, err2 := a.f.Forjfile().ForjCore.Repos.AllHasAppWith("appRelName:upstream"); err != nil {
 			return err2, false
 		} else if ok {
 			gotrace.Warning("%s", err)

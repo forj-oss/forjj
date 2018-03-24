@@ -79,9 +79,9 @@ func (s *ForjSettingsStruct) Set(instance, key string, value string) {
 		s.RepoApps[key] = value
 		relApp := strings.Split(value, ":")
 		if len(relApp) == 1 {
-			s.forge.Repos.SetRelapps(key, value)
+			s.forge.ForjCore.Repos.SetRelapps(key, value)
 		} else {
-			s.forge.Repos.SetRelapps(relApp[0], relApp[1])
+			s.forge.ForjCore.Repos.SetRelapps(relApp[0], relApp[1])
 		}
 		s.forge.dirty()
 		return

@@ -175,7 +175,7 @@ func (r *RepoStruct)SetInternalRelApp(appRelName, appName string) (updated *bool
 		appName = v // Set always declared one.
 	}
 
-	if app, err := r.forge.Apps.Found(appName) ; err != nil {
+	if app, err := r.forge.ForjCore.Apps.Found(appName) ; err != nil {
 		return nil, fmt.Errorf("Unable to set %s:%s. %s.", appRelName, appName, err)
 	} else if v, found :=  r.apps[appRelName] ; !found || (found && v.name != appName) {
 		r.apps[appRelName] = app
