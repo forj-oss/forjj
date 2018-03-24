@@ -1,0 +1,40 @@
+{
+    // Utilisez IntelliSense pour en savoir plus sur les attributs possibles.
+    // Pointez pour afficher la description des attributs existants.
+    // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Do create forjj_test without maintain",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceRoot}",
+            "env": {
+                "GOTRACE": "true"
+            },
+            "preLaunchTask": "clean forjj_test",
+            "args": [
+                "create",
+                "--forjfile-path",
+                "samples/forjj_test",
+                "--no-maintain"
+            ]
+        },
+        {
+            "name": "Launch",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "remotePath": "",
+            "port": 2345,
+            "host": "127.0.0.1",
+            "program": "${fileDirname}",
+            "env": {
+                "GOTRACE": "true"
+            },
+            "args": [],
+            "showLog": true
+        }
+    ]
+}
