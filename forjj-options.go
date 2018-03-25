@@ -77,6 +77,8 @@ func (a *Forj) LoadForge() (err error) {
 		return
 	}
 
-	_, err = a.f.Load()
+	deployTo, _, _, _ := a.cli.GetStringValue("_app","forjj", updateDeployTo) ; 
+
+	_, err = a.f.Load(deployTo)
 	return
 }

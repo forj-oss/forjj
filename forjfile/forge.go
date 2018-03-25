@@ -22,12 +22,13 @@ type ForjfileTmpl struct {
 
 // Forge is the Memory expand of a repository Forjfile.
 type Forge struct {
-	file_loaded     string
-	tmplfile_loaded string
-	updated_msg     string
-	infra_path      string // Infra path used to create/save/load Forjfile
-	file_name       string // Relative path to the Forjfile.
-	yaml            *ForgeYaml
+	file_loaded      string
+	deployFileLoaded string
+	tmplfile_loaded  string
+	updated_msg      string
+	infra_path       string // Infra path used to create/save/load Forjfile
+	file_name        string // Relative path to the Forjfile.
+	yaml             *ForgeYaml
 }
 
 // ForgeYaml represents the master Forjfile or a piece of the Forjfile template.
@@ -150,7 +151,7 @@ func (f *Forge) GetInfraName() string {
 }
 
 // Load : Load Forjfile stored in a Repository.
-func (f *Forge) Load() (loaded bool, err error) {
+func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 	var (
 		yaml_data []byte
 		file      string
@@ -184,6 +185,40 @@ func (f *Forge) Load() (loaded bool, err error) {
 	f.yaml.set_defaults()
 	loaded = true
 	gotrace.Trace("Forge loaded from '%s'.", aPath)
+	if deployTo == "" {
+		return
+	}
+	loaded = false
+	// Loading Deployment forjfile
+	aPath = path.Join(f.infra_path, "deployments", deployTo, f.Forjfile_name())
+	if fi, d, e := loadFile(aPath); e != nil {
+		err = e
+		return
+	} else {
+		yaml_data = d
+		file = fi
+	}
+
+	f.deployFileLoaded = aPath
+	var deployData DeployForgeYaml
+
+	if e := yaml.Unmarshal(yaml_data, &deployData); e != nil {
+		err = fmt.Errorf("Unable to load deployment file '%s'. %s", file, e)
+		return
+	}
+
+	err = f.yaml.ForjCore.mergeFrom(&deployData)
+	if err != nil {
+		return false, fmt.Errorf("Unable to load the Deployment forjfile. %s", err)
+	}
+
+	f.yaml.set_defaults()
+	loaded = true
+	gotrace.Trace("Forge loaded from '%s'.", aPath)
+	if deployTo == "" {
+		return
+	}
+
 	return
 }
 
@@ -732,4 +767,8 @@ func (f *Forge) Model() ForgeModel {
 	}
 
 	return model
+}
+
+func (f *Forge) GetDeployment() string {
+	return f.yaml.ForjCore.ForjSettings.DeployTo
 }

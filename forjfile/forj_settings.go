@@ -10,6 +10,7 @@ import (
 type ForjSettingsStruct struct {
 	is_template            bool
 	forge                  *ForgeYaml
+	DeployTo               string             `yaml:"deploy-environment,omitempty"`
 	Organization           string
 	ForjSettingsStructTmpl `yaml:",inline"`
 }

@@ -85,7 +85,7 @@ func (a *Forj) create_source_text_file(file string, data []byte) error {
 	return nil
 }
 
-// Create the Solution source code with validated parameters.
+// Create the software factory source code with validated parameters.
 // The first time, an empty repo gets at least created with one README.md or a repotemplate code.
 //
 // Workspace data has been initialized or loaded.

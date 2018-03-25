@@ -202,6 +202,10 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	if err := a.GetObjectsData(plugin_payload, d, action) ; err != nil {
 		return fmt.Errorf("Unable to Get Object data on '%s'. %s", instance_name, err), aborted
 	}
+	err = a.AddReqDeployment(plugin_payload)
+	if err != nil {
+		return fmt.Errorf("Unable to %s. %s. You may need to execute a forjj update to a deployment environment", action, err), false
+	}
 
 	d.Plugin.Result, err = d.Plugin.PluginRunAction(action, plugin_payload)
 	if err != nil {

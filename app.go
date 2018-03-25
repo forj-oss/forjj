@@ -117,6 +117,7 @@ const (
 	orga_f           = "organization" // Organization name for the Forge. Could be used to set upstream organization.
 	// create flags
 	forjfile_path_f = "forjfile-path" // Path where the Forjfile template resides.
+	updateDeployTo  = "deploy-to"     // Name of the deployment environment to update.
 	forjfile_f      = "forjfile-name" // Name of the forjfile where the Forjfile template resides.
 	ssh_dir_f       = "ssh-dir"
 	no_maintain_f   = "no-maintain"
@@ -388,6 +389,7 @@ func (a *Forj) init() {
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj update --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, chg_act).
+		AddFlag(cli.String, updateDeployTo, updateDeployToHelp, opts_required).
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil) == nil {
 		log.Printf("action update: %s", a.cli.Error())
 	}

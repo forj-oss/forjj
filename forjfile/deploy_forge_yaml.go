@@ -293,3 +293,7 @@ func (f *DeployForgeYaml) init() bool {
 
 	return true
 }
+
+func (f *DeployForgeYaml) mergeFrom(from *DeployForgeYaml) error {
+	return nil
+}
