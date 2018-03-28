@@ -184,7 +184,11 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 
 	f.yaml.set_defaults()
 	loaded = true
-	gotrace.Trace("Forge loaded from '%s'.", aPath)
+	msg := "Forge loaded from '%s'."
+	if deploy := f.GetDeployment(); deploy != "" {
+		msg = deploy + " deployment forge loaded from '%s'."
+	}
+	gotrace.Trace(msg, aPath)
 	if deployTo == "" {
 		return
 	}
@@ -214,10 +218,7 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 
 	f.yaml.set_defaults()
 	loaded = true
-	gotrace.Trace("Forge loaded from '%s'.", aPath)
-	if deployTo == "" {
-		return
-	}
+	gotrace.Trace("%s deployment forge loaded from '%s'.", deployTo, aPath)
 
 	return
 }

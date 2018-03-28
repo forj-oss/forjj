@@ -13,8 +13,8 @@ type DeployForgeYaml struct {
 	Infra         *RepoStruct
 	Repos         ReposStruct `yaml:"repositories"`
 	Apps          AppsStruct  `yaml:"applications"`
-	Users         map[string]*UserStruct
-	Groups        map[string]*GroupStruct
+	Users         UsersStruct
+	Groups        GroupsStruct
 	// Collection of Object/Name/Keys=values
 	More map[string]map[string]ForjValues `yaml:",inline,omitempty"`
 }
@@ -295,5 +295,14 @@ func (f *DeployForgeYaml) init() bool {
 }
 
 func (f *DeployForgeYaml) mergeFrom(from *DeployForgeYaml) error {
+	f.Apps.mergeFrom(from.Apps)
+	f.ForjSettings.mergeFrom(&from.ForjSettings)
+	f.Groups.mergeFrom(from.Groups)
+	f.Infra.mergeFrom(from.Infra)
+	f.Users.mergeFrom(from.Users)
+	f.Repos.mergeFrom(from.Repos)
+	for k, v := range from.More {
+		f.More[k] = v
+	}
 	return nil
 }

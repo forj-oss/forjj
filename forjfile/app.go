@@ -5,6 +5,11 @@ import (
 	"github.com/forj-oss/goforjj"
 )
 
+const (
+	appName = "name"
+	appType = "type"
+	appDriver = "driver"
+)
 type AppStruct struct {
 	forge *ForgeYaml
 	name   string
@@ -28,6 +33,16 @@ type AppFlowYaml struct {
 	Options map[string]string
 }
 
+func (a *AppStruct)Flags() (flags []string) {
+	flags = make([]string, 3, 3 + len(a.more))
+	flags[0] = appName
+	flags[1] = appType
+	flags[2] = appDriver
+	for k := range a.more {
+		flags = append(flags, k)
+	}
+	return
+}
 
 func (r *AppStruct)Model() AppModel {
 	model := AppModel{
@@ -70,11 +85,11 @@ func (a *AppStruct)Name() string {
 
 func (a *AppStruct)Get(flag string) (value *goforjj.ValueStruct, _ bool) {
 	switch flag {
-	case "name":
+	case appName:
 		return value.Set(a.name), true
-	case "type":
+	case appType:
 		return value.Set(a.Type), true
-	case "driver":
+	case appDriver:
 		return value.Set(a.Driver), true
 	default:
 		v, f := a.more[flag]
@@ -125,4 +140,12 @@ func (a *AppStruct)Set(flag, value string, set func(*ForjValue, string) (bool)) 
 
 func (g *AppStruct) set_forge(f *ForgeYaml) {
 	g.forge = f
+}
+
+func (a *AppStruct) mergeFrom(from *AppStruct) {
+	for _, flag := range from.Flags() {
+		if v, found := from.Get(flag); found {
+			a.Set(flag, v.GetString(), (*ForjValue).Set)
+		}
+	}
 }

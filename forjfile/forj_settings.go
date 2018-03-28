@@ -1,18 +1,46 @@
 package forjfile
 
 import (
-	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
 	"strings"
+
+	"github.com/forj-oss/goforjj"
 )
 
 // forj/settings: Collection of key/value pair
 type ForjSettingsStruct struct {
 	is_template            bool
 	forge                  *ForgeYaml
-	DeployTo               string             `yaml:"deploy-environment,omitempty"`
+	DeployTo               string `yaml:"deploy-environment,omitempty"`
 	Organization           string
 	ForjSettingsStructTmpl `yaml:",inline"`
+}
+
+const (
+	settingsDeployTo     = "deploy-to"
+	settingsOrganization = "organization"
+	settingsDefault      = "default"
+)
+
+func (s *ForjSettingsStruct) Flags() (flags []string) {
+	flags = make([]string, 3, 3+len(s.More))
+	flags[0] = settingsDefault
+	flags[1] = settingsDeployTo
+	flags[2] = settingsOrganization
+	for k := range s.More {
+		flags = append(flags, k)
+	}
+	return
+}
+
+func (s *ForjSettingsStruct) mergeFrom(from *ForjSettingsStruct) {
+	for _, instance := range []string{"default", "default-repo-apps", "noinstance"} {
+		for _, flag := range from.Flags() {
+			if v, found := from.Get(instance, flag); found {
+				s.Set(instance, flag, v.GetString())
+			}
+		}	
+	}
+
 }
 
 type ForjSettingsStructTmpl struct {
@@ -20,8 +48,6 @@ type ForjSettingsStructTmpl struct {
 	RepoApps DefaultRepoAppSettingsStruct `yaml:"default-repo-apps,omitempty"` // Default repo Application
 	More     map[string]string            `yaml:",inline"`
 }
-
-type DefaultRepoAppSettingsStruct map[string]string
 
 func (f *ForjSettingsStruct) MarshalYAML() (interface{}, error) {
 	return f.ForjSettingsStructTmpl, nil
@@ -32,15 +58,12 @@ func (s *ForjSettingsStruct) Get(instance, key string) (value *goforjj.ValueStru
 	case "default":
 		return s.Default.Get(key)
 	case "default-repo-apps":
-		if v, found := s.RepoApps[key]; found {
+		if v, found := s.RepoApps.Get(key); found {
 			return value.SetIfFound(v, (v != ""))
 		}
 		if key != "upstream" {
 			return
 		}
-		// TODO: Remove obsolete reference to "upstream-instance"
-		gotrace.Warning("Forjfile: `forj-settings/default/upstream-instance` is obsolete and will be ignored in the future." +
-			" Please use `forj-settings/default-repo-apps/upstream` instead.")
 		return s.Default.Get("upstream-instance")
 	}
 	switch key {

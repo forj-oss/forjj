@@ -1,11 +1,12 @@
 package forjfile
 
 import (
-	"github.com/forj-oss/goforjj"
-	"forjj/drivers"
-	"github.com/forj-oss/forjj-modules/trace"
-	"strings"
 	"fmt"
+	"forjj/drivers"
+	"strings"
+
+	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 )
 
 type RepoStruct struct {
@@ -14,23 +15,57 @@ type RepoStruct struct {
 	forge        *ForgeYaml
 	owner        string
 	driverOwner  *drivers.Driver
-	Upstream     string `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
-	GitRemote    string `yaml:"git-remote,omitempty"`
+	Upstream     string                      `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
+	GitRemote    string                      `yaml:"git-remote,omitempty"`
 	remote       goforjj.PluginRepoRemoteUrl // Git remote string to use/set
-	Title        string `yaml:",omitempty"`
-	RepoTemplate string `yaml:"repo-template,omitempty"`
-	Flow         RepoFlow `yaml:",omitempty"`
-	More         map[string]string `yaml:",inline"`
-	apps         map[string]*AppStruct // List of applications connected to this repo. Defaults are added automatically.
-	Apps         map[string]string `yaml:"in-relation-with"`// key: <AppRelName>, value: <appName>
+	Title        string                      `yaml:",omitempty"`
+	RepoTemplate string                      `yaml:"repo-template,omitempty"`
+	Flow         RepoFlow                    `yaml:",omitempty"`
+	More         map[string]string           `yaml:",inline"`
+	apps         map[string]*AppStruct       // List of applications connected to this repo. Defaults are added automatically.
+	Apps         map[string]string           `yaml:"in-relation-with"` // key: <AppRelName>, value: <appName>
+}
+
+const (
+	repoName      = "name"
+	repoUpstream  = "upstream"
+	repoApps      = "apps"
+	repoGitRemote = "git-remote"
+	repoRemote    = "remote"
+	repoRemoteURL = "remote-url"
+	repoTitle     = "title"
+	repoFlow      = "flow"
+	repoTemplate  = "repo-template"
+)
+
+// Flags provide the list of existing keys in a repo object.
+func (r *RepoStruct) Flags() (flags []string) {
+	flags = make([]string, 8, 8+len(r.More))
+	coreList := []string{repoName, repoUpstream, repoGitRemote, repoRemote, repoRemoteURL, repoTitle, repoFlow, repoTemplate}
+	for index, name := range coreList {
+		flags[index] = name
+	}
+	for k := range r.More {
+		flags = append(flags, k)
+	}
+	return
+
+}
+
+func (r *RepoStruct) mergeFrom(from *RepoStruct) {
+	for _, flag := range from.Flags() {
+		if v, found := from.Get(flag); found {
+			r.Set(flag, v.GetString())
+		}
+	}
 }
 
 type RepoFlow struct {
-	Name string
+	Name    string
 	objects map[string]map[string]string
 }
 
-func (r *RepoStruct)Model() RepoModel {
+func (r *RepoStruct) Model() RepoModel {
 	model := RepoModel{
 		repo: r,
 		Apps: make(map[string]RepoAppModel),
@@ -44,7 +79,7 @@ func (r *RepoStruct)Model() RepoModel {
 		repoModel := RepoAppModel{
 			AppName: app.name,
 		}
-		if _, found := r.Apps[appRelName] ; !found {
+		if _, found := r.Apps[appRelName]; !found {
 			repoModel.Default = true
 		}
 		model.Apps[appRelName] = repoModel
@@ -52,7 +87,7 @@ func (r *RepoStruct)Model() RepoModel {
 	return model
 }
 
-func (r *RepoStruct)Owner() string {
+func (r *RepoStruct) Owner() string {
 	if r == nil {
 		return ""
 	}
@@ -60,7 +95,7 @@ func (r *RepoStruct)Owner() string {
 	return r.owner
 }
 
-func (r *RepoStruct)setFromInfra(infra *RepoStruct) {
+func (r *RepoStruct) setFromInfra(infra *RepoStruct) {
 	if r == nil {
 		return
 	}
@@ -69,7 +104,7 @@ func (r *RepoStruct)setFromInfra(infra *RepoStruct) {
 	r.is_infra = true
 }
 
-func (r *RepoStruct)setToInfra(infra *RepoStruct) {
+func (r *RepoStruct) setToInfra(infra *RepoStruct) {
 	if r == nil {
 		return
 	}
@@ -78,18 +113,18 @@ func (r *RepoStruct)setToInfra(infra *RepoStruct) {
 	infra.is_infra = false // Unset it to ensure data is saved in yaml
 }
 
-func (r *RepoStruct)GetString(field string) (string) {
+func (r *RepoStruct) GetString(field string) string {
 	if r == nil {
 		return ""
 	}
 
-	if v, found := r.Get(field) ; found {
+	if v, found := r.Get(field); found {
 		return v.GetString()
 	}
 	return ""
 }
 
-func (r *RepoStruct)RemoteUrl() string {
+func (r *RepoStruct) RemoteUrl() string {
 	if r == nil {
 		return ""
 	}
@@ -97,7 +132,7 @@ func (r *RepoStruct)RemoteUrl() string {
 	return r.remote.Url
 }
 
-func (r *RepoStruct)RemoteGit() string {
+func (r *RepoStruct) RemoteGit() string {
 	if r == nil {
 		return ""
 	}
@@ -105,23 +140,24 @@ func (r *RepoStruct)RemoteGit() string {
 	return r.remote.Ssh
 }
 
-func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
+// Get return the value for a field.
+func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	if r == nil {
 		return
 	}
-	switch field_sel := strings.Split(field, ":") ; field_sel[0] {
-	case "name":
+	switch fieldSel := strings.Split(field, ":"); fieldSel[0] {
+	case repoName:
 		return value.SetIfFound(r.name, (r.name != ""))
-	case "apps", "upstream":
+	case repoApps, repoUpstream:
 		if field == "upstream" {
 			gotrace.Warning("*RepoStruct.Get(): Field '%s' is obsolete. Change the code to use 'apps:upstream'.", field)
-		} else if len(field_sel) >1 {
-			field = field_sel[1]
+		} else if len(fieldSel) > 1 {
+			field = fieldSel[1]
 		}
-		if v, found := r.apps[field] ; found {
+		if v, found := r.apps[field]; found {
 			return value.SetIfFound(v.name, v != nil && v.name != "")
 		}
-		if v, found := r.Apps[field] ; found {
+		if v, found := r.Apps[field]; found {
 			return value.SetIfFound(v, found && (v != ""))
 		}
 		if field == "upstream" && r.Upstream != "" {
@@ -130,32 +166,31 @@ func (r *RepoStruct)Get(field string) (value *goforjj.ValueStruct, _ bool) {
 			return value.SetIfFound(r.Upstream, (r.Upstream != ""))
 		}
 		return value.SetIfFound("", false)
-	case "git-remote":
+	case repoGitRemote:
 		return value.SetIfFound(r.GitRemote, (r.GitRemote != ""))
-	case "remote":
+	case repoRemote:
 		return value.SetIfFound(r.remote.Ssh, (r.remote.Ssh != ""))
-	case "remote-url":
+	case repoRemoteURL:
 		return value.SetIfFound(r.remote.Url, (r.remote.Url != ""))
-	case "title":
+	case repoTitle:
 		return value.SetIfFound(r.Title, (r.Title != ""))
-	case "flow":
+	case repoFlow:
 		return value.SetIfFound(r.Flow.Name, (r.Flow.Name != ""))
-	case "repo-template":
+	case repoTemplate:
 		return value.SetIfFound(r.RepoTemplate, (r.RepoTemplate != ""))
 	default:
 		v, f := r.More[field]
 		return value.SetIfFound(v, f)
 	}
-	return
 }
 
-func (r *RepoStruct)SetHandler(from func(field string)(string, bool), keys...string) {
+func (r *RepoStruct) SetHandler(from func(field string) (string, bool), keys ...string) {
 	if r == nil {
 		return
 	}
 
 	for _, key := range keys {
-		if v, found := from(key) ; found {
+		if v, found := from(key); found {
 			r.Set(key, v)
 		}
 	}
@@ -166,18 +201,18 @@ func (r *RepoStruct)SetHandler(from func(field string)(string, bool), keys...str
 // return:
 // updated bool : true if the app has been updated.
 // error : set if error has been found. updated is then nil.
-func (r *RepoStruct)SetInternalRelApp(appRelName, appName string) (updated *bool, _ error) {
-	if err := r.initApp() ; err != nil {
+func (r *RepoStruct) SetInternalRelApp(appRelName, appName string) (updated *bool, _ error) {
+	if err := r.initApp(); err != nil {
 		return nil, err
 	}
 
-	if v, found := r.Apps[appRelName] ; found {
+	if v, found := r.Apps[appRelName]; found {
 		appName = v // Set always declared one.
 	}
 
-	if app, err := r.forge.ForjCore.Apps.Found(appName) ; err != nil {
+	if app, err := r.forge.ForjCore.Apps.Found(appName); err != nil {
 		return nil, fmt.Errorf("Unable to set %s:%s. %s.", appRelName, appName, err)
-	} else if v, found :=  r.apps[appRelName] ; !found || (found && v.name != appName) {
+	} else if v, found := r.apps[appRelName]; !found || (found && v.name != appName) {
 		r.apps[appRelName] = app
 		updated = new(bool)
 		*updated = true
@@ -191,24 +226,24 @@ func (r *RepoStruct)SetInternalRelApp(appRelName, appName string) (updated *bool
 // return:
 // updated bool : true if the app has been updated.
 // error : set if error has been found. updated is then nil.
-func (r *RepoStruct)SetApp(appRelName, appName string) (updated *bool, _ error) {
-	if err := r.initApp() ; err != nil {
+func (r *RepoStruct) SetApp(appRelName, appName string) (updated *bool, _ error) {
+	if err := r.initApp(); err != nil {
 		return nil, err
 	}
 
 	updated = new(bool)
-	if v, found := r.Apps[appRelName] ; !found || (found && v != appName) {
+	if v, found := r.Apps[appRelName]; !found || (found && v != appName) {
 		*updated = true
 	}
 	r.Apps[appRelName] = appName
 
-	if set, err := r.SetInternalRelApp(appRelName, appName) ; set == nil {
+	if set, err := r.SetInternalRelApp(appRelName, appName); set == nil {
 		return set, err
 	}
 	return
 }
 
-func (r *RepoStruct)initApp() (_ error) {
+func (r *RepoStruct) initApp() (_ error) {
 	if r == nil {
 		return fmt.Errorf("Internal: repo object is nil.")
 	}
@@ -225,22 +260,22 @@ func (r *RepoStruct)initApp() (_ error) {
 	return
 }
 
-func (r *RepoStruct)Set(field, value string) {
+func (r *RepoStruct) Set(field, value string) {
 	if r == nil {
 		return
 	}
-	switch field_sel := strings.Split(field, ":") ; field_sel[0] {
+	switch field_sel := strings.Split(field, ":"); field_sel[0] {
 	case "name":
 		if r.name != value {
 			r.name = value
 		}
 	case "apps":
-		if len(field_sel) > 1{
+		if len(field_sel) > 1 {
 			r.SetApp(field_sel[1], value)
 			r.forge.dirty()
 		}
 	case "upstream":
-		if v, found := r.Apps["upstream"] ; !found || (found && v != value) {
+		if v, found := r.Apps["upstream"]; !found || (found && v != value) {
 			r.SetApp("upstream", value)
 			r.forge.dirty()
 		}
@@ -276,8 +311,8 @@ func (r *RepoStruct)Set(field, value string) {
 		if r.More == nil {
 			r.More = make(map[string]string)
 		}
-		if v, found := r.More[field] ; found && value == "" {
-			delete(r.More,field)
+		if v, found := r.More[field]; found && value == "" {
+			delete(r.More, field)
 			r.forge.dirty()
 		} else {
 			if v != value {
@@ -289,21 +324,21 @@ func (r *RepoStruct)Set(field, value string) {
 	}
 }
 
-func (r *RepoStruct)SetInstanceOwner(owner string) {
+func (r *RepoStruct) SetInstanceOwner(owner string) {
 	if r == nil {
 		return
 	}
 	r.owner = owner
 }
 
-func (r *RepoStruct)SetPluginOwner(d *drivers.Driver) {
+func (r *RepoStruct) SetPluginOwner(d *drivers.Driver) {
 	if r == nil {
 		return
 	}
 	r.driverOwner = d
 }
 
-func (r *RepoStruct)RemoteType() string {
+func (r *RepoStruct) RemoteType() string {
 	if r == nil {
 		return "git"
 	}
@@ -313,7 +348,7 @@ func (r *RepoStruct)RemoteType() string {
 	return r.driverOwner.Name
 }
 
-func (r *RepoStruct)UpstreamAPIUrl() string {
+func (r *RepoStruct) UpstreamAPIUrl() string {
 	if r == nil {
 		return ""
 	}
@@ -323,7 +358,7 @@ func (r *RepoStruct)UpstreamAPIUrl() string {
 	return r.driverOwner.DriverAPIUrl
 }
 
-func (r *RepoStruct)set_forge(f *ForgeYaml) {
+func (r *RepoStruct) set_forge(f *ForgeYaml) {
 	if r == nil {
 		return
 	}
@@ -340,11 +375,11 @@ func (r *RepoStruct)set_forge(f *ForgeYaml) {
 // If no rules are provided and at least one application exist, HasApps return true.
 //
 // TODO: Write Unit test of HasApps
-func (r *RepoStruct)HasApps(rules ...string) (found bool, err error) {
+func (r *RepoStruct) HasApps(rules ...string) (found bool, err error) {
 	if r.apps == nil {
 		return
 	}
-	for appRelName, app:= range r.apps {
+	for appRelName, app := range r.apps {
 		found = true
 		for _, rule := range rules {
 			ruleToCheck := strings.Split(rule, ":")
@@ -353,7 +388,7 @@ func (r *RepoStruct)HasApps(rules ...string) (found bool, err error) {
 				return
 			}
 			if ruleToCheck[0] == "appRelName" {
-			    if appRelName == ruleToCheck[0] {
+				if appRelName == ruleToCheck[0] {
 					continue
 				}
 				found = false
@@ -380,13 +415,13 @@ func (r *RepoStruct)HasApps(rules ...string) (found bool, err error) {
 	return
 }
 
-func (r *RepoStruct)GetApps(rules ...string) (apps map[string]*AppStruct , err error) {
+func (r *RepoStruct) GetApps(rules ...string) (apps map[string]*AppStruct, err error) {
 	if r.apps == nil {
 		return
 	}
 	apps = make(map[string]*AppStruct)
 	found := false
-	for app_name, app:= range r.apps {
+	for app_name, app := range r.apps {
 		found = true
 		for _, rule := range rules {
 			ruleToCheck := strings.Split(rule, ":")
@@ -420,7 +455,7 @@ func (r *RepoStruct)GetApps(rules ...string) (apps map[string]*AppStruct , err e
 	return
 }
 
-func (r *RepoStruct)HasValues(rules ...string) (found bool, err error) {
+func (r *RepoStruct) HasValues(rules ...string) (found bool, err error) {
 	found = true
 	for _, rule := range rules {
 		ruleToCheck := strings.Split(rule, ":")

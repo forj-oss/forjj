@@ -389,7 +389,7 @@ func (a *Forj) init() {
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj update --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, chg_act).
-		AddFlag(cli.String, updateDeployTo, updateDeployToHelp, opts_required).
+		AddArg(cli.String, updateDeployTo, updateDeployToHelp, opts_required).
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil) == nil {
 		log.Printf("action update: %s", a.cli.Error())
 	}
