@@ -151,10 +151,6 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		// The instance record has been created automatically with  cli.ForjObject.AddInstanceField()
 		a.cli.SetValue(app, d.Name, cli.String, "type", d.DriverType)
 		a.cli.SetValue(app, d.Name, cli.String, "driver", d.Name)
-
-		d.Plugin.PluginSetWorkspace(a.w.Path())
-		d.Plugin.PluginSetSource(path.Join(a.w.Path(), a.w.Infra.Name, "apps", d.DriverType))
-		d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
 	}
 
 	if i, err := a.cli.GetAppStringValue(debug_instance_f); err == nil && i != "" {
