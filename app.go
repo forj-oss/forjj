@@ -416,7 +416,7 @@ func (a *Forj) init() {
 // LoadInternalData()
 func (a *Forj) LoadInternalData() {
 	a.InternalForjData = make(map[string]string)
-	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount"}
+	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount", "deploy-mount"}
 	for _, param := range ldata {
 		a.InternalForjData[param] = a.getInternalData(param)
 	}
@@ -460,6 +460,12 @@ func (a *Forj) getInternalData(param string) (result string) {
 			result = a.CurrentPluginDriver.Plugin.WorkspaceMount
 		} else {
 			gotrace.Trace("Warning. workspace-mount requested outside plugin context.")
+		}
+	case "deploy-mount":
+		if a.CurrentPluginDriver != nil {
+			result = a.CurrentPluginDriver.Plugin.DeployMount
+		} else {
+			gotrace.Trace("Warning. deploy-mount requested outside plugin context.")
 		}
 	}
 	gotrace.Trace("'%s' requested. Value returned '%s'", param, result)

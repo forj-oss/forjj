@@ -38,13 +38,6 @@ type ForgeYaml struct {
 	ForjCore    DeployForgeYaml `yaml:",inline"`
 }
 
-// DeploymentStruct represent the data structure of all deployment.
-type DeploymentStruct struct {
-	Desc string            `yaml:"description,omitempty"`
-	Pars map[string]string `yaml:"parameters"`
-	More *DeployForgeYaml  `yaml:",inline"`
-}
-
 // WorkspaceStruct represents the yaml structure of a workspace.
 type WorkspaceStruct struct {
 	updated                bool
@@ -55,7 +48,7 @@ type WorkspaceStruct struct {
 	More                   map[string]string `yaml:",inline"`
 }
 
-const file_name = "Forjfile"
+const forjfileName = "Forjfile"
 
 // TODO: Load multiple templates that will be merged.
 
@@ -77,12 +70,12 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 			return
 		} else {
 			if !fi.Mode().IsDir() {
-				return f, loaded, fmt.Errorf("'%s' must be a path to '%s'.", aPath, file_name)
+				return f, loaded, fmt.Errorf("'%s' must be a path to '%s'.", aPath, forjfileName)
 			}
 		}
 	}
 
-	file := path.Join(forj_path, file_name)
+	file := path.Join(forj_path, forjfileName)
 
 	if _, e := os.Stat(file); os.IsNotExist(e) {
 		return
@@ -293,7 +286,7 @@ func (f *Forge) CheckInfraPath(infraAbsPath string) error {
 		return fmt.Errorf("Not a valid infra path: '%s' must be a directory", git)
 	}
 
-	forjfile := path.Join(infraAbsPath, file_name)
+	forjfile := path.Join(infraAbsPath, forjfileName)
 	if fi, err := os.Stat(forjfile); err != nil {
 		return fmt.Errorf("Not a valid infra path '%s'. Must have a Forjfile: %s", infraAbsPath, err)
 	} else if fi.IsDir() {
@@ -320,7 +313,7 @@ func (f *Forge) SetInfraPath(infraPath string, create_request bool) error {
 	}
 
 	f.infra_path = aPath
-	f.file_name = file_name // By default on Repo root directory.
+	f.file_name = forjfileName // By default on Repo root directory.
 	return nil
 }
 
@@ -336,18 +329,31 @@ func (f *Forge) Forjfile_name() string {
 	return f.file_name
 }
 
+func (f *Forge) Forjfiles_name() (ret []string) {
+
+	ret = make([]string, 1, 1 + len(f.yaml.Deployments))
+	ret[0] = f.file_name
+	for name := range f.yaml.Deployments {
+		ret = append(ret, path.Join("deployments", name))
+	}
+	return
+}
+
+
 func (f *Forge) Save() error {
-	if err := f.save(path.Join(f.infra_path, f.Forjfile_name())); err != nil {
+	if err := f.save(f.infra_path); err != nil {
 		return err
 	}
 	f.Saved()
 	return nil
 }
 
-func (f *Forge) save(file string) error {
+func (f *Forge) save(infraPath string) error {
 	if !f.Init() {
-		return fmt.Errorf("Forge is nil.")
+		return fmt.Errorf("Forge is nil")
 	}
+
+	file := path.Join(infraPath, f.Forjfile_name())
 	yaml_data, err := yaml.Marshal(f.yaml)
 	if err != nil {
 		return err
@@ -363,6 +369,36 @@ func (f *Forge) save(file string) error {
 		return err
 	}
 	gotrace.Trace("File name saved: %s", file)
+	if f.yaml.ForjCore.ForjSettings.is_template {
+		return nil
+	}
+	for name, deployTo := range f.yaml.Deployments {
+		filepath := path.Join(infraPath, "deployments", name)
+
+		file = path.Join(infraPath, "deployments", name, f.Forjfile_name())
+
+		yaml_data, err = yaml.Marshal(deployTo.More)
+		if err != nil {
+			return err
+		}
+
+		if fi, err := os.Stat(filepath); err != nil || !fi.IsDir() {
+			if err != nil {
+				if err = os.MkdirAll(filepath, 0755); err != nil {
+					return fmt.Errorf("Unable to create '%s'. %s", filepath, err)
+				}
+				gotrace.Trace("'%s' created.", filepath)
+			} else {
+				return fmt.Errorf("Unable to create '%s'. Already exist but is not a directory", filepath)
+			}
+		}
+
+		if err := ioutil.WriteFile(file, yaml_data, 0644); err != nil {
+			return err
+		}
+		gotrace.Trace("Deployment file name saved: %s", file)
+
+	}
 
 	return nil
 }
@@ -642,6 +678,10 @@ func (f *ForgeYaml) Init() {
 		f.ForjCore.Apps = make(map[string]*AppStruct)
 	}
 
+	if f.Deployments == nil {
+		f.Deployments = make(map[string]DeploymentStruct)
+	}
+
 }
 
 func (f *ForgeYaml) set_defaults() {
@@ -698,6 +738,13 @@ func (f *ForgeYaml) set_defaults() {
 	}
 	f.ForjCore.Infra.set_forge(f)
 	f.ForjCore.ForjSettings.set_forge(f)
+	if len(f.Deployments) == 0 {
+		data := DeploymentStruct{}
+		data.Desc = "Production environment"
+		f.Deployments = make(map[string]DeploymentStruct)
+		f.Deployments["production"] = data
+		gotrace.Info("No deployment defined. Created single 'production' deployment. If you want to change that update your forjfile and create a deployment Forfile per deployment under 'deployments/<deploymentName>'.")
+	}
 }
 
 func (f *ForgeYaml) dirty() {
