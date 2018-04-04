@@ -65,7 +65,7 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 		return
 	}
 	if forj_path != "." {
-		if fi, e := os.Stat(forj_path); err != nil {
+		if fi, e := os.Stat(forj_path); e != nil {
 			err = e
 			return
 		} else {
@@ -331,14 +331,13 @@ func (f *Forge) Forjfile_name() string {
 
 func (f *Forge) Forjfiles_name() (ret []string) {
 
-	ret = make([]string, 1, 1 + len(f.yaml.Deployments))
+	ret = make([]string, 1, 1+len(f.yaml.Deployments))
 	ret[0] = f.file_name
 	for name := range f.yaml.Deployments {
 		ret = append(ret, path.Join("deployments", name))
 	}
 	return
 }
-
 
 func (f *Forge) Save() error {
 	if err := f.save(f.infra_path); err != nil {
@@ -744,6 +743,7 @@ func (f *ForgeYaml) set_defaults() {
 		f.Deployments = make(map[string]DeploymentStruct)
 		f.Deployments["production"] = data
 		gotrace.Info("No deployment defined. Created single 'production' deployment. If you want to change that update your forjfile and create a deployment Forfile per deployment under 'deployments/<deploymentName>'.")
+		f.ForjCore.ForjSettings.DeployTo = "production"
 	}
 }
 

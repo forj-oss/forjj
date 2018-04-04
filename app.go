@@ -463,7 +463,7 @@ func (a *Forj) getInternalData(param string) (result string) {
 		}
 	case "deploy-mount":
 		if a.CurrentPluginDriver != nil {
-			result = a.CurrentPluginDriver.Plugin.DeployMount
+			result = a.CurrentPluginDriver.Plugin.DeployPath
 		} else {
 			gotrace.Trace("Warning. deploy-mount requested outside plugin context.")
 		}
