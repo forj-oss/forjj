@@ -32,9 +32,9 @@ func (a *Forj) FoundValidAppFlag(key, driver, object string, required bool) (_ b
 func (a *Forj) ValidateForjfile() (_ error) {
 	f := a.f.Forjfile()
 
-	// ForjSettingsStruct.More
-
-	// RepoStruct.More (infra : Repos)
+	if err := a.f.Validate() ; err != nil {
+		return fmt.Errorf("Validation error. %s", err)
+	}
 
 	// AppYamlStruct.More
 	for _, app := range f.ForjCore.Apps {
@@ -47,24 +47,6 @@ func (a *Forj) ValidateForjfile() (_ error) {
 		}
 	}
 
-	// Repository apps connection
-	for _, repo := range f.ForjCore.Repos {
-		if repo.Apps == nil {
-			continue
-		}
-
-		for relAppName, appName := range repo.Apps {
-			if _, err := repo.SetInternalRelApp(relAppName, appName); err != nil {
-				return fmt.Errorf("Repo '%s' has an invalid Application reference '%s: %s'. %s", repo.GetString("name"), relAppName, appName, err)
-			}
-		}
-	}
-
-	// UserStruct.More
-
-	// GroupStruct.More
-
-	// ForgeYaml.More
 	fmt.Print("Validated successfully.\n")
 	return
 }

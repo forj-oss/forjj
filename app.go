@@ -77,6 +77,7 @@ type Forj struct {
 	w forjfile.Workspace // Data structure to stored in the workspace. See workspace.go
 	s creds.YamlSecure   // credential file support.
 	o ForjjOptions       // Data structured stored in the root of the infra repo. See forjj-options.go
+	d forjfile.DeploymentCoreStruct // deployment information
 
 	flows flow.Flows
 
@@ -449,19 +450,19 @@ func (a *Forj) getInternalData(param string) (result string) {
 		} else {
 			gotrace.Trace("Warning. instance_name requested outside plugin context.")
 		}
-	case "source-mount": // where the plugin has source mounted in the container
+	case "source-mount": // where the plugin has source source mounted in the container
 		if a.CurrentPluginDriver != nil {
 			result = a.CurrentPluginDriver.Plugin.SourceMount
 		} else {
 			gotrace.Trace("Warning. source-mount requested outside plugin context.")
 		}
-	case "workspace-mount": // where the plugin has source mounted to the container from caller
+	case "workspace-mount": // where the plugin has source workspace mounted to the container from caller
 		if a.CurrentPluginDriver != nil {
 			result = a.CurrentPluginDriver.Plugin.WorkspaceMount
 		} else {
 			gotrace.Trace("Warning. workspace-mount requested outside plugin context.")
 		}
-	case "deploy-mount":
+	case "deploy-mount": // where the plugin has soure deployment mounted to the container
 		if a.CurrentPluginDriver != nil {
 			result = a.CurrentPluginDriver.Plugin.DeployPath
 		} else {

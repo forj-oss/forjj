@@ -1,5 +1,5 @@
 hash: 0bd1ddd8decf20ee37a025811a3600c07f2f5058eb89335da6aefe2d3428a2da
-updated: 2018-04-04T13:17:40.414283992Z
+updated: 2018-04-10T12:23:34.233801841Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -21,7 +21,7 @@ imports:
   - cli/tools
   - trace
 - name: github.com/forj-oss/goforjj
-  version: dfca5983e7efccf554960c0aef30e58db7b20e4c
+  version: f6487935e4e396595d9609c9fb97f6e8896732d1
 - name: github.com/kr/text
   version: 7cafcd837844e784b526369c9bce262804aebc60
 - name: github.com/kvz/logstreamer
@@ -37,12 +37,12 @@ imports:
 - name: github.com/pkg/errors
   version: 816c9085562cd7ee03e7f8188a1cfd942858cded
 - name: golang.org/x/net
-  version: b68f30494add4df6bd8ef5e82803f308e7f7c59c
+  version: 61147c48b25b599e5b561d2e9c4f3e1ef489ca41
   subpackages:
   - proxy
   - publicsuffix
 - name: golang.org/x/sys
-  version: f67933eaf9e2f750f58a234209a11ebc1107be38
+  version: 3b87a42e500a6dc65dae1a55d0b641295971163e
   subpackages:
   - unix
 - name: gopkg.in/yaml.v2

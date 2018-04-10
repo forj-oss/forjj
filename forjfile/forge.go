@@ -740,10 +740,17 @@ func (f *ForgeYaml) set_defaults() {
 	if len(f.Deployments) == 0 {
 		data := DeploymentStruct{}
 		data.Desc = "Production environment"
+		data.name = "production"
+		data.Type = "PRO"
 		f.Deployments = make(map[string]DeploymentStruct)
-		f.Deployments["production"] = data
+		f.Deployments[data.name] = data
 		gotrace.Info("No deployment defined. Created single 'production' deployment. If you want to change that update your forjfile and create a deployment Forfile per deployment under 'deployments/<deploymentName>'.")
-		f.ForjCore.ForjSettings.DeployTo = "production"
+		f.ForjCore.ForjSettings.DeployTo = data.name
+	} else {
+		for name, deploy := range f.Deployments {
+			deploy.name = name
+			f.Deployments[name] = deploy
+		}
 	}
 }
 
@@ -819,4 +826,54 @@ func (f *Forge) Model() ForgeModel {
 
 func (f *Forge) GetDeployment() string {
 	return f.yaml.ForjCore.ForjSettings.DeployTo
+}
+
+// Validate check if the information in the Forjfile are coherent or not and if code respect some basic rules.
+func (f *Forge) Validate() error {
+
+	// ForjSettingsStruct.More
+
+	// RepoStruct.More (infra : Repos)
+
+	// AppYamlStruct.More
+
+	// Repository apps connection
+	for _, repo := range f.yaml.ForjCore.Repos {
+		if repo.Apps == nil {
+			continue
+		}
+
+		for relAppName, appName := range repo.Apps {
+			if _, err := repo.SetInternalRelApp(relAppName, appName); err != nil {
+				return fmt.Errorf("Repo '%s' has an invalid Application reference '%s: %s'. %s", repo.GetString("name"), relAppName, appName, err)
+			}
+		}
+	}
+
+	// UserStruct.More
+
+	// GroupStruct.More
+
+	// ForgeYaml.More
+
+	// DeploymentStruct
+	pro := false
+	for name, deploy := range f.yaml.Deployments {
+		if deploy.Type == "" {
+			return fmt.Errorf("Deployment declaration error in '%s'. Missing type. Provide at least `Type: (PRO|TEST|DEV)`", name)
+		}
+		if deploy.Type == "PRO" && pro {
+			return fmt.Errorf("Deployment declaration error in '%s'. You cannot have more than 1 deployment of type 'PRO'. Please fix it.", name)
+		}
+	}
+
+	return nil
+}
+
+func (f *Forge) GetDeployments() (result map[string]DeploymentCoreStruct) {
+	result = make(map[string]DeploymentCoreStruct)
+	for name, deploy := range f.yaml.Deployments {
+		result[name] = deploy.DeploymentCoreStruct
+	}
+	return
 }

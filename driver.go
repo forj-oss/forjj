@@ -2,18 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/forjj-modules/cli"
+	"forjj/drivers"
+	"forjj/forjfile"
+	"forjj/git"
+	"forjj/utils"
 	"log"
+	"os"
+	"path"
 	"strings"
 	"time"
+
+	"github.com/forj-oss/forjj-modules/cli"
+	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
-	"forjj/drivers"
-	"forjj/utils"
-	"forjj/git"
-	"path"
-	"os"
-	"forjj/forjfile"
 )
 
 const (
@@ -125,7 +126,7 @@ func (a *Forj) driver_cleanup_all() {
 
 // Create the flag to a kingpin Command. (create/update/maintain)
 func (a *Forj) init_driver_flags_for(d *drivers.Driver, option_name, command, forjj_option_name, forjj_option_help string,
-opts *cli.ForjOpts) {
+	opts *cli.ForjOpts) {
 	if command == "" {
 		// Add to the Application layer.
 		gotrace.Trace("Set App flag '%s(%s)'", forjj_option_name, option_name)
@@ -156,11 +157,12 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		return err, false
 	}
 
-	if found, _ := goforjj.InArray(instance_name, a.debug_instances) ; found {
+	if found, _ := goforjj.InArray(instance_name, a.debug_instances); found {
 		d.Plugin.RunningFromDebugger()
 	}
 
 	d.Plugin.PluginSetSource(path.Join(a.i.Path(), "apps", d.DriverType))
+	d.Plugin.PluginSetDeployment(a.d.GetRepoPath())
 	d.Plugin.PluginSetVersion(d.DriverVersion)
 	d.Plugin.PluginSetWorkspace(a.w.Path())
 	d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
@@ -177,14 +179,14 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	}
 
 	d.Plugin.Yaml.Runtime.Docker.Env["LOGNAME"] = "$LOGNAME"
-	if v := os.Getenv("http_proxy") ; v != "" {
+	if v := os.Getenv("http_proxy"); v != "" {
 		d.Plugin.Yaml.Runtime.Docker.Env["http_proxy"] = v
 		d.Plugin.Yaml.Runtime.Docker.Env["https_proxy"] = v
 	}
-	if v := os.Getenv("no_proxy") ; v != "" {
+	if v := os.Getenv("no_proxy"); v != "" {
 		d.Plugin.Yaml.Runtime.Docker.Env["no_proxy"] = v
 	}
-	if v, b, _ := d.Plugin.GetDockerDoodParameters() ; v != nil {
+	if v, b, _ := d.Plugin.GetDockerDoodParameters(); v != nil {
 		d.Plugin.Yaml.Runtime.Docker.Env["DOCKER_DOOD"] = strings.Join(v, " ")
 		d.Plugin.Yaml.Runtime.Docker.Env["DOCKER_DOOD_BECOME"] = strings.Join(b, " ")
 	}
@@ -199,7 +201,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	a.LoadInternalData()
 	a.GetForjjFlags(plugin_payload, d, common_acts)
 	a.GetForjjFlags(plugin_payload, d, action)
-	if err := a.GetObjectsData(plugin_payload, d, action) ; err != nil {
+	if err := a.GetObjectsData(plugin_payload, d, action); err != nil {
 		return fmt.Errorf("Unable to Get Object data on '%s'. %s", instance_name, err), aborted
 	}
 	err = a.AddReqDeployment(plugin_payload)
@@ -239,7 +241,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	if d.DriverType == "upstream" {
 		for Name, Repo := range d.Plugin.Result.Data.Repos {
 			var repo_obj *forjfile.RepoStruct
-			if r, ok := a.f.GetObjectInstance(repo, Name).(*forjfile.RepoStruct) ; ! ok {
+			if r, ok := a.f.GetObjectInstance(repo, Name).(*forjfile.RepoStruct); !ok {
 				continue
 			} else {
 				repo_obj = r
@@ -271,4 +273,3 @@ func (a *Forj) DriverGet(instance string) (d *drivers.Driver) {
 
 	return nil
 }
-
