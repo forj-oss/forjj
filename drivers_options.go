@@ -586,6 +586,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 func (a *Forj) AddReqDeployment(req *goforjj.PluginReqData) (err error) {
 	if deploy := a.f.GetDeployment(); deploy != "" {
 		req.Forj["deployment-env"] = deploy
+		return
 	}
 	return fmt.Errorf("Cannot deploy to an unknown environment. Your Forjfile is missing `forj-settings/deploy-environment`")
 }
