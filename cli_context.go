@@ -94,8 +94,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// Identifying appropriate Contribution Repository.
 	// The value is not set in flagsv. But is in the parser context.
 
-	defaultPluginURL := new(url.URL)
-	url.Parse(default_plugin_repo)
+	defaultPluginURL, _ := url.Parse(default_plugin_repo)
 	a.ContribRepoURIs = make([]*url.URL, 0, 2)
 
 	if w, v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
@@ -103,14 +102,15 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 			a.ContribRepoURIs = append(a.ContribRepoURIs, defaultPluginURL)
 		}
 		a.ContribRepoURIs = append(a.ContribRepoURIs, v)
-		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
+		gotrace.Trace("Using '%s, %s' for '%s'", default_plugin_repo, v, "contribs-repo")
 	} else {
 		return fmt.Errorf("Contribs repository url issue: %s", err), false
 	}
 	if _, v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
 		v.Path = path.Join(v.Path, "<plugin>")
 		a.flows.AddRepoPath(v)
-		gotrace.Trace("Using '%s' for '%s'", v, "flows-repo")
+		vpath, _ := url.PathUnescape(v.String())
+		gotrace.Trace("Using '%s' for '%s'", vpath, "flows-repo")
 	} else {
 		gotrace.Error("Flow repository url issue: %s", err)
 	}
