@@ -126,8 +126,7 @@ const (
 )
 
 const (
-	default_contribs_repo = "https://github.com/forj-oss/forjj-contribs/raw/master"
-	default_plugin_repo   = "https://github.com/forj-oss/forjj-<plugin>/raw/master"
+	default_contribs_repo = "https://github.com/forj-oss/<repo>/raw/master"
 	default_repo_branch   = "master"
 )
 

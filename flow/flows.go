@@ -33,7 +33,7 @@ func (fs *Flows) Load(flows ...string) error {
 }
 
 func (fs *Flows) loadFlow(flowName string) (flow *FlowDefine, _ error) {
-	if data, err := utils.ReadDocumentFrom(fs.paths, ".yaml", flowName, ""); err == nil {
+	if data, err := utils.ReadDocumentFrom(fs.paths, []string{"forjj-flows"}, []string{flowName}, flowName + ".yaml"); err == nil {
 		flow = new(FlowDefine)
 		if err = yaml.Unmarshal(data, flow); err != nil {
 			return nil, fmt.Errorf("Unable to load the flow '%s'. %s", flowName, err)

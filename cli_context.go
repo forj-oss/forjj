@@ -94,15 +94,11 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// Identifying appropriate Contribution Repository.
 	// The value is not set in flagsv. But is in the parser context.
 
-	defaultPluginURL, _ := url.Parse(default_plugin_repo)
-	a.ContribRepoURIs = make([]*url.URL, 0, 2)
+	a.ContribRepoURIs = make([]*url.URL, 0, 1)
 
-	if w, v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
-		if w == inDefault || w == notFound {
-			a.ContribRepoURIs = append(a.ContribRepoURIs, defaultPluginURL)
-		}
+	if _, v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
 		a.ContribRepoURIs = append(a.ContribRepoURIs, v)
-		gotrace.Trace("Using '%s, %s' for '%s'", default_plugin_repo, v, "contribs-repo")
+		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
 	} else {
 		return fmt.Errorf("Contribs repository url issue: %s", err), false
 	}

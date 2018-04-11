@@ -6,6 +6,7 @@ import (
 	"forjj/drivers"
 	"forjj/forjfile"
 	"forjj/utils"
+	"path"
 	"strings"
 	"text/template"
 
@@ -74,7 +75,9 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 		return
 	}
 
-	if yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, ".yaml", driver.Name, driver.DriverType); err != nil {
+	repos := []string{"forjj-" + driver.Name, driver.Name, "forjj-contribs"}
+	reposSubPaths := []string{"", "", path.Join(driver.DriverType, driver.Name)}
+	if yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, repos, reposSubPaths, driver.Name+".yaml"); err != nil {
 		return
 	}
 

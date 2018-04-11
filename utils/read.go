@@ -12,37 +12,45 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
-const PluginTag = "<plugin>"
+// PluginTag to identify variable component name in a Document path.
+const RepoTag = "<repo>"
 
 // ReadDocumentFrom is used to read a document from a url like github raw or directly from a local path
 // It supports file or url stored in url.URL structure
 // each urls can be defined with a plugin tag "<plugin>" which will be replaced by the document name(document)
 // the file name and the extension is added at the end of the string.
-func ReadDocumentFrom(urls []*url.URL, extension, document, docType string) ([]byte, error) {
+func ReadDocumentFrom(urls []*url.URL, repos, subPaths []string, document string) ([]byte, error) {
 	if urls == nil {
 		return nil, fmt.Errorf("url parameter is nil")
 	}
 	for _, s := range urls {
-		var fileName string
-		if s.Scheme == "" {
-			// File to read locally
-			fileName = BuildURLPath(s.Path, docType, document, extension)
+		for i, repo := range repos {
+			var fileName string
+			if s.Scheme == "" {
+				// File to read locally
+				if !strings.Contains(s.Path, RepoTag) {
+					s.Path = path.Join(s.Path, RepoTag)
+				}
+				fileName = BuildURLPath(s.Path, repo, subPaths[i], document)
+				gotrace.Trace("Searching file document '%s'", fileName)
 
-			if found, data, err := readDocumentFromFS(fileName); err != nil || found {
+				if found, data, err := readDocumentFromFS(fileName); found {
+					return data, err
+				}
+				continue
+			}
+			// File to read from an url. Usually, a raw from github.
+			urlData := ""
+			if u, err := url.PathUnescape(s.String()); err != nil {
+				return nil, fmt.Errorf("Url path issue: %s", err)
+			} else {
+				urlData = u
+			}
+			fileName = BuildURLPath(urlData, repo, subPaths[i], document)
+			gotrace.Trace("Searching file document from url '%s'", fileName)
+			if found, data, err := readDocumentFromURL(fileName); found {
 				return data, err
 			}
-			continue
-		}
-		// File to read from an url. Usually, a raw from github.
-		urlData := ""
-		if u, err := url.PathUnescape(s.String()); err != nil {
-			return nil, fmt.Errorf("Url path issue: %s", err)
-		} else {
-			urlData = u
-		}
-		fileName = BuildURLPath(urlData, docType, document, extension)
-		if found, data, err := readDocumentFromURL(fileName); err != nil || found {
-			return data, err
 		}
 	}
 	return nil, fmt.Errorf("Document not found from URLs given")
@@ -50,18 +58,13 @@ func ReadDocumentFrom(urls []*url.URL, extension, document, docType string) ([]b
 
 // BuildURLPath build the path logic introducing the pluginTag to replace.
 //
-func BuildURLPath(aPath, docType, document, extension string) (fullFileName string) {
-	fileName := document + extension
+func BuildURLPath(aPath, repo, subpath, document string) (fullFileName string) {
 
-	if strings.Contains(aPath, PluginTag) {
-		aPath = strings.Replace(aPath, PluginTag, document, -1)
-	} else {
-		if docType != "" {
-			aPath = path.Join(aPath, docType, document)
-		}
+	if strings.Contains(aPath, RepoTag) {
+		aPath = strings.Replace(aPath, RepoTag, repo, -1)
 	}
 	// path.Join is not usable on a url as it replaces // by /
-	fullFileName = aPath + "/" + fileName
+	fullFileName = aPath + "/" + path.Join(subpath, document)
 	return
 }
 
@@ -73,17 +76,15 @@ func readDocumentFromFS(source string) (found bool, data []byte, err error) {
 	if _, err = os.Stat(source); err != nil {
 		return
 	}
-	gotrace.Trace("Load file definition at '%s'", source)
 	if data, err = ioutil.ReadFile(source); err == nil {
 		found = true
+		gotrace.Trace("Loaded file definition at '%s'", source)
 	}
 	return
 }
 
 // readDocumentFromUrl Read from the URL string. Data is returned is content type is of text/plain
 func readDocumentFromURL(source string) (found bool, yamlData []byte, err error) {
-	gotrace.Trace("Load file definition at '%s'", source)
-
 	var resp *http.Response
 	if resp, err = http.Get(source); err != nil {
 		err = fmt.Errorf("Unable to read '%s'. %s", source, err)
@@ -98,6 +99,7 @@ func readDocumentFromURL(source string) (found bool, yamlData []byte, err error)
 	}
 	if strings.Contains(http.DetectContentType(d), "text/plain") {
 		yamlData = d
+		gotrace.Trace("Loaded file definition at '%s'", source)
 	}
 	return
 }
