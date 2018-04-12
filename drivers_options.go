@@ -88,7 +88,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 	// Set defaults value for undefined parameters
 	var ff string
 	if driver.Plugin.Yaml.CreatedFile == "" {
-		ff = "." + driver.InstanceName + ".created"
+		ff = "{{ .InstanceName }}/{{.Name}}.yaml" // Default Flag file setting.
 		driver.ForjjFlagFile = true // Forjj will test the creation success itself, as the driver did not created it automatically.
 	} else {
 		ff = driver.Plugin.Yaml.CreatedFile
