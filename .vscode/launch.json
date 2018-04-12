@@ -10,7 +10,7 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "${workspaceRoot}",
+            "program": "${workspaceFolder}",
             "env": {
                 "GOTRACE": "true",
                 "DOCKER_SUDO": "sudo"
@@ -20,7 +20,9 @@
                 "create",
                 "--forjfile-path",
                 "samples/forjj_test",
-                "--no-maintain"
+                "--no-maintain",
+                "--run-plugin-debugger",
+                "github"
             ]
         },
         {
