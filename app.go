@@ -126,8 +126,10 @@ const (
 )
 
 const (
-	default_contribs_repo = "https://github.com/forj-oss/<repo>/raw/master"
-	default_repo_branch   = "master"
+	defaultRepoBranch   = "master"
+	defaultContribsRepo = "https://github.com/forj-oss/<repo>/raw/" + defaultRepoBranch
+	defaultFlowRepo     = "https://github.com/forj-oss/forjj-flows/raw/" + defaultRepoBranch
+	defaultRepoTemplate = "https://github.com/forj-oss/forjj-repotemplates/raw/" + defaultRepoBranch
 )
 
 // ForjModel is used by template mechanism
@@ -173,9 +175,9 @@ func (a *Forj) init() {
 	// Define options
 	opts_required := cli.Opts().Required()
 	//opts_ssh_dir := cli.Opts().Default(fmt.Sprintf("%s/.ssh", os.Getenv("HOME")))
-	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default(default_contribs_repo)
-	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default("https://github.com/forj-oss/forjj-flows/raw/master")
-	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default("https://github.com/forj-oss/forjj-repotemplates/raw/master")
+	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default(defaultContribsRepo)
+	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default(defaultFlowRepo)
+	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
