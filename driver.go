@@ -78,6 +78,27 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 	return
 }
 
+func (a *Forj) moveTo(where string) (cur_dir string, _ error) {
+	if v, err := os.Getwd(); err != nil {
+		return "", fmt.Errorf("Unable to get the current directory. %s", err)
+	} else {
+		cur_dir = v
+	}
+	if where == goforjj.FilesSource {
+		err := os.Chdir(a.f.InfraPath())
+		if err != nil {
+			return "", fmt.Errorf("Unable to move to '%s'. %s", a.f.InfraPath(), err)
+		}
+	}
+	if where == goforjj.FilesDeploy {
+		err := os.Chdir(a.d.GetRepoPath())
+		if err != nil {
+			return "", fmt.Errorf("Unable to move to '%s'. %s", a.d.GetRepoPath(), err)
+		}
+	}
+	return
+}
+
 // do driver add files
 func (a *Forj) do_driver_add(d *drivers.Driver) error {
 	if len(d.Plugin.Result.Data.Files) == 0 {
@@ -87,7 +108,7 @@ func (a *Forj) do_driver_add(d *drivers.Driver) error {
 	gotrace.Trace("----- Do GIT tasks in the INFRA repository.")
 
 	// Add source files
-	if err := d.GitAddPluginFiles(); err != nil {
+	if err := d.GitAddPluginFiles(a.moveTo); err != nil {
 		return fmt.Errorf("Issue to add driver '%s' generated files. %s", a.CurrentPluginDriver.Name, err)
 	}
 
@@ -162,7 +183,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	}
 
 	d.Plugin.PluginSetSource(path.Join(a.i.Path(), "apps", d.DriverType))
-	d.Plugin.PluginSetDeployment(a.d.GetRepoPath())
+	d.Plugin.PluginSetDeployment(a.d.GetReposPath())
 	d.Plugin.PluginSetVersion(d.DriverVersion)
 	d.Plugin.PluginSetWorkspace(a.w.Path())
 	d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))

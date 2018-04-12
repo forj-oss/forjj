@@ -2,34 +2,73 @@ package drivers
 
 import (
 	"fmt"
-	"github.com/forj-oss/forjj-modules/trace"
-	"path"
 	"forjj/git"
+	"os"
+	"path"
+
+	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 )
 
-
-
 // GitAddPluginFiles Add Plugins generated files to ready to be commit git space.
-func (d *Driver) GitAddPluginFiles() error {
+//
+// It requires a function to change the current path to the appropriate repo to add files
+// This function must accepts only goforjj.FilesSource and goforjj.FilesDeploy
+//
+func (d *Driver) GitAddPluginFiles(moveTo func(string) (string, error)) error {
 	if d.Plugin.Result == nil {
 		return fmt.Errorf("Strange... The plugin as no result (plugin.Result is nil). Did the plugin '%s' executed?", d.Name)
 	}
 
-	gotrace.Trace("Adding %d files related to '%s'", len(d.Plugin.Result.Data.Files), d.Plugin.Result.Data.CommitMessage)
 	if len(d.Plugin.Result.Data.Files) == 0 {
 		return fmt.Errorf("Nothing to commit")
 	}
 
 	if d.Plugin.Result.Data.CommitMessage == "" {
-		return fmt.Errorf("Unable to commit without a commit message.")
+		return fmt.Errorf("Unable to commit without a commit message")
 	}
 
-	file_to_add := make([]string, len(d.Plugin.Result.Data.Files))
-	iCount := 0
-	for _, file := range d.Plugin.Result.Data.Files {
-		file_to_add[iCount] = path.Join("apps", d.DriverType, file)
+	for where, files := range d.Plugin.Result.Data.Files {
+		if err := RunInPath(where, moveTo, func() error {
+			gotrace.Trace("GIT: Adding %s %d files related to '%s'", where, len(files), d.Plugin.Result.Data.CommitMessage)
+
+			return d.gitAddPluginFiles(files)
+		}); err != nil {
+			return err
+		}
 	}
-	if i := git.Add(file_to_add); i > 0 {
+
+	return nil
+}
+
+// RunInPath run a function in a specificDirectory and restore the current Path.
+func RunInPath(where string, moveTo func(string) (string, error), runIn func() error) error {
+	if where != goforjj.FilesDeploy && where != goforjj.FilesSource { // Supports only 2 kind of repository from the plugin.
+		return fmt.Errorf("Plugin error: Invalid repository type '%s'. Valid one are: %s and %s. Check with the plugin maintainer", where, goforjj.FilesDeploy, goforjj.FilesSource)
+	}
+
+	if restore, err := moveTo(where); err != nil {
+		return err
+	} else {
+		if err = runIn(); err != nil {
+			return err
+		}
+		if err = os.Chdir(restore); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *Driver) gitAddPluginFiles(files []string) error {
+	if files == nil {
+		return nil
+	}
+	fileToAdd := make([]string, len(files))
+	for iCount, file := range files {
+		fileToAdd[iCount] = path.Join("apps", d.DriverType, file)
+	}
+	if i := git.Add(fileToAdd); i > 0 {
 		return fmt.Errorf("Issue while adding code to git. RC=%d", i)
 	}
 	return nil

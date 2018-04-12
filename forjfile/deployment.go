@@ -100,12 +100,12 @@ func (d *DeploymentCoreStruct) ResetBranchFromRemote(branch, remote string) {
 	}
 }
 
-// GetRepo returns the absolute path of the deployment repository.
-func (d *DeploymentCoreStruct) GetRepo() string {
+// GetRepoPath returns the absolute path of the current deployment repository.
+func (d *DeploymentCoreStruct) GetRepoPath() string {
 	return d.repoPath
 }
 
-// GetRepoPath returns the absolute path to all deployment repositories.
-func (d *DeploymentCoreStruct) GetRepoPath() string {
+// GetReposPath returns the absolute path to all deployment repositories.
+func (d *DeploymentCoreStruct) GetReposPath() string {
 	return path.Dir(d.repoPath)
 }

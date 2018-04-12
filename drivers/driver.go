@@ -3,7 +3,6 @@ package drivers
 import (
 	"os"
 	"fmt"
-	"log"
 	"github.com/forj-oss/goforjj"
 	"github.com/forj-oss/forjj-modules/trace"
 	"path"
@@ -75,13 +74,13 @@ func (d *Driver)AppRequest() bool {
 func (d *Driver) CheckFlagBefore(instance, action string) error {
 	flag_file := path.Join("apps", d.DriverType, d.FlagFile)
 
-	if d.ForjjFlagFile {
+	if d.ForjjFlagFile { // Default setup made by Forjj
 		if _, err := os.Stat(flag_file); err == nil {
 			if action == "create" {
 				return fmt.Errorf("The driver instance '%s' has already created the resources. Use 'Update' to update it, and maintain to instanciate it as soon as your infra repo flow is completed.", instance)
 			}
 		} else {
-			gotrace.Trace("Flag file '%s' NOT found.", flag_file)
+			gotrace.Trace("Flag file '%s' NOT found. `forjj create` is authorized.", flag_file)
 		}
 	} else {
 		if _, err := os.Stat(flag_file); err != nil {
@@ -90,40 +89,29 @@ func (d *Driver) CheckFlagBefore(instance, action string) error {
 				return fmt.Errorf("The driver instance '%s' do not have the resource requested. Use 'Create' to create it, and maintain to instanciate it as soon as your infra repo flow is completed.", instance)
 			}
 		} else {
-			gotrace.Trace("Flag file '%s' found.", flag_file)
+			gotrace.Trace("Flag file '%s' found. `forjj create` is NOT authorized. It must be update or maintain.", flag_file)
 		}
 	}
 	return nil
 }
 
-func (d *Driver) CheckFlagAfter() error {
+func (d *Driver) CheckFlagAfter() (err error) {
 	flag_file := path.Join("apps", d.DriverType, d.FlagFile)
 
 	// Check the flag file
-	if _, err := os.Stat(flag_file); err == nil {
+	if _, err = os.Stat(flag_file); err == nil {
 		return err
 	}
 
-	log.Printf("Warning! Driver '%s' has not created the expected flag file (%s). Probably a driver bug. Contact the plugin maintainer to fix it.", d.Name, flag_file)
+	gotrace.Warning("Driver '%s' has not created the expected flag file (%s). Probably a driver bug. Contact the plugin maintainer to fix it.", d.Name, flag_file)
 
 	// Create a forjj flag file instead.
-	if err := utils.Touch(flag_file); err != nil {
+	if err = utils.Touch(flag_file); err != nil {
 		return err
 	}
+	gotrace.Trace("Forjj has flagged (%s) for driver '%s(%s)'",flag_file, d.Name, d.DriverType)
 
-	var found bool
-	for _, f := range d.Plugin.Result.Data.Files {
-		if f == d.FlagFile {
-			found = true
-		}
-	}
-	if !found && !d.ForjjFlagFile {
-		if !d.ForjjFlagFile {
-			log.Printf("Warning! Driver '%s' has identified '%s' as controlled by itself. Probably a driver bug. Contact the plugin maintainer to fix it.", d.Name, d.FlagFile)
-		}
-		d.Plugin.Result.Data.Files = append(d.Plugin.Result.Data.Files, d.FlagFile)
-	}
-	return nil
+	return
 }
 
 // HasNoFiles Return True if no file sis registered in the driver response.
