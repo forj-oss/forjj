@@ -4,6 +4,7 @@
     // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "Do create forjj_test without maintain",
             "type": "go",
@@ -11,7 +12,8 @@
             "mode": "debug",
             "program": "${workspaceRoot}",
             "env": {
-                "GOTRACE": "true"
+                "GOTRACE": "true",
+                "DOCKER_SUDO": "sudo"
             },
             "preLaunchTask": "clean forjj_test",
             "args": [
