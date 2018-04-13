@@ -18,7 +18,7 @@ func (f ForgeModel)HasApps(rules ...string) (_ bool) {
 	if f.forge == nil {
 		return
 	}
-	if v, err := f.forge.Forjfile().HasApps(rules...) ; err != nil {
+	if v, err := f.forge.DeployForjfile().HasApps(rules...) ; err != nil {
 		gotrace.Error("%s", err)
 	} else {
 		return v

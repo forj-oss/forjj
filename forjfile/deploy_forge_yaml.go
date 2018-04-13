@@ -1,6 +1,10 @@
 package forjfile
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
 )
 
@@ -214,6 +218,41 @@ func (f *DeployForgeYaml) ObjectLen(object string) int {
 		return 0
 	}
 	return 0
+}
+
+// HasApps return a bool if rules are all true on at least one application.
+// a rule is a string formatted as '<key>:<value>'
+// a rule is true on an application if it has the key value set to <value>
+//
+// If the rule is not well formatted, an error is returned.
+// If the repo has no application, HasApps return false.
+// If no rules are provided and at least one application exist, HasApps return true.
+//
+// TODO: Write Unit test of HasApps
+func (f *DeployForgeYaml) HasApps(rules ...string) (found bool, err error) {
+	if f.Apps == nil {
+		return
+	}
+	for _, app := range f.Apps {
+		found = true
+		for _, rule := range rules {
+			ruleToCheck := strings.Split(rule, ":")
+			if len(ruleToCheck) != 2 {
+				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'", rule)
+				return
+			}
+			if v, found2 := app.Get(ruleToCheck[0]); found2 && v.GetString() != ruleToCheck[1] {
+				found = false
+				break
+			}
+		}
+		if found {
+			gotrace.Trace("Found an application which meets '%s'", rules)
+			return
+		}
+	}
+	gotrace.Trace("NO application found which meets '%s'", rules)
+	return
 }
 
 // ---------------- private functions

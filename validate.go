@@ -30,14 +30,14 @@ func (a *Forj) FoundValidAppFlag(key, driver, object string, required bool) (_ b
 
 // ValidateForjfile read all object fields and check if they are recognized by forjj or plugins.
 func (a *Forj) ValidateForjfile() (_ error) {
-	f := a.f.Forjfile()
+	f := a.f.DeployForjfile()
 
 	if err := a.f.Validate() ; err != nil {
 		return fmt.Errorf("Validation error. %s", err)
 	}
 
 	// AppYamlStruct.More
-	for _, app := range f.ForjCore.Apps {
+	for _, app := range f.Apps {
 		for key := range app.More {
 			if found, err := a.FoundValidAppFlag(key, app.Driver, goforjj.ObjectApp, true); err != nil {
 				return err
