@@ -22,23 +22,8 @@
                 "samples/forjj_test",
                 "--no-maintain",
                 "--run-plugin-debugger",
-                "github"
+                "github,jenkins"
             ]
-        },
-        {
-            "name": "Launch",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "remotePath": "",
-            "port": 2345,
-            "host": "127.0.0.1",
-            "program": "${fileDirname}",
-            "env": {
-                "GOTRACE": "true"
-            },
-            "args": [],
-            "showLog": true
         }
     ]
 }
