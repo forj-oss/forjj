@@ -89,12 +89,14 @@ func (a *Forj) moveTo(where string) (cur_dir string, _ error) {
 		if err != nil {
 			return "", fmt.Errorf("Unable to move to '%s'. %s", a.f.InfraPath(), err)
 		}
+		gotrace.Trace("Moved to %s repo (%s)", where, a.f.InfraPath())
 	}
 	if where == goforjj.FilesDeploy {
 		err := os.Chdir(a.d.GetRepoPath())
 		if err != nil {
 			return "", fmt.Errorf("Unable to move to '%s'. %s", a.d.GetRepoPath(), err)
 		}
+		gotrace.Trace("Moved to %s repo (%s)", where, a.d.GetRepoPath())
 	}
 	return
 }
