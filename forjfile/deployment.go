@@ -31,6 +31,10 @@ func (d DeploymentStruct) MarshalYAML() (interface{}, error) {
 	return d.DeploymentCoreStruct, nil
 }
 
+func (d *DeploymentStruct)UpdateDeploymentCoreData(data DeploymentCoreStruct) {
+	d.DeploymentCoreStruct = data
+}
+
 // SetRepo define where the Deployment repo is located.
 func (d *DeploymentCoreStruct) SetRepo(aPath, origin string) (err error) {
 	if v, err := utils.Abs(path.Join(aPath, d.name)); err != nil {

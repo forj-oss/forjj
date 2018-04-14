@@ -127,12 +127,10 @@ func (a *Forj) Create() error {
 	// The flow will update it in memory to apply all integration and automation
 
 	// Define Deployments repositories
-	deployPath := path.Join(a.w.Path(), "deployments")
 	for deployName, deploy := range a.f.GetDeployments() {
-		deploy.SetRepo(deployPath, "")
 		if deploy.Type == "PRO" {
 			gotrace.Info("Planning to deploy to '%s' (PRO)", deployName)
-			a.d = deploy
+			a.d = deploy.DeploymentCoreStruct
 		}
 	}
 

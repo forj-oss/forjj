@@ -33,7 +33,7 @@ type Forge struct {
 // ForgeYaml represents the master Forjfile or a piece of the Forjfile template.
 type ForgeYaml struct {
 	updated     bool
-	Deployments map[string]DeploymentStruct
+	Deployments map[string]*DeploymentStruct
 	ForjCore    DeployForgeYaml `yaml:",inline"`
 }
 
@@ -264,7 +264,7 @@ func (f *Forge) Init() bool {
 		f.yaml = new(ForgeYaml)
 	}
 	if f.yaml.Deployments == nil {
-		f.yaml.Deployments = make(map[string]DeploymentStruct)
+		f.yaml.Deployments = make(map[string]*DeploymentStruct)
 	}
 
 	return f.yaml.ForjCore.Init(f.yaml)
@@ -679,7 +679,7 @@ func (f *ForgeYaml) Init() {
 	}
 
 	if f.Deployments == nil {
-		f.Deployments = make(map[string]DeploymentStruct)
+		f.Deployments = make(map[string]*DeploymentStruct)
 	}
 
 }
@@ -743,8 +743,8 @@ func (f *ForgeYaml) set_defaults() {
 		data.Desc = "Production environment"
 		data.name = "production"
 		data.Type = "PRO"
-		f.Deployments = make(map[string]DeploymentStruct)
-		f.Deployments[data.name] = data
+		f.Deployments = make(map[string]*DeploymentStruct)
+		f.Deployments[data.name] = &data
 		gotrace.Info("No deployment defined. Created single 'production' deployment. If you want to change that update your forjfile and create a deployment Forfile per deployment under 'deployments/<deploymentName>'.")
 		f.ForjCore.ForjSettings.DeployTo = data.name
 	} else {
@@ -798,6 +798,13 @@ func (f *Forge) SetDeployment(deployTo string) {
 	f.yaml.ForjCore.ForjSettings.DeployTo = deployTo
 }
 
+// GetADeployment return the Deployment Object wanted
+func (f *Forge) GetADeployment(deploy string) (v *DeploymentStruct, found bool) {
+	v, found = f.yaml.Deployments[deploy]
+	return
+}
+
+
 // Validate check if the information in the Forjfile are coherent or not and if code respect some basic rules.
 func (f *Forge) Validate() error {
 
@@ -840,10 +847,7 @@ func (f *Forge) Validate() error {
 	return nil
 }
 
-func (f *Forge) GetDeployments() (result map[string]DeploymentCoreStruct) {
-	result = make(map[string]DeploymentCoreStruct)
-	for name, deploy := range f.yaml.Deployments {
-		result[name] = deploy.DeploymentCoreStruct
-	}
+func (f *Forge) GetDeployments() (result map[string]*DeploymentStruct) {
+	result = f.yaml.Deployments
 	return
 }
