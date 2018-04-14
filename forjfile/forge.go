@@ -176,11 +176,13 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 
 	f.yaml.set_defaults()
 	loaded = true
-	msg := "Forge loaded from '%s'."
-	if deploy := f.GetDeployment(); deploy != "" {
-		msg = deploy + " deployment forge loaded from '%s'."
+	if deployTo != "" {
+		f.SetDeployment(deployTo)
+	} else {
+		gotrace.Trace("Forge loaded from '%s'.", aPath)
 	}
-	gotrace.Trace(msg, aPath)
+	msg := "' and '" + aPath
+
 	if deployTo == "" {
 		return
 	}
@@ -210,7 +212,7 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 
 	f.yaml.set_defaults()
 	loaded = true
-	gotrace.Trace("%s deployment forge loaded from '%s'.", deployTo, aPath)
+	gotrace.Trace("%s deployment forge loaded from '%s'.", deployTo, aPath+msg)
 
 	return
 }
@@ -375,7 +377,7 @@ func (f *Forge) save(infraPath string) error {
 
 		file = path.Join(infraPath, "deployments", name, f.Forjfile_name())
 
-		yaml_data, err = yaml.Marshal(deployTo.More)
+		yaml_data, err = yaml.Marshal(deployTo.Details)
 		if err != nil {
 			return err
 		}
@@ -790,6 +792,10 @@ func (f *Forge) Model() ForgeModel {
 
 func (f *Forge) GetDeployment() string {
 	return f.yaml.ForjCore.ForjSettings.DeployTo
+}
+
+func (f *Forge) SetDeployment(deployTo string) {
+	f.yaml.ForjCore.ForjSettings.DeployTo = deployTo
 }
 
 // Validate check if the information in the Forjfile are coherent or not and if code respect some basic rules.

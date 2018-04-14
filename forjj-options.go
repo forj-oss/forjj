@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/forj-oss/forjj-modules/trace"
 	"forjj/git"
+	"path"
 )
 
 const (
@@ -80,5 +81,13 @@ func (a *Forj) LoadForge() (err error) {
 	deployTo, _, _, _ := a.cli.GetStringValue("_app","forjj", updateDeployTo) ; 
 
 	_, err = a.f.Load(deployTo)
+
+
+	// Setup each deployment internal data
+	deployPath := path.Join(a.w.Path(), "deployments")
+	for _, deploy := range a.f.GetDeployments() {
+		deploy.SetRepo(deployPath, "")
+	}
+	
 	return
 }

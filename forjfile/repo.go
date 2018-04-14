@@ -40,6 +40,10 @@ const (
 
 // Flags provide the list of existing keys in a repo object.
 func (r *RepoStruct) Flags() (flags []string) {
+	if r == nil {
+		flags = make([]string, 0)
+		return
+	}
 	flags = make([]string, 8, 8+len(r.More))
 	coreList := []string{repoName, repoUpstream, repoGitRemote, repoRemote, repoRemoteURL, repoTitle, repoFlow, repoTemplate}
 	for index, name := range coreList {
@@ -53,6 +57,9 @@ func (r *RepoStruct) Flags() (flags []string) {
 }
 
 func (r *RepoStruct) mergeFrom(from *RepoStruct) {
+	if r == nil {
+		return
+	}
 	for _, flag := range from.Flags() {
 		if v, found := from.Get(flag); found {
 			r.Set(flag, v.GetString())
