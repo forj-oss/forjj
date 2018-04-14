@@ -11,7 +11,7 @@ import (
 // DeploymentStruct represent the data structure of all deployment.
 type DeploymentStruct struct {
 	DeploymentCoreStruct
-	More *DeployForgeYaml `yaml:",inline"`
+	Details *DeployForgeYaml `yaml:"define,omitempty"`
 }
 
 // DeploymentCoreStruct contains only deployment information. anything others kind of information
@@ -21,7 +21,7 @@ type DeploymentCoreStruct struct {
 	name      string // Name of the repository
 	Desc      string `yaml:"description,omitempty"`
 	Type      string
-	Pars      map[string]string `yaml:"parameters"`
+	Pars      map[string]string `yaml:"parameters,omitempty"`
 }
 
 // MarshalYAML provides the encoding part for DeploymentStruct
