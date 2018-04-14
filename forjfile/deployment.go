@@ -10,8 +10,8 @@ import (
 
 // DeploymentStruct represent the data structure of all deployment.
 type DeploymentStruct struct {
-	DeploymentCoreStruct
-	Details *DeployForgeYaml `yaml:"define,omitempty"`
+	DeploymentCoreStruct `yaml:",inline"`
+	Details              *DeployForgeYaml `yaml:"define,omitempty"`
 }
 
 // DeploymentCoreStruct contains only deployment information. anything others kind of information
