@@ -24,6 +24,59 @@
                 "--run-plugin-debugger",
                 "github,jenkins"
             ]
+        },
+        {
+            "name": "Do update forjj_test on test env",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "env": {
+                "GOTRACE": "true",
+                "DOCKER_SUDO": "sudo"
+            },
+            "args": [
+                "update",
+                "--infra-path",
+                "/home/larsonsh/tmp/forjj-test",
+                "--run-plugin-debugger",
+                "github,jenkins",
+                "test"
+            ]
+        },
+        {
+            "name": "Do update forjj_test on production env",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "env": {
+                "GOTRACE": "true",
+                "DOCKER_SUDO": "sudo"
+            },
+            "args": [
+                "update",
+                "--infra-path",
+                "/home/larsonsh/tmp/forjj-test",
+                "--run-plugin-debugger",
+                "github,jenkins",
+                "production"
+            ]
+        },
+        {
+            "name": "Help from update",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "env": {
+                "GOTRACE": "true",
+                "DOCKER_SUDO": "sudo"
+            },
+            "args": [
+                "update",
+                "--help"
+            ]
         }
     ]
 }
