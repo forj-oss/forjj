@@ -73,10 +73,10 @@ type Forj struct {
 
 	infra_readme string // Initial infra repo README.md text.
 
-	f forjfile.Forge     // Forge Data stored in the Repository (Loaded from Forjfile)
-	w forjfile.Workspace // Data structure to stored in the workspace. See workspace.go
-	s creds.YamlSecure   // credential file support.
-	o ForjjOptions       // Data structured stored in the root of the infra repo. See forjj-options.go
+	f forjfile.Forge                // Forge Data stored in the Repository (Loaded from Forjfile)
+	w forjfile.Workspace            // Data structure to stored in the workspace. See workspace.go
+	s creds.YamlSecure              // credential file support.
+	o ForjjOptions                  // Data structured stored in the root of the infra repo. See forjj-options.go
 	d forjfile.DeploymentCoreStruct // deployment information
 
 	flows flow.Flows
@@ -117,12 +117,13 @@ const (
 	debug_instance_f = "run-plugin-debugger"
 	orga_f           = "organization" // Organization name for the Forge. Could be used to set upstream organization.
 	// create flags
-	forjfile_path_f = "forjfile-path" // Path where the Forjfile template resides.
-	updateDeployTo  = "deploy-to"     // Name of the deployment environment to update.
-	forjfile_f      = "forjfile-name" // Name of the forjfile where the Forjfile template resides.
-	ssh_dir_f       = "ssh-dir"
-	no_maintain_f   = "no-maintain"
-	message_f       = "message"
+	forjfile_path_f  = "forjfile-path" // Path where the Forjfile template resides.
+	// deployTo is the name of the deployment environment to update/maintain.
+	deployToArg      = "deploy-to"
+	forjfile_f       = "forjfile-name" // Name of the forjfile where the Forjfile template resides.
+	ssh_dir_f        = "ssh-dir"
+	no_maintain_f    = "no-maintain"
+	message_f        = "message"
 )
 
 const (
@@ -391,7 +392,7 @@ func (a *Forj) init() {
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj update --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, chg_act).
-		AddArg(cli.String, updateDeployTo, updateDeployToHelp, opts_required).
+		AddArg(cli.String, deployToArg, updateDeployToHelp, opts_required).
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil) == nil {
 		log.Printf("action update: %s", a.cli.Error())
 	}
@@ -400,6 +401,7 @@ func (a *Forj) init() {
 	if a.cli.OnActions(maint_act).
 		AddActionFlagsFromObjectAction(workspace, chg_act).
 		AddActionFlagFromObjectAction(infra, chg_act, infra_path_f).
+		AddArg(cli.String, deployToArg, maintainDeployToHelp, opts_required).
 		AddFlag(cli.String, "file", maintain_option_file, nil) == nil {
 		log.Printf("action maintain: %s", a.cli.Error())
 	}
