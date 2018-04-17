@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"forjj/utils"
 	"log"
+	"os"
 	"os/exec"
+	"path"
 	"regexp"
 	"strings"
-	"os"
-	"path"
 
 	"github.com/forj-oss/forjj-modules/trace"
 )
@@ -194,7 +194,11 @@ func RemoteUrl(remote string) (string, bool, error) {
 	if v, err := Get("remote", "-v"); err != nil {
 		return "", false, err
 	} else {
-		remotes = strings.Split(v, "\n")
+		if v == "" {
+			remotes = []string{}
+		} else {
+			remotes = strings.Split(v, "\n")
+		}
 	}
 
 	remMatch, _ := regexp.Compile(`^ *(\w+) *(.*) \((fetch|push)\)$`)
@@ -207,14 +211,14 @@ func RemoteUrl(remote string) (string, bool, error) {
 }
 
 func EnsureRemoteIs(name, url string) error {
-	if ru, found, err := RemoteUrl(name) ; err != nil {
+	if ru, found, err := RemoteUrl(name); err != nil {
 		return err
 	} else if found {
 		if ru != url {
-			Do("git", "remote", "set-url", url)
+			Do("remote", "set-url", url)
 		}
 	} else {
-		Do("git", "remote", "add", name, url)
+		Do("remote", "add", name, url)
 	}
 	return nil
 }
@@ -222,7 +226,7 @@ func EnsureRemoteIs(name, url string) error {
 // GetCurrentBranch return the current branch name.
 // If no branch is detected, it returns "master"
 func GetCurrentBranch() (branch string) {
-	if b, status := GetWithStatusCode("rev-parse", "--abbrev-ref", "HEAD") ; status == 128 {
+	if b, status := GetWithStatusCode("rev-parse", "--abbrev-ref", "HEAD"); status == 128 {
 		return "master"
 	} else {
 		branch = b
