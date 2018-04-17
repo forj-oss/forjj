@@ -277,6 +277,11 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 				a.f.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
 				a.f.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
 			}
+
+			if deployName, found := repo_obj.Get(forjfile.FieldRepoDeployName) ; found {
+				deployObj, _ := a.f.GetADeployment(deployName.GetString())
+				deployObj.DefineRemote("origin", Repo.Remotes["origin"].Ssh)
+			}
 		}
 	}
 	// Collect application API if published by the driver.

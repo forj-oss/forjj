@@ -15,6 +15,7 @@ type RepoStruct struct {
 	forge        *ForgeYaml
 	owner        string
 	driverOwner  *drivers.Driver
+	deployment   string                      // set to deploiment name if this repo is a deployment repo.
 	Upstream     string                      `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
 	GitRemote    string                      `yaml:"git-remote,omitempty"`
 	remote       goforjj.PluginRepoRemoteUrl // Git remote string to use/set
@@ -27,15 +28,16 @@ type RepoStruct struct {
 }
 
 const (
-	FieldRepoName      = "name"
-	FieldRepoUpstream  = "upstream"
-	FieldRepoApps      = "apps"
-	FieldRepoGitRemote = "git-remote"
-	FieldRepoRemote    = "remote"
-	FieldRepoRemoteURL = "remote-url"
-	FieldRepoTitle     = "title"
-	FieldRepoFlow      = "flow"
-	FieldRepoTemplate  = "repo-template"
+	FieldRepoName       = "name"
+	FieldRepoUpstream   = "upstream"
+	FieldRepoApps       = "apps"
+	FieldRepoGitRemote  = "git-remote"
+	FieldRepoRemote     = "remote"
+	FieldRepoRemoteURL  = "remote-url"
+	FieldRepoTitle      = "title"
+	FieldRepoFlow       = "flow"
+	FieldRepoTemplate   = "repo-template"
+	FieldRepoDeployName = "deployment-name"
 )
 
 // Apply will register the repository and execute any flow on it if needed
@@ -196,6 +198,8 @@ func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 		return value.SetIfFound(r.Flow.Name, (r.Flow.Name != ""))
 	case FieldRepoTemplate:
 		return value.SetIfFound(r.RepoTemplate, (r.RepoTemplate != ""))
+	case FieldRepoDeployName:
+		return value.SetIfFound(r.deployment, (r.deployment != ""))
 	default:
 		v, f := r.More[field]
 		return value.SetIfFound(v, f)
@@ -324,6 +328,10 @@ func (r *RepoStruct) Set(field, value string) {
 		if r.Flow.Name != value {
 			r.Flow.Name = value
 			r.forge.dirty()
+		}
+	case FieldRepoDeployName:
+		if r.deployment != value {
+			r.deployment = value
 		}
 	default:
 		if r.More == nil {
