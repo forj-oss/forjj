@@ -87,7 +87,10 @@ func (f *DeployForgeYaml) Get(object, instance, key string) (value *goforjj.Valu
 			return
 		}
 		if repo, found := f.Repos[instance]; found {
-			return repo.Get(key)
+			if key != "" {
+				return repo.Get(key)
+			}
+			return nil, found
 		}
 	case "settings":
 		return f.ForjSettings.Get(instance, key)
@@ -173,6 +176,10 @@ func (f *DeployForgeYaml) SetHandler(object, name string, from func(string) (str
 			newrepo := RepoStruct{}
 			newrepo.set_forge(f.forge)
 			f.Repos[name] = &newrepo
+			newrepo.SetHandler(func(string) (string, bool) {
+				return name, true
+			}, FieldRepoName)
+			newrepo.SetHandler(from, keys...)
 		}
 	case "settings", "forj-settings":
 		f.ForjSettings.SetHandler(name, from, keys...)
@@ -252,6 +259,23 @@ func (f *DeployForgeYaml) HasApps(rules ...string) (found bool, err error) {
 		}
 	}
 	gotrace.Trace("NO application found which meets '%s'", rules)
+	return
+}
+
+// ----------------- Create objects functions
+
+// NewRepoStruct create a new Repo in the Forjfile.
+func (f *DeployForgeYaml) NewRepoStruct(name string) (repo *RepoStruct) {
+	if f == nil {
+		return
+	}
+	if v, found := f.Repos[name]; found {
+		return v
+	}
+	repo = new(RepoStruct)
+	repo.forge = f.forge
+	repo.name = name
+	repo.initApp()
 	return
 }
 
@@ -345,3 +369,4 @@ func (f *DeployForgeYaml) mergeFrom(from *DeployForgeYaml) error {
 	}
 	return nil
 }
+

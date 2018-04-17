@@ -510,6 +510,7 @@ func (f *Forge) GetString(object, instance, key string) (string, bool) {
 	return v.GetString(), found
 }
 
+// Get return the value and status of the object instance key
 func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _ bool) {
 	if !f.Init() {
 		return
@@ -804,7 +805,6 @@ func (f *Forge) GetADeployment(deploy string) (v *DeploymentStruct, found bool) 
 	return
 }
 
-
 // Validate check if the information in the Forjfile are coherent or not and if code respect some basic rules.
 func (f *Forge) Validate() error {
 
@@ -852,7 +852,7 @@ func (f *Forge) GetDeployments() (result map[string]*DeploymentStruct) {
 	return
 }
 
-// GetDeploymentType return the first 
+// GetDeploymentType return the first
 func (f *Forge) GetDeploymentType(deployType string) (v map[string]*DeploymentStruct, found bool) {
 	v = make(map[string]*DeploymentStruct)
 
@@ -865,11 +865,10 @@ func (f *Forge) GetDeploymentType(deployType string) (v map[string]*DeploymentSt
 	return
 }
 
-
-// GetDeploymentType return the first 
+// GetDeploymentType return the first
 func (f *Forge) GetDeploymentPROType() (v *DeploymentStruct, err error) {
 
-	if deployObjs, _ := f.GetDeploymentType("PRO") ; len(deployObjs) != 1 {
+	if deployObjs, _ := f.GetDeploymentType("PRO"); len(deployObjs) != 1 {
 		err = fmt.Errorf("Found more than one PRO environment")
 	} else {
 		for k := range deployObjs {
@@ -878,5 +877,22 @@ func (f *Forge) GetDeploymentPROType() (v *DeploymentStruct, err error) {
 		}
 	}
 
+	return
+}
+
+func (f *Forge) GetUpstreamApps() (v AppsStruct, found bool) {
+	v = make(AppsStruct)
+	for name, app := range f.Apps() {
+		if app.Type == "upstream" {
+			v[name] = app
+			found = true
+		}
+	}
+	return
+}
+
+// GetRepo return the object found
+func (f *Forge) GetRepo(name string) (r *RepoStruct, found bool) {
+	r, found = f.yaml.ForjCore.Repos[name]
 	return
 }

@@ -27,16 +27,27 @@ type RepoStruct struct {
 }
 
 const (
-	repoName      = "name"
-	repoUpstream  = "upstream"
-	repoApps      = "apps"
-	repoGitRemote = "git-remote"
-	repoRemote    = "remote"
-	repoRemoteURL = "remote-url"
-	repoTitle     = "title"
-	repoFlow      = "flow"
-	repoTemplate  = "repo-template"
+	FieldRepoName      = "name"
+	FieldRepoUpstream  = "upstream"
+	FieldRepoApps      = "apps"
+	FieldRepoGitRemote = "git-remote"
+	FieldRepoRemote    = "remote"
+	FieldRepoRemoteURL = "remote-url"
+	FieldRepoTitle     = "title"
+	FieldRepoFlow      = "flow"
+	FieldRepoTemplate  = "repo-template"
 )
+
+// Apply will register the repository and execute any flow on it if needed
+func (r *RepoStruct) Register() {
+	if r == nil {
+		return
+	}
+	if r.forge == nil {
+		return
+	}
+	r.forge.ForjCore.Repos[r.name] = r
+}
 
 // Flags provide the list of existing keys in a repo object.
 func (r *RepoStruct) Flags() (flags []string) {
@@ -45,7 +56,7 @@ func (r *RepoStruct) Flags() (flags []string) {
 		return
 	}
 	flags = make([]string, 8, 8+len(r.More))
-	coreList := []string{repoName, repoUpstream, repoGitRemote, repoRemote, repoRemoteURL, repoTitle, repoFlow, repoTemplate}
+	coreList := []string{FieldRepoName, FieldRepoUpstream, FieldRepoGitRemote, FieldRepoRemote, FieldRepoRemoteURL, FieldRepoTitle, FieldRepoFlow, FieldRepoTemplate}
 	for index, name := range coreList {
 		flags[index] = name
 	}
@@ -153,9 +164,9 @@ func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 		return
 	}
 	switch fieldSel := strings.Split(field, ":"); fieldSel[0] {
-	case repoName:
+	case FieldRepoName:
 		return value.SetIfFound(r.name, (r.name != ""))
-	case repoApps, repoUpstream:
+	case FieldRepoApps, FieldRepoUpstream:
 		if field == "upstream" {
 			gotrace.Warning("*RepoStruct.Get(): Field '%s' is obsolete. Change the code to use 'apps:upstream'.", field)
 		} else if len(fieldSel) > 1 {
@@ -173,17 +184,17 @@ func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 			return value.SetIfFound(r.Upstream, (r.Upstream != ""))
 		}
 		return value.SetIfFound("", false)
-	case repoGitRemote:
+	case FieldRepoGitRemote:
 		return value.SetIfFound(r.GitRemote, (r.GitRemote != ""))
-	case repoRemote:
+	case FieldRepoRemote:
 		return value.SetIfFound(r.remote.Ssh, (r.remote.Ssh != ""))
-	case repoRemoteURL:
+	case FieldRepoRemoteURL:
 		return value.SetIfFound(r.remote.Url, (r.remote.Url != ""))
-	case repoTitle:
+	case FieldRepoTitle:
 		return value.SetIfFound(r.Title, (r.Title != ""))
-	case repoFlow:
+	case FieldRepoFlow:
 		return value.SetIfFound(r.Flow.Name, (r.Flow.Name != ""))
-	case repoTemplate:
+	case FieldRepoTemplate:
 		return value.SetIfFound(r.RepoTemplate, (r.RepoTemplate != ""))
 	default:
 		v, f := r.More[field]
@@ -272,44 +283,44 @@ func (r *RepoStruct) Set(field, value string) {
 		return
 	}
 	switch field_sel := strings.Split(field, ":"); field_sel[0] {
-	case "name":
+	case FieldRepoName:
 		if r.name != value {
 			r.name = value
 		}
-	case "apps":
+	case FieldRepoApps:
 		if len(field_sel) > 1 {
 			r.SetApp(field_sel[1], value)
 			r.forge.dirty()
 		}
-	case "upstream":
+	case FieldRepoUpstream:
 		if v, found := r.Apps["upstream"]; !found || (found && v != value) {
 			r.SetApp("upstream", value)
 			r.forge.dirty()
 		}
-	case "git-remote":
+	case FieldRepoGitRemote:
 		if r.GitRemote != value {
 			r.GitRemote = value
 			r.forge.dirty()
 		}
-	case "remote":
+	case FieldRepoRemote:
 		if r.remote.Ssh != value {
 			r.remote.Ssh = value
 		}
-	case "remote-url":
+	case FieldRepoRemoteURL:
 		if r.remote.Url != value {
 			r.remote.Url = value
 		}
-	case "repo-template":
+	case FieldRepoTemplate:
 		if r.RepoTemplate != value {
 			r.RepoTemplate = value
 			r.forge.dirty()
 		}
-	case "title":
+	case FieldRepoTitle:
 		if r.Title != value {
 			r.Title = value
 			r.forge.dirty()
 		}
-	case "flow":
+	case FieldRepoFlow:
 		if r.Flow.Name != value {
 			r.Flow.Name = value
 			r.forge.dirty()
@@ -479,4 +490,11 @@ func (r *RepoStruct) HasValues(rules ...string) (found bool, err error) {
 		return
 	}
 	return
+}
+
+func (r *RepoStruct) IsInfra() bool {
+	if r == nil {
+		return false
+	}
+	return r.is_infra
 }

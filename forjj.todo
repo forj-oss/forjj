@@ -1,8 +1,10 @@
 projects:
     forjj:
 tasks:
-    ☐ After maintain, push deploy code. if the repo did not exist, sync it.
-    ☐ Identify all deployed files to help forjj maintain completely the list of files and remove older one.
-    ✔ Fix issue to deploy Jenkins @done (2018-4-16 22:11:29)
-    ✔ Maintain issue: Missing deployment code. @done (2018-4-16 22:10:59)
-    ✔ Support for deployment creds @done (2018-4-17 11:05:57)
+    ✔ @high Define list of deployment repositories automatically @done (2018-4-17 15:33:46)
+    ☐ @high After maintain, push deploy code. if the repo did not exist, sync it.
+    ☐ @low Identify all deployed files to help forjj maintain completely the list of files and remove older one.  
+    ✔ @high Fix issue to deploy Jenkins @done (2018-4-16 22:11:29)
+    ✔ @high Maintain issue: Missing deployment code. @done (2018-4-16 22:10:59)
+    ✔ @high Support for deployment creds @done (2018-4-17 11:05:57)
+    ☐ @low Simplify Repo creation with Defaults so that we do not need to re-apply the full flow. create.go:157,1
