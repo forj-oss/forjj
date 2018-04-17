@@ -280,7 +280,8 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 
 			if deployName, found := repo_obj.Get(forjfile.FieldRepoDeployName) ; found {
 				deployObj, _ := a.f.GetADeployment(deployName.GetString())
-				deployObj.DefineRemote("origin", Repo.Remotes["origin"].Ssh)
+				deployObj.GitDefineRemote("origin", Repo.Remotes["origin"].Ssh)
+				deployObj.GitSyncFrom("origin", "master")
 			}
 		}
 	}

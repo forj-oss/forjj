@@ -87,7 +87,7 @@ func (a *Forj) LoadForge() (err error) {
 	deployPath := path.Join(a.w.Path(), "deployments")
 	found := false
 	for name, deploy := range a.f.GetDeployments() {
-		deploy.DeploymentCoreStruct.SetRepo(deployPath, "")
+		deploy.DeploymentCoreStruct.GitSetRepo(deployPath, "")
 		if name == deployTo {
 			// Define selected deployment.
 			a.d = deploy.DeploymentCoreStruct
