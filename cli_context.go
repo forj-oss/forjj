@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"forjj/creds"
 	"forjj/utils"
 	"log"
 	"net/url"
@@ -116,10 +117,33 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		gotrace.Error("RepoTemplates repository url issue: %s", err)
 	}
 
+	// Credential management
 	if fileDesc, err := a.cli.GetAppStringValue(cred_f); err == nil && fileDesc != "" {
 		a.s.SetFile(fileDesc)
 	} else {
-		a.s.SetPath(a.w.Path())
+		a.s.SetPath(a.w.Path(), a.f.GetDeployment())
+	}
+	if err := a.s.Upgrade(func(d *creds.YamlSecure, version string) (err error) {
+		// Function to identify creds V0 and do upgrade
+		if credPath := d.DirName(); credPath == a.w.Path() { // In Workspace
+			oldFile := path.Join(credPath, creds.DefaultCredsFile)
+			if info, err := os.Stat(oldFile); err == nil && !info.IsDir() { // Is the old file name
+				// V0 identified
+				// Considered current creds is for PRO type environment
+				if deployObj, err := a.f.GetDeploymentPROType(); err != nil {
+					return fmt.Errorf("Unable to upgrade. %s", err)
+				} else {
+					newfile := d.DefineDefaultCredFileName(credPath, deployObj.Name())
+					if err := os.Rename(oldFile, newfile); err != nil {
+						return fmt.Errorf("Unable to upgrade. %s", err)
+					}
+					gotrace.Info("Credential 'V0' file upgraded to '%s'.", version)
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		gotrace.Info("Unable to upgrade your credentials. %s", err)
 	}
 	if err := a.s.Load(); err != nil {
 		gotrace.Info("Credential file were not loaded. %s", err)

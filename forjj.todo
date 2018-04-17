@@ -5,4 +5,4 @@ tasks:
     ☐ Identify all deployed files to help forjj maintain completely the list of files and remove older one.
     ✔ Fix issue to deploy Jenkins @done (2018-4-16 22:11:29)
     ✔ Maintain issue: Missing deployment code. @done (2018-4-16 22:10:59)
-    ☐ Support for deployment creds
+    ✔ Support for deployment creds @done (2018-4-17 11:05:57)

@@ -113,3 +113,7 @@ func (d *DeploymentCoreStruct) GetRepoPath() string {
 func (d *DeploymentCoreStruct) GetReposPath() string {
 	return path.Dir(d.repoPath)
 }
+
+func (d *DeploymentCoreStruct) Name() string {
+	return d.name
+}

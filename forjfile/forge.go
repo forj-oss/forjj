@@ -851,3 +851,32 @@ func (f *Forge) GetDeployments() (result map[string]*DeploymentStruct) {
 	result = f.yaml.Deployments
 	return
 }
+
+// GetDeploymentType return the first 
+func (f *Forge) GetDeploymentType(deployType string) (v map[string]*DeploymentStruct, found bool) {
+	v = make(map[string]*DeploymentStruct)
+
+	for name, deploy := range f.yaml.Deployments {
+		if deploy.Type == deployType {
+			v[name] = deploy
+			found = true
+		}
+	}
+	return
+}
+
+
+// GetDeploymentType return the first 
+func (f *Forge) GetDeploymentPROType() (v *DeploymentStruct, err error) {
+
+	if deployObjs, _ := f.GetDeploymentType("PRO") ; len(deployObjs) != 1 {
+		err = fmt.Errorf("Found more than one PRO environment")
+	} else {
+		for k := range deployObjs {
+			v = deployObjs[k]
+			break
+		}
+	}
+
+	return
+}
