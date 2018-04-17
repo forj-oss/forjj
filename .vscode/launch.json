@@ -44,7 +44,7 @@
             ]
         },
         {
-            "name": "forjj: Do maintain",
+            "name": "forjj: Do maintain to test",
             "type": "go",
             "request": "launch",
             "mode": "debug",
@@ -58,7 +58,27 @@
                 "--infra-path",
                 "/home/larsonsh/tmp/forjj-test",
                 "--run-plugin-debugger",
-                "github,jenkins"
+                "github,jenkins",
+                "test"
+            ]
+        },
+        {
+            "name": "forjj: Do maintain to production",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "env": {
+                "GOTRACE": "true",
+                "DOCKER_SUDO": "sudo"
+            },
+            "args": [
+                "maintain",
+                "--infra-path",
+                "/home/larsonsh/tmp/forjj-test",
+                "--run-plugin-debugger",
+                "github,jenkins",
+                "production"
             ]
         },
         {
