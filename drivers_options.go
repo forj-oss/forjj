@@ -6,6 +6,7 @@ import (
 	"forjj/drivers"
 	"forjj/forjfile"
 	"forjj/utils"
+	"path"
 	"strings"
 	"text/template"
 
@@ -74,7 +75,9 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 		return
 	}
 
-	if yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, ".yaml", driver.Name, driver.DriverType); err != nil {
+	repos := []string{"forjj-" + driver.Name, driver.Name, "forjj-contribs"}
+	reposSubPaths := []string{"", "", path.Join(driver.DriverType, driver.Name)}
+	if yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, repos, reposSubPaths, driver.Name+".yaml"); err != nil {
 		return
 	}
 
@@ -85,7 +88,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 	// Set defaults value for undefined parameters
 	var ff string
 	if driver.Plugin.Yaml.CreatedFile == "" {
-		ff = "." + driver.InstanceName + ".created"
+		ff = "{{ .InstanceName }}/{{.Name}}.yaml" // Default Flag file setting.
 		driver.ForjjFlagFile = true // Forjj will test the creation success itself, as the driver did not created it automatically.
 	} else {
 		ff = driver.Plugin.Yaml.CreatedFile
@@ -580,4 +583,18 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 		}
 	}
 	return nil
+}
+
+// AddReqDeployment create a new deployment-env key in the forj-settings section of a plugin payload.
+func (a *Forj) AddReqDeployment(req *goforjj.PluginReqData) (err error) {
+	if deploy := a.f.GetDeployment(); deploy != "" {
+		req.Forj["deployment-env"] = deploy
+		if deployObj, found := a.f.GetADeployment(deploy) ; found {
+			req.Forj["deployment-type"] = deployObj.Type
+		} else {
+			return fmt.Errorf("Internal error! Deploy object '%s' not found in deployments", deploy)
+		}
+		return
+	}
+	return fmt.Errorf("Cannot deploy to an unknown environment. Your Forjfile is missing `forj-settings/deploy-environment`")
 }

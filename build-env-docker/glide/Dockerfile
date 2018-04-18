@@ -1,4 +1,4 @@
-FROM golang:1.7.4
+FROM golang:1.9.4
 
 MAINTAINER christophe.larsonneur@hpe.com
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"forjj/creds"
 	"forjj/utils"
 	"log"
 	"net/url"
@@ -16,10 +17,10 @@ import (
 const Workspace_Name = ".forj-workspace"
 
 const (
-	inCli=3
-	inStore=2
-	inDefault=1
-	notFound=0
+	inCli     = 3
+	inStore   = 2
+	inDefault = 1
+	notFound  = 0
 )
 
 // ParseContext : Load cli context to adapt the list of options/flags from the driver definition.
@@ -94,14 +95,9 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// Identifying appropriate Contribution Repository.
 	// The value is not set in flagsv. But is in the parser context.
 
-	defaultPluginURL := new(url.URL)
-	url.Parse(default_plugin_repo)
-	a.ContribRepoURIs = make([]*url.URL, 0, 2)
+	a.ContribRepoURIs = make([]*url.URL, 0, 1)
 
-	if w, v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
-		if w == inDefault || w == notFound {
-			a.ContribRepoURIs = append(a.ContribRepoURIs, defaultPluginURL)
-		}
+	if _, v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
 		a.ContribRepoURIs = append(a.ContribRepoURIs, v)
 		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
 	} else {
@@ -109,7 +105,8 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	}
 	if _, v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
 		a.flows.AddRepoPath(v)
-		gotrace.Trace("Using '%s' for '%s'", v, "flows-repo")
+		vpath, _ := url.PathUnescape(v.String())
+		gotrace.Trace("Using '%s' for '%s'", vpath, "flows-repo")
 	} else {
 		gotrace.Error("Flow repository url issue: %s", err)
 	}
@@ -120,10 +117,33 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		gotrace.Error("RepoTemplates repository url issue: %s", err)
 	}
 
+	// Credential management
 	if fileDesc, err := a.cli.GetAppStringValue(cred_f); err == nil && fileDesc != "" {
 		a.s.SetFile(fileDesc)
 	} else {
-		a.s.SetPath(a.w.Path())
+		a.s.SetPath(a.w.Path(), a.f.GetDeployment())
+	}
+	if err := a.s.Upgrade(func(d *creds.YamlSecure, version string) (err error) {
+		// Function to identify creds V0 and do upgrade
+		if credPath := d.DirName(); credPath == a.w.Path() { // In Workspace
+			oldFile := path.Join(credPath, creds.DefaultCredsFile)
+			if info, err := os.Stat(oldFile); err == nil && !info.IsDir() { // Is the old file name
+				// V0 identified
+				// Considered current creds is for PRO type environment
+				if deployObj, err := a.f.GetDeploymentPROType(); err != nil {
+					return fmt.Errorf("Unable to upgrade. %s", err)
+				} else {
+					newfile := d.DefineDefaultCredFileName(credPath, deployObj.Name())
+					if err := os.Rename(oldFile, newfile); err != nil {
+						return fmt.Errorf("Unable to upgrade. %s", err)
+					}
+					gotrace.Info("Credential 'V0' file upgraded to '%s'.", version)
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		gotrace.Info("Unable to upgrade your credentials. %s", err)
 	}
 	if err := a.s.Load(); err != nil {
 		gotrace.Info("Credential file were not loaded. %s", err)
@@ -150,10 +170,6 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		// The instance record has been created automatically with  cli.ForjObject.AddInstanceField()
 		a.cli.SetValue(app, d.Name, cli.String, "type", d.DriverType)
 		a.cli.SetValue(app, d.Name, cli.String, "driver", d.Name)
-
-		d.Plugin.PluginSetWorkspace(a.w.Path())
-		d.Plugin.PluginSetSource(path.Join(a.w.Path(), a.w.Infra.Name, "apps", d.DriverType))
-		d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
 	}
 
 	if i, err := a.cli.GetAppStringValue(debug_instance_f); err == nil && i != "" {
@@ -162,7 +178,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	a.contextDisplayed()
 
 	if err := a.DefineDefaultUpstream(); err != nil {
-		if ok, err2 := a.f.Forjfile().Repos.AllHasAppWith("appRelName:upstream"); err != nil {
+		if ok, err2 := a.f.DeployForjfile().Repos.AllHasAppWith("appRelName:upstream"); err != nil {
 			return err2, false
 		} else if ok {
 			gotrace.Warning("%s", err)

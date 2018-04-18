@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/forj-oss/forjj-modules/trace"
 	"forjj/git"
+	"path"
+
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 const (
@@ -77,6 +79,24 @@ func (a *Forj) LoadForge() (err error) {
 		return
 	}
 
-	_, err = a.f.Load()
+	deployTo, _, _, _ := a.cli.GetStringValue("_app", "forjj", deployToArg)
+
+	_, err = a.f.Load(deployTo)
+
+	// Setup each deployment internal data
+	deployPath := path.Join(a.w.Path(), "deployments")
+	found := false
+	for name, deploy := range a.f.GetDeployments() {
+		deploy.DeploymentCoreStruct.GitSetRepo(deployPath, "")
+		if name == deployTo {
+			// Define selected deployment.
+			a.d = &deploy.DeploymentCoreStruct
+			found = true
+		}
+	}
+	if !found {
+		err = fmt.Errorf("Unknown deployment environment '%s'. Use one defined in your Forjfile", deployTo)
+	}
+
 	return
 }

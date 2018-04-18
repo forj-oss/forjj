@@ -2,18 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/forjj-modules/cli"
+	"forjj/drivers"
+	"forjj/forjfile"
+	"forjj/git"
+	"forjj/utils"
 	"log"
+	"os"
+	"path"
 	"strings"
 	"time"
+
+	"github.com/forj-oss/forjj-modules/cli"
+	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
-	"forjj/drivers"
-	"forjj/utils"
-	"forjj/git"
-	"path"
-	"os"
-	"forjj/forjfile"
 )
 
 const (
@@ -77,6 +78,29 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 	return
 }
 
+func (a *Forj) moveTo(where string) (cur_dir string, _ error) {
+	if v, err := os.Getwd(); err != nil {
+		return "", fmt.Errorf("Unable to get the current directory. %s", err)
+	} else {
+		cur_dir = v
+	}
+	if where == goforjj.FilesSource {
+		err := os.Chdir(a.f.InfraPath())
+		if err != nil {
+			return "", fmt.Errorf("Unable to move to '%s'. %s", a.f.InfraPath(), err)
+		}
+		gotrace.Trace("Moved to %s repo (%s)", where, a.f.InfraPath())
+	}
+	if where == goforjj.FilesDeploy {
+		err := os.Chdir(a.d.GetRepoPath())
+		if err != nil {
+			return "", fmt.Errorf("Unable to move to '%s'. %s", a.d.GetRepoPath(), err)
+		}
+		gotrace.Trace("Moved to %s repo (%s)", where, a.d.GetRepoPath())
+	}
+	return
+}
+
 // do driver add files
 func (a *Forj) do_driver_add(d *drivers.Driver) error {
 	if len(d.Plugin.Result.Data.Files) == 0 {
@@ -86,18 +110,18 @@ func (a *Forj) do_driver_add(d *drivers.Driver) error {
 	gotrace.Trace("----- Do GIT tasks in the INFRA repository.")
 
 	// Add source files
-	if err := d.GitAddPluginFiles(); err != nil {
+	if err := d.GitAddPluginFiles(a.moveTo); err != nil {
 		return fmt.Errorf("Issue to add driver '%s' generated files. %s", a.CurrentPluginDriver.Name, err)
 	}
 
 	// Check about uncontrolled files. Existing if one uncontrolled file is found
-	if status := git.Status(); status.Err != nil {
+	if status := git.GetStatus(); status.Err != nil {
 		return fmt.Errorf("Issue to check git status. %s", status.Err)
 	} else {
-		if len(status.Untracked) > 0 {
+		if num := status.CountUntracked() ; num > 0 {
 			log.Print("Following files created by the plugin are not controlled by the plugin. You must fix it manually and contact the plugin maintainer to fix this issue.")
-			log.Printf("files: %s", strings.Join(status.Untracked, ", "))
-			return fmt.Errorf("Unable to complete commit process. '%d' Uncontrolled files found.", len(status.Untracked))
+			log.Printf("files: %s", strings.Join(status.Untracked(), ", "))
+			return fmt.Errorf("Unable to complete commit process. '%d' Uncontrolled files found", num)
 		}
 	}
 	return nil
@@ -125,7 +149,7 @@ func (a *Forj) driver_cleanup_all() {
 
 // Create the flag to a kingpin Command. (create/update/maintain)
 func (a *Forj) init_driver_flags_for(d *drivers.Driver, option_name, command, forjj_option_name, forjj_option_help string,
-opts *cli.ForjOpts) {
+	opts *cli.ForjOpts) {
 	if command == "" {
 		// Add to the Application layer.
 		gotrace.Trace("Set App flag '%s(%s)'", forjj_option_name, option_name)
@@ -156,11 +180,12 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		return err, false
 	}
 
-	if found, _ := goforjj.InArray(instance_name, a.debug_instances) ; found {
+	if found, _ := goforjj.InArray(instance_name, a.debug_instances); found {
 		d.Plugin.RunningFromDebugger()
 	}
 
 	d.Plugin.PluginSetSource(path.Join(a.i.Path(), "apps", d.DriverType))
+	d.Plugin.PluginSetDeployment(a.d.GetReposPath())
 	d.Plugin.PluginSetVersion(d.DriverVersion)
 	d.Plugin.PluginSetWorkspace(a.w.Path())
 	d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
@@ -177,14 +202,14 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	}
 
 	d.Plugin.Yaml.Runtime.Docker.Env["LOGNAME"] = "$LOGNAME"
-	if v := os.Getenv("http_proxy") ; v != "" {
+	if v := os.Getenv("http_proxy"); v != "" {
 		d.Plugin.Yaml.Runtime.Docker.Env["http_proxy"] = v
 		d.Plugin.Yaml.Runtime.Docker.Env["https_proxy"] = v
 	}
-	if v := os.Getenv("no_proxy") ; v != "" {
+	if v := os.Getenv("no_proxy"); v != "" {
 		d.Plugin.Yaml.Runtime.Docker.Env["no_proxy"] = v
 	}
-	if v, b, _ := d.Plugin.GetDockerDoodParameters() ; v != nil {
+	if v, b, _ := d.Plugin.GetDockerDoodParameters(); v != nil {
 		d.Plugin.Yaml.Runtime.Docker.Env["DOCKER_DOOD"] = strings.Join(v, " ")
 		d.Plugin.Yaml.Runtime.Docker.Env["DOCKER_DOOD_BECOME"] = strings.Join(b, " ")
 	}
@@ -199,8 +224,12 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	a.LoadInternalData()
 	a.GetForjjFlags(plugin_payload, d, common_acts)
 	a.GetForjjFlags(plugin_payload, d, action)
-	if err := a.GetObjectsData(plugin_payload, d, action) ; err != nil {
+	if err := a.GetObjectsData(plugin_payload, d, action); err != nil {
 		return fmt.Errorf("Unable to Get Object data on '%s'. %s", instance_name, err), aborted
+	}
+	err = a.AddReqDeployment(plugin_payload)
+	if err != nil {
+		return fmt.Errorf("Unable to %s. %s. You may need to execute a forjj update to a deployment environment", action, err), false
 	}
 
 	d.Plugin.Result, err = d.Plugin.PluginRunAction(action, plugin_payload)
@@ -235,7 +264,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	if d.DriverType == "upstream" {
 		for Name, Repo := range d.Plugin.Result.Data.Repos {
 			var repo_obj *forjfile.RepoStruct
-			if r, ok := a.f.GetObjectInstance(repo, Name).(*forjfile.RepoStruct) ; ! ok {
+			if r, ok := a.f.GetObjectInstance(repo, Name).(*forjfile.RepoStruct); !ok {
 				continue
 			} else {
 				repo_obj = r
@@ -247,6 +276,12 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 			if a.f.GetInfraName() == Name {
 				a.f.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
 				a.f.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
+			}
+
+			if deployName, found := repo_obj.Get(forjfile.FieldRepoDeployName) ; found {
+				deployObj, _ := a.f.GetADeployment(deployName.GetString())
+				deployObj.GitDefineRemote("origin", Repo.Remotes["origin"].Ssh)
+				deployObj.GitSyncFrom("origin", "master")
 			}
 		}
 	}
@@ -267,4 +302,3 @@ func (a *Forj) DriverGet(instance string) (d *drivers.Driver) {
 
 	return nil
 }
-

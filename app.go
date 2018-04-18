@@ -73,10 +73,11 @@ type Forj struct {
 
 	infra_readme string // Initial infra repo README.md text.
 
-	f forjfile.Forge     // Forge Data stored in the Repository (Loaded from Forjfile)
-	w forjfile.Workspace // Data structure to stored in the workspace. See workspace.go
-	s creds.YamlSecure   // credential file support.
-	o ForjjOptions       // Data structured stored in the root of the infra repo. See forjj-options.go
+	f forjfile.Forge                // Forge Data stored in the Repository (Loaded from Forjfile)
+	w forjfile.Workspace            // Data structure to stored in the workspace. See workspace.go
+	s creds.YamlSecure              // credential file support.
+	o ForjjOptions                  // Data structured stored in the root of the infra repo. See forjj-options.go
+	d *forjfile.DeploymentCoreStruct // deployment information
 
 	flows flow.Flows
 
@@ -116,22 +117,25 @@ const (
 	debug_instance_f = "run-plugin-debugger"
 	orga_f           = "organization" // Organization name for the Forge. Could be used to set upstream organization.
 	// create flags
-	forjfile_path_f = "forjfile-path" // Path where the Forjfile template resides.
-	forjfile_f      = "forjfile-name" // Name of the forjfile where the Forjfile template resides.
-	ssh_dir_f       = "ssh-dir"
-	no_maintain_f   = "no-maintain"
-	message_f       = "message"
+	forjfile_path_f  = "forjfile-path" // Path where the Forjfile template resides.
+	// deployTo is the name of the deployment environment to update/maintain.
+	deployToArg      = "deploy-to"
+	forjfile_f       = "forjfile-name" // Name of the forjfile where the Forjfile template resides.
+	ssh_dir_f        = "ssh-dir"
+	no_maintain_f    = "no-maintain"
+	message_f        = "message"
 )
 
 const (
-	default_contribs_repo = "https://github.com/forj-oss/forjj-contribs/raw/master"
-	default_plugin_repo   = "https://github.com/forj-oss/forjj-<plugin>/raw/master"
-	default_repo_branch   = "master"
+	defaultRepoBranch   = "master"
+	defaultContribsRepo = "https://github.com/forj-oss/<repo>/raw/" + defaultRepoBranch
+	defaultFlowRepo     = "https://github.com/forj-oss/forjj-flows/raw/" + defaultRepoBranch
+	defaultRepoTemplate = "https://github.com/forj-oss/forjj-repotemplates/raw/" + defaultRepoBranch
 )
 
 // ForjModel is used by template mechanism
 type ForjModel struct {
-	Forjfile *forjfile.ForgeYaml
+	Forjfile *forjfile.DeployForgeYaml
 	Current  ForjCurrentModel
 	Secret   string
 }
@@ -147,7 +151,7 @@ type ForjCurrentModel struct {
 // Model is used to build a Model to use by text/templates
 func (a *Forj) Model(object_name, instance_name, key string) *ForjModel {
 	data := ForjModel{
-		Forjfile: a.f.Forjfile(),
+		Forjfile: a.f.DeployForjfile(),
 		Current: ForjCurrentModel{
 			Type:  object_name,
 			Name:  instance_name,
@@ -172,9 +176,9 @@ func (a *Forj) init() {
 	// Define options
 	opts_required := cli.Opts().Required()
 	//opts_ssh_dir := cli.Opts().Default(fmt.Sprintf("%s/.ssh", os.Getenv("HOME")))
-	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default(default_contribs_repo)
-	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default("https://github.com/forj-oss/forjj-flows/raw/master")
-	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default("https://github.com/forj-oss/forjj-repotemplates/raw/master")
+	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default(defaultContribsRepo)
+	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default(defaultFlowRepo)
+	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
@@ -388,6 +392,7 @@ func (a *Forj) init() {
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj update --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, chg_act).
+		AddArg(cli.String, deployToArg, updateDeployToHelp, opts_required).
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil) == nil {
 		log.Printf("action update: %s", a.cli.Error())
 	}
@@ -396,6 +401,7 @@ func (a *Forj) init() {
 	if a.cli.OnActions(maint_act).
 		AddActionFlagsFromObjectAction(workspace, chg_act).
 		AddActionFlagFromObjectAction(infra, chg_act, infra_path_f).
+		AddArg(cli.String, deployToArg, maintainDeployToHelp, opts_required).
 		AddFlag(cli.String, "file", maintain_option_file, nil) == nil {
 		log.Printf("action maintain: %s", a.cli.Error())
 	}
@@ -414,7 +420,7 @@ func (a *Forj) init() {
 // LoadInternalData()
 func (a *Forj) LoadInternalData() {
 	a.InternalForjData = make(map[string]string)
-	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount"}
+	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount", "deploy-mount"}
 	for _, param := range ldata {
 		a.InternalForjData[param] = a.getInternalData(param)
 	}
@@ -447,17 +453,23 @@ func (a *Forj) getInternalData(param string) (result string) {
 		} else {
 			gotrace.Trace("Warning. instance_name requested outside plugin context.")
 		}
-	case "source-mount": // where the plugin has source mounted in the container
+	case "source-mount": // where the plugin has source source mounted in the container
 		if a.CurrentPluginDriver != nil {
 			result = a.CurrentPluginDriver.Plugin.SourceMount
 		} else {
 			gotrace.Trace("Warning. source-mount requested outside plugin context.")
 		}
-	case "workspace-mount": // where the plugin has source mounted to the container from caller
+	case "workspace-mount": // where the plugin has source workspace mounted to the container from caller
 		if a.CurrentPluginDriver != nil {
 			result = a.CurrentPluginDriver.Plugin.WorkspaceMount
 		} else {
 			gotrace.Trace("Warning. workspace-mount requested outside plugin context.")
+		}
+	case "deploy-mount": // where the plugin has soure deployment mounted to the container
+		if a.CurrentPluginDriver != nil {
+			result = a.CurrentPluginDriver.Plugin.DeployPath
+		} else {
+			gotrace.Trace("Warning. deploy-mount requested outside plugin context.")
 		}
 	}
 	gotrace.Trace("'%s' requested. Value returned '%s'", param, result)

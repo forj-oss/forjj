@@ -23,7 +23,7 @@ func (a *Forj)FlowInit() error {
 		bInError = true
 	}
 
-	for _, repo := range a.f.Forjfile().Repos {
+	for _, repo := range a.f.DeployForjfile().Repos {
 		flow_to_apply := default_flow_to_apply
 		if repo.Flow.Name != "" {
 			flow_to_apply = repo.Flow.Name
