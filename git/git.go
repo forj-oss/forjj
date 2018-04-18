@@ -190,7 +190,8 @@ func RemoteExist(remote string) (found bool) {
 	return
 }
 
-func RemoteUrl(remote string) (string, bool, error) {
+// RemoteURL returns the url of the remote requested.
+func RemoteURL(remote string) (string, bool, error) {
 	var remotes []string
 	if v, err := Get("remote", "-v"); err != nil {
 		return "", false, err
@@ -198,21 +199,22 @@ func RemoteUrl(remote string) (string, bool, error) {
 		if v == "" {
 			remotes = []string{}
 		} else {
-			remotes = strings.Split(v, "\n")
+			remotes = strings.Split(strings.Trim(v, "\n "), "\n")
 		}
 	}
 
-	remMatch, _ := regexp.Compile(`^ *(\w+) *(.*) \((fetch|push)\)$`)
+	remMatch, _ := regexp.Compile(`^ *(\w+) *(.*) \((fetch)\)$`)
 	for _, aRemote := range remotes {
-		if v := remMatch.FindStringSubmatch(aRemote); v[0] == remote {
+		if v := remMatch.FindStringSubmatch(aRemote); v != nil && v[0] == remote {
 			return v[1], true, nil
 		}
 	}
 	return "", false, nil
 }
 
+// EnsureRemoteIs will update the remote name with the url...
 func EnsureRemoteIs(name, url string) error {
-	if ru, found, err := RemoteUrl(name); err != nil {
+	if ru, found, err := RemoteURL(name); err != nil {
 		return err
 	} else if found {
 		if ru != url {

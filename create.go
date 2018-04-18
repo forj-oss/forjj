@@ -205,14 +205,10 @@ func (a *Forj) Create() error {
 		if err := a.d.GitPush(false); err != nil {
 			return fmt.Errorf("Failed to push deploy commits. %s", err)
 		}
-	
+		gotrace.Trace("Deploy %s repository pushed.", a.d.Name())
+	} else {
+		gotrace.Trace("The remote repository doesn't exist. Pushing %s repository ignored.", a.d.Name())
 	}
-
-	// TODO: Implement the flow requested
-	// flow_create() # Implement the flow on running tools for the infra-repo
-
-	// TODO: Implement flow_close() to close the create task
-	// flow_close()
 
 	return nil
 }

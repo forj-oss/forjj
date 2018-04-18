@@ -9,3 +9,4 @@ tasks:
     ✔ @high Maintain issue: Missing deployment code. @done (2018-4-16 22:10:59)
     ✔ @high Support for deployment creds @done (2018-4-17 11:05:57)
     ☐ @low Simplify Repo creation with Defaults so that we do not need to re-apply the full flow. create.go:157,1
+    ☐ @low Create/maintain root README.md of each deployment repositories

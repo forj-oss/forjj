@@ -6,6 +6,7 @@ import (
 	"forjj/utils"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/forj-oss/forjj-modules/trace"
 )
@@ -134,7 +135,8 @@ func (d *DeploymentCoreStruct) GitPush(force bool) (_ error) {
 			push = append(push, "-f")
 		}
 		if d.syncStatus == -1 {
-			push = append(push, "-u", d.syncRemoteBranch)
+			push = append(push, "-u")
+			push = append(push, strings.Split(d.syncRemoteBranch, "/")...)
 		}
 		if git.Do(push...) != 0 {
 			err = fmt.Errorf("Unable to push")

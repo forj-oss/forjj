@@ -92,20 +92,21 @@ func (a *Forj) do_driver_maintain(instance string) error {
 				case "+1":
 					git.Push()
 				case "-1+1":
-					return fmt.Errorf("Local and remote branch has diverged. You must fix it before going on.")
+					return fmt.Errorf("Local and remote branch has diverged. You must fix it before going on")
 				}
 			}
 		}
+
+		// after the first upstream maintain call remote repo should exist
+		// So, we can sync it up if the sync was not done successfully before.
+		if !a.d.InSync() {
+			if err := a.d.GitSyncUp(); err != nil {
+				return err
+			}
+			return a.d.GitPush(false)
+		}
 	}
 
-	// after the first upstream maintain call remote repo should exist
-	// So, we can sync it up if the sync was not done successfully before.
-	if !a.d.InSync() {
-		if err := a.d.GitSyncUp(); err != nil {
-			return err
-		}
-		return a.d.GitPush(false)
-	}
 	return nil
 }
 
