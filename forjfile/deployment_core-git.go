@@ -10,7 +10,8 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
-// GitSetRepo define where the Deployment repo is located.
+// GitSetRepo define where the Deployment repo is located. It creates the repo even just empty and sync if possible and origin given.
+// It switch to master branch
 func (d *DeploymentCoreStruct) GitSetRepo(aPath, origin string) (err error) {
 	if v, err := utils.Abs(path.Join(aPath, d.name)); err != nil {
 		return err
@@ -24,6 +25,7 @@ func (d *DeploymentCoreStruct) GitSetRepo(aPath, origin string) (err error) {
 
 	if origin != "" {
 		err = d.GitDefineRemote("origin", origin)
+		d.SwitchTo("master")
 		d.GitSyncFrom("origin", "master")
 	}
 
@@ -45,14 +47,99 @@ func (d *DeploymentCoreStruct) GitDefineRemote(name, uri string) (err error) {
 }
 
 // GitSyncFrom refresh the remote, and synchronize.
-func (d *DeploymentCoreStruct) GitSyncFrom(remote, branch string) {
-	d.runInContext(func() (_ error) {
-		remoteBranch := remote + "/" + branch
-		if git.Do("fetch", remote) == 0 {
-			git.Do("reset", remoteBranch)
-			git.Do("branch", "--set-upstream-to="+remoteBranch)
+func (d *DeploymentCoreStruct) GitSyncFrom(remote, branch string) error {
+	return d.runInContext(func() (_ error) {
+		if !git.RemoteExist(remote) {
+			return
+		}
+		d.syncRemoteBranch = remote + "/" + branch
+		d.syncRemote = remote
+		d.syncStatus = 2 // Doing the sync up
+		return d.GitSyncUp()
+	})
+}
+
+func (d *DeploymentCoreStruct) GitSyncUp() error {
+	return d.runInContext(func() (_ error) {
+		if d.syncStatus == 0 {
+			return fmt.Errorf("Internal error! Unable to sync up. The synchronization was not initiliazed. You must call GitSyncFrom, Once")
+		}
+		if git.Do("fetch", d.syncRemote) == 0 {
+			if found, _ := git.RemoteBranchExist(d.syncRemote); found {
+				git.Do("reset", d.syncRemoteBranch)
+				git.Do("branch", "--set-upstream-to="+d.syncRemoteBranch)
+				d.syncStatus = 1
+			} else {
+				d.syncStatus = -1
+			}
 		} else {
-			gotrace.Info("Your remote '%s' is currently not available. Synchonization delayed.", remoteBranch)
+			d.syncStatus = -2
+		}
+		return
+	})
+}
+
+// SwitchTo move to the requested branch
+// if files were updated, they are stashed and restored in the other branch
+// !!! Conflict can happen !!!
+//
+func (d *DeploymentCoreStruct) SwitchTo(branch string) error {
+	return d.runInContext(func() (err error) {
+		if git.GetCurrentBranch() != branch {
+
+			trackedFiles := git.GetStatus().CountTracked()
+			if trackedFiles > 0 {
+				git.Do("stash")
+			}
+			git.Do("reset", "--hard", "HEAD")
+			if found, err := git.BranchExist(branch); err != nil {
+				return err
+			} else if found {
+				git.Do("checkout", branch)
+			} else {
+				git.Do("checkout", "-b", branch)
+			}
+			if trackedFiles > 0 {
+				git.Do("stash", "pop")
+			}
+		}
+		return
+	})
+}
+
+// GitCommit do the commit in the Deployment repository.
+func (d *DeploymentCoreStruct) GitCommit(message string) (_ error) {
+	return d.runInContext(func() (err error) {
+		status := git.GetStatus()
+		if status.Ready.CountFiles() > 0 {
+			git.Commit(message, true)
+		}
+		return
+	})
+}
+
+// GitPush do a git push
+// depending on the previous Git SyncFrom, a push can take place
+func (d *DeploymentCoreStruct) GitPush(force bool) (_ error) {
+	return d.runInContext(func() (err error) {
+		if d.syncStatus == -2 {
+			return fmt.Errorf("Unable to push to an inexistent remote")
+		}
+		if d.syncStatus == 0 {
+			return fmt.Errorf("Unable to push. You need to sync up before")
+		}
+		push := make([]string, 1, 4)
+		push[0] = "push"
+		if force {
+			push = append(push, "-f")
+		}
+		if d.syncStatus == -1 {
+			push = append(push, "-u", d.syncRemoteBranch)
+		}
+		if git.Do(push...) != 0 {
+			err = fmt.Errorf("Unable to push")
+		} else {
+			d.syncStatus = 1
 		}
 		return
 	})

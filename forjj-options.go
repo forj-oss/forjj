@@ -90,7 +90,7 @@ func (a *Forj) LoadForge() (err error) {
 		deploy.DeploymentCoreStruct.GitSetRepo(deployPath, "")
 		if name == deployTo {
 			// Define selected deployment.
-			a.d = deploy.DeploymentCoreStruct
+			a.d = &deploy.DeploymentCoreStruct
 			found = true
 		}
 	}

@@ -77,7 +77,7 @@ type Forj struct {
 	w forjfile.Workspace            // Data structure to stored in the workspace. See workspace.go
 	s creds.YamlSecure              // credential file support.
 	o ForjjOptions                  // Data structured stored in the root of the infra repo. See forjj-options.go
-	d forjfile.DeploymentCoreStruct // deployment information
+	d *forjfile.DeploymentCoreStruct // deployment information
 
 	flows flow.Flows
 

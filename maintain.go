@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/forj-oss/forjj-modules/trace"
 	"forjj/git"
+
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 // Maintain call docker to create the Solution source code from scratch with validated parameters.
@@ -24,7 +25,7 @@ func (a *Forj) Maintain() error {
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-	if  err := a.get_infra_repo(); err != nil {
+	if err := a.get_infra_repo(); err != nil {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
@@ -61,13 +62,13 @@ func (a *Forj) do_driver_maintain(instance string) error {
 	// Ensure remote upstream exists - calling upstream driver - maintain
 	// This will create/update the upstream service
 	if err, _ := a.driver_do(d, instance, "maintain"); err != nil {
-		return fmt.Errorf("Driver issue. %s.", err)
+		return fmt.Errorf("Driver issue. %s", err)
 	}
 
 	if a.f.GetInfraInstance() == instance {
 		// Update git remote and 'master' branch to infra repository.
 		var infra_name string
-		if i, found, err := a.GetPrefs(infra_name_f) ; err != nil {
+		if i, found, err := a.GetPrefs(infra_name_f); err != nil {
 			return err
 		} else {
 			if !found {
@@ -75,24 +76,35 @@ func (a *Forj) do_driver_maintain(instance string) error {
 			}
 			infra_name = i
 		}
-		if r, found := d.Plugin.Result.Data.Repos[infra_name] ; found {
+		if r, found := d.Plugin.Result.Data.Repos[infra_name]; found {
 			for name, remote := range r.Remotes {
 				a.i.EnsureGitRemote(remote.Ssh, name)
 			}
 			for branch, remote := range r.BranchConnect {
 				status, err := a.i.EnsureBranchConnected(branch, remote)
-				if err != nil { return err }
+				if err != nil {
+					return err
+				}
 				switch status {
-				case "-1" :
+				case "-1":
 					return fmt.Errorf("Warning! Remote branch is most recent than your local branch. " +
 						"Do a git pull and restart 'forjj maintain'")
-				case "+1" :
+				case "+1":
 					git.Push()
-				case "-1+1" :
+				case "-1+1":
 					return fmt.Errorf("Local and remote branch has diverged. You must fix it before going on.")
 				}
 			}
 		}
+	}
+
+	// after the first upstream maintain call remote repo should exist
+	// So, we can sync it up if the sync was not done successfully before.
+	if !a.d.InSync() {
+		if err := a.d.GitSyncUp(); err != nil {
+			return err
+		}
+		return a.d.GitPush(false)
 	}
 	return nil
 }

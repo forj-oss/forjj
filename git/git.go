@@ -13,13 +13,6 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
-type GitStatus struct {
-	Added     []string
-	Modified  []string
-	Untracked []string
-	Err       error
-}
-
 // Git Call git command with arguments. All print out displayed. It returns git Return code.
 func Do(opts ...string) int {
 	colorCyan, colorReset := utils.DefColor(36)
@@ -27,46 +20,46 @@ func Do(opts ...string) int {
 	return utils.RunCmd("git", opts...)
 }
 
-func Status() (gs *GitStatus) {
-	gs = new(GitStatus)
-	gs.Added = make([]string, 0, 2)
-	gs.Modified = make([]string, 0, 2)
-	gs.Untracked = make([]string, 0, 2)
-	added_re, _ := regexp.Compile("^[A-Z]  (.*)$")
-	modified_re, _ := regexp.Compile("^ [A-Z] (.*)$")
-	untracked_re, _ := regexp.Compile(`^\?\? (.*)$`)
+// Status return an GitStatus struct with the list of files, added, updated and
+func GetStatus() (gs *Status) {
+	gs = new(Status)
+
+	gs.Ready = make(map[string][]string)
+	gs.Ready.init(false)
+	gs.NotReady = make(map[string][]string)
+	gs.NotReady.init(true)
+
+	ReadyRE, _ := regexp.Compile("^([ADM])  (.*)$")
+	NotReadyRE, _ := regexp.Compile("^ ([?ADM]) (.*)$")
 
 	var s string
 
 	s, gs.Err = Get("status", "--porcelain")
-	if gs.Err != nil {
+	if gs.Err != nil || s == "" {
 		return
 	}
 
 	lines := strings.Split(s, "\n")
 
 	for _, line := range lines {
-		if m := untracked_re.FindStringSubmatch(line); m != nil {
-			gs.Untracked = append(gs.Untracked, m[1])
+		if m := ReadyRE.FindStringSubmatch(line); m != nil {
+			gs.Ready.add(m[1], m[2])
 		}
-		if m := modified_re.FindStringSubmatch(line); m != nil {
-			gs.Modified = append(gs.Modified, m[1])
-		}
-		if m := added_re.FindStringSubmatch(line); m != nil {
-			gs.Added = append(gs.Added, m[1])
+		if m := NotReadyRE.FindStringSubmatch(line); m != nil {
+			gs.Ready.add(m[1], m[2])
 		}
 	}
 	return
 }
 
-// Call a git command and get the output as string output.
+// Get Call a git command and get the output as string output.
 func Get(opts ...string) (string, error) {
 	gotrace.Trace("RUNNING: git %s", strings.Join(opts, " "))
 	out, err := exec.Command("git", opts...).Output()
 	return string(out), err
 }
 
-// Call a git command and get the output as string output.
+// GetWithStatusCode Call a git command and get the output as string output.
 func GetWithStatusCode(opts ...string) (string, int) {
 	colorCyan, colorReset := utils.DefColor(36)
 	log.Printf("%sgit %s%s\n", colorCyan, strings.Join(opts, " "), colorReset)
@@ -74,18 +67,21 @@ func GetWithStatusCode(opts ...string) (string, int) {
 }
 
 // Commit Do a git commit
-func Commit(msg string, errorIfEmpty bool) error {
-	s := Status()
-	if len(s.Added) == 0 {
-		return fmt.Errorf("No files added. Please check.")
+func Commit(msg string, errorIfEmpty bool) (err error) {
+	s := GetStatus()
+	if s.Ready.CountTracked() == 0 {
+		if errorIfEmpty {
+			err = fmt.Errorf("No files to commit. Please check")
+		}
+		return
 	}
 	if Do("commit", "-m", msg) > 0 {
-		return fmt.Errorf("Unable to commit.")
+		return fmt.Errorf("Unable to commit")
 	}
 	return nil
 }
 
-// GitPush Push latest commits
+// Push Push latest commits
 func Push() error {
 	if Do("push") > 0 {
 		return fmt.Errorf("Unable to push commits.")
@@ -102,20 +98,25 @@ func Add(files []string) int {
 
 func Branches() ([]string, error) {
 	v, err := Get("branch")
-	if err != nil {
+	if err != nil || v == "" {
 		return []string{}, err
 	}
 	return strings.Split(v, "\n"), nil
 }
 
+// RemoteBranches returns the list of Remote branches found
+// Formatted as <remote>/<branchName>
 func RemoteBranches() ([]string, error) {
 	v, err := Get("branch", "-r")
-	if err != nil {
+	if err != nil || v == "" {
 		return []string{}, err
 	}
 	return strings.Split(v, "\n"), nil
 }
 
+// RemoteBranchExist check is remote branch if known by GIT.
+//
+// Remote: Formated as <remote>/<branchName>
 func RemoteBranchExist(remote string) (bool, error) {
 	if branches, err := RemoteBranches(); err != nil {
 		return false, err

@@ -76,6 +76,18 @@ func (a *Forj) Update() error {
 			return fmt.Errorf("Failed to Add '%s' source files. %s", instance, err)
 		}
 	}
+
+	commitMsg := fmt.Sprintf("Forge '%s' updated.", a.w.Organization)
+
+	if err := a.d.GitCommit(commitMsg); err != nil {
+		return fmt.Errorf("Failed to commit deploy files. %s", err)
+	}
+
+	if err := a.d.GitPush(false); err != nil {
+		return fmt.Errorf("Failed to push deploy commits. %s", err)
+	}
+
+
 	/*	// If the upstream driver has updated his source, we need to get and commit them. If
 		// Commiting source code.
 		if d, found := a.drivers[a.w.Instance]; no_new_infra && found {

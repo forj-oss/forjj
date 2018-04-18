@@ -131,7 +131,7 @@ func (a *Forj) Create() error {
 	for deployName, deploy := range a.f.GetDeployments() {
 		if deploy.Type == "PRO" {
 			gotrace.Info("Planning to deploy to '%s' (PRO)", deployName)
-			a.d = deploy.DeploymentCoreStruct
+			a.d = &deploy.DeploymentCoreStruct
 		}
 
 		// Ensure deploy repo is identified.
@@ -192,8 +192,20 @@ func (a *Forj) Create() error {
 		}
 	}
 
-	if err := git.Commit(fmt.Sprintf("Forge '%s' created.", a.w.Organization), true); err != nil {
+	commitMsg := fmt.Sprintf("Forge '%s' created.", a.w.Organization)
+	if err := git.Commit(commitMsg, true); err != nil {
 		return fmt.Errorf("Failed to commit source files. %s", err)
+	}
+
+	if err := a.d.GitCommit(commitMsg); err != nil {
+		return fmt.Errorf("Failed to commit deploy files. %s", err)
+	}
+
+	if a.d.GitRemoteReady() {
+		if err := a.d.GitPush(false); err != nil {
+			return fmt.Errorf("Failed to push deploy commits. %s", err)
+		}
+	
 	}
 
 	// TODO: Implement the flow requested

@@ -115,13 +115,13 @@ func (a *Forj) do_driver_add(d *drivers.Driver) error {
 	}
 
 	// Check about uncontrolled files. Existing if one uncontrolled file is found
-	if status := git.Status(); status.Err != nil {
+	if status := git.GetStatus(); status.Err != nil {
 		return fmt.Errorf("Issue to check git status. %s", status.Err)
 	} else {
-		if len(status.Untracked) > 0 {
+		if num := status.CountUntracked() ; num > 0 {
 			log.Print("Following files created by the plugin are not controlled by the plugin. You must fix it manually and contact the plugin maintainer to fix this issue.")
-			log.Printf("files: %s", strings.Join(status.Untracked, ", "))
-			return fmt.Errorf("Unable to complete commit process. '%d' Uncontrolled files found.", len(status.Untracked))
+			log.Printf("files: %s", strings.Join(status.Untracked(), ", "))
+			return fmt.Errorf("Unable to complete commit process. '%d' Uncontrolled files found", num)
 		}
 	}
 	return nil
