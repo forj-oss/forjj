@@ -115,6 +115,22 @@ func (r *RepoStruct) Owner() string {
 	return r.owner
 }
 
+// SetRepoAsInfra declare this repository as the infra repository
+// This is possible only if no infra were declared.
+//
+func (r *RepoStruct) SetRepoAsInfra() error {
+	// Copy the infra repo in list of repositories, tagged as infra.
+	if r.forge.ForjCore.Infra != nil {
+		return fmt.Errorf("Unable to re-define a repository as Infra. Already defined")
+	}
+
+	r.is_infra = true
+	r.forge.ForjCore.Infra = r
+	return nil
+}
+
+
+
 func (r *RepoStruct) setFromInfra(infra *RepoStruct) {
 	if r == nil {
 		return

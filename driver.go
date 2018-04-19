@@ -60,7 +60,7 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 			// Saving infra repository information to the workspace
 			a.w.Infra = &v
 		} else {
-			return fmt.Errorf("Unable to find '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance), false
+			return fmt.Errorf("Unable to find Infra repository '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance), false
 		}
 	}
 
