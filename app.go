@@ -73,10 +73,10 @@ type Forj struct {
 
 	infra_readme string // Initial infra repo README.md text.
 
-	f forjfile.Forge                // Forge Data stored in the Repository (Loaded from Forjfile)
-	w forjfile.Workspace            // Data structure to stored in the workspace. See workspace.go
-	s creds.YamlSecure              // credential file support.
-	o ForjjOptions                  // Data structured stored in the root of the infra repo. See forjj-options.go
+	f forjfile.Forge                 // Forge Data stored in the Repository (Loaded from Forjfile)
+	w forjfile.Workspace             // Data structure to stored in the workspace. See workspace.go
+	s creds.YamlSecure               // credential file support.
+	o ForjjOptions                   // Data structured stored in the root of the infra repo. See forjj-options.go
 	d *forjfile.DeploymentCoreStruct // deployment information
 
 	flows flow.Flows
@@ -117,13 +117,13 @@ const (
 	debug_instance_f = "run-plugin-debugger"
 	orga_f           = "organization" // Organization name for the Forge. Could be used to set upstream organization.
 	// create flags
-	forjfile_path_f  = "forjfile-path" // Path where the Forjfile template resides.
+	forjfile_path_f = "forjfile-path" // Path where the Forjfile template resides.
 	// deployTo is the name of the deployment environment to update/maintain.
-	deployToArg      = "deploy-to"
-	forjfile_f       = "forjfile-name" // Name of the forjfile where the Forjfile template resides.
-	ssh_dir_f        = "ssh-dir"
-	no_maintain_f    = "no-maintain"
-	message_f        = "message"
+	deployToArg   = "deploy-to"
+	forjfile_f    = "forjfile-name" // Name of the forjfile where the Forjfile template resides.
+	ssh_dir_f     = "ssh-dir"
+	no_maintain_f = "no-maintain"
+	message_f     = "message"
 )
 
 const (
@@ -467,7 +467,7 @@ func (a *Forj) getInternalData(param string) (result string) {
 		}
 	case "deploy-mount": // where the plugin has soure deployment mounted to the container
 		if a.CurrentPluginDriver != nil {
-			result = a.CurrentPluginDriver.Plugin.DeployPath
+			result = a.CurrentPluginDriver.Plugin.DestMount
 		} else {
 			gotrace.Trace("Warning. deploy-mount requested outside plugin context.")
 		}

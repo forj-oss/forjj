@@ -112,6 +112,11 @@ func (f *Forge) GetForjfileFileLoaded() string {
 	return f.file_loaded
 }
 
+// GetInfraRepo return the infra repository object if defined.
+func (f *Forge) GetInfraRepo() *RepoStruct {
+	return f.yaml.ForjCore.Infra
+}
+
 func (f *Forge) SetInfraAsRepo() {
 	// Copy the infra repo in list of repositories, tagged as infra.
 	if !f.Init() {

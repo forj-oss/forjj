@@ -132,6 +132,8 @@ func (a *Forj) Create() error {
 		if deploy.Type == "PRO" {
 			gotrace.Info("Planning to deploy to '%s' (PRO)", deployName)
 			a.d = &deploy.DeploymentCoreStruct
+			// TODO: Be able to choose another deployment than the PRO one in create phase.
+			a.f.SetDeployment(deployName)
 		}
 
 		// Ensure deploy repo is identified.
