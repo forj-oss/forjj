@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"forjj/creds"
 	"forjj/drivers"
 	"forjj/forjfile"
 	"forjj/utils"
@@ -89,7 +90,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 	var ff string
 	if driver.Plugin.Yaml.CreatedFile == "" {
 		ff = "{{ .InstanceName }}/{{.Name}}.yaml" // Default Flag file setting.
-		driver.ForjjFlagFile = true // Forjj will test the creation success itself, as the driver did not created it automatically.
+		driver.ForjjFlagFile = true               // Forjj will test the creation success itself, as the driver did not created it automatically.
 	} else {
 		ff = driver.Plugin.Yaml.CreatedFile
 	}
@@ -291,14 +292,14 @@ func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action
 
 func (a *Forj) moveSecureAppData(flag_name string, missing_required bool) error {
 	if v, found := a.f.GetString("settings", "", flag_name); found {
-		a.s.SetForjValue(flag_name, v)
+		a.s.SetForjValue(creds.Global, flag_name, v)
 		a.f.Remove("settings", "", flag_name)
 		gotrace.Trace("Moving secure flag data '%s' from Forjfile to creds.yaml", flag_name)
 		return nil
 	}
 	if v, error := a.cli.GetAppStringValue(flag_name); error == nil {
 		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
-		a.s.SetForjValue(flag_name, v)
+		a.s.SetForjValue(creds.Global, flag_name, v)
 		return nil
 	}
 	if missing_required {
@@ -310,11 +311,11 @@ func (a *Forj) moveSecureAppData(flag_name string, missing_required bool) error 
 func (a *Forj) copyCliData(flag_name, def_value string) {
 	if v, error := a.cli.GetAppStringValue(flag_name); error == nil && v != "" {
 		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
-		a.s.SetForjValue(flag_name, v)
+		a.s.SetForjValue(creds.Global, flag_name, v)
 	} else {
 		if def_value != "" {
 			gotrace.Trace("Setting Forjfile flag '%s' default value to '%s'", flag_name, def_value)
-			a.s.SetForjValue(flag_name, def_value)
+			a.s.SetForjValue(creds.Global, flag_name, def_value)
 		}
 	}
 }
@@ -323,13 +324,13 @@ func (a *Forj) moveSecureObjectData(object_name, instance, flag_name string, mis
 	if v, found := a.f.Get(object_name, instance, "secret_"+flag_name); found {
 		// each key can have a secret_<key> value defined, stored in secret and can be refered in the Forjfile
 		// with {{ Current.Creds.<flag_name> }}
-		a.s.SetObjectValue(object_name, instance, flag_name, v)
+		a.s.SetObjectValue(creds.Global, object_name, instance, flag_name, v)
 		a.f.Remove(object_name, instance, flag_name)
 		gotrace.Trace("Removing and setting secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
 			object_name, instance, "secret_"+flag_name)
 	}
 	if v, found := a.f.Get(object_name, instance, flag_name); found {
-		a.s.SetObjectValue(object_name, instance, flag_name, v)
+		a.s.SetObjectValue(creds.Global, object_name, instance, flag_name, v)
 		// When no template value is set in Forjfile flag value, (default case in next code line)
 		// forjj will consider this string '{{ .Current.Creds.<flag_name> }}' as way to extract it
 		// The Forjfile can define that flag value to a different template. A simple string is not
@@ -340,7 +341,7 @@ func (a *Forj) moveSecureObjectData(object_name, instance, flag_name string, mis
 		return nil
 	}
 	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name); found {
-		a.s.SetObjectValue(object_name, instance, flag_name, new(goforjj.ValueStruct).Set(v))
+		a.s.SetObjectValue(creds.Global, object_name, instance, flag_name, new(goforjj.ValueStruct).Set(v))
 		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
 		return nil
 	}
@@ -354,7 +355,7 @@ func (a *Forj) setSecureObjectData(object_name, instance, flag_name string, miss
 	if v, found := a.f.Get(object_name, instance, "secret-"+flag_name); found {
 		// each key can have a secret_<key> value defined, stored in secret and can be referred in the Forjfile
 		// with {{ Current.Creds.<flag_name> }}
-		a.s.SetObjectValue(object_name, instance, flag_name, v)
+		a.s.SetObjectValue(creds.Global, object_name, instance, flag_name, v)
 		a.f.Remove(object_name, instance, "secret-"+flag_name)
 		gotrace.Trace("Moving secret Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
 			object_name, instance, "secret-"+flag_name)
@@ -589,7 +590,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 func (a *Forj) AddReqDeployment(req *goforjj.PluginReqData) (err error) {
 	if deploy := a.f.GetDeployment(); deploy != "" {
 		req.Forj["deployment-env"] = deploy
-		if deployObj, found := a.f.GetADeployment(deploy) ; found {
+		if deployObj, found := a.f.GetADeployment(deploy); found {
 			req.Forj["deployment-type"] = deployObj.Type
 		} else {
 			return fmt.Errorf("Internal error! Deploy object '%s' not found in deployments", deploy)

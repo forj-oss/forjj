@@ -23,6 +23,7 @@ type ForjfileTmpl struct {
 type Forge struct {
 	file_loaded      string
 	deployFileLoaded string
+	deployTo         string // Current deployment name used by forjj
 	tmplfile_loaded  string
 	updated_msg      string
 	infra_path       string // Infra path used to create/save/load Forjfile
@@ -381,6 +382,11 @@ func (f *Forge) save(infraPath string) error {
 		filepath := path.Join(infraPath, "deployments", name)
 
 		file = path.Join(infraPath, "deployments", name, f.Forjfile_name())
+
+		if deployTo.Details == nil {
+			gotrace.Warning("The %s deployment info is empty. Forjfile-template:/deployments/%s/define not defined. (%s)", name, name, file)
+			deployTo.Details = new(DeployForgeYaml)
+		}
 
 		yaml_data, err = yaml.Marshal(deployTo.Details)
 		if err != nil {
@@ -752,7 +758,6 @@ func (f *ForgeYaml) set_defaults() {
 		f.Deployments = make(map[string]*DeploymentStruct)
 		f.Deployments[data.name] = &data
 		gotrace.Info("No deployment defined. Created single 'production' deployment. If you want to change that update your forjfile and create a deployment Forfile per deployment under 'deployments/<deploymentName>'.")
-		f.ForjCore.ForjSettings.DeployTo = data.name
 	} else {
 		for name, deploy := range f.Deployments {
 			deploy.name = name
@@ -796,12 +801,14 @@ func (f *Forge) Model() ForgeModel {
 	return model
 }
 
+// GetDeployment returns the current deployment environment
 func (f *Forge) GetDeployment() string {
-	return f.yaml.ForjCore.ForjSettings.DeployTo
+	return f.deployTo
 }
 
+// SetDeployment defines the current deployment to use.
 func (f *Forge) SetDeployment(deployTo string) {
-	f.yaml.ForjCore.ForjSettings.DeployTo = deployTo
+	f.deployTo = deployTo
 }
 
 // GetADeployment return the Deployment Object wanted

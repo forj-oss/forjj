@@ -69,8 +69,10 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		return nil, false
 	}
 
+	deployTo, _, _, _ := a.cli.GetStringValue("_app", "forjj", deployToArg)
+
 	// Load Forjfile from infra repo, if found.
-	if err := a.LoadForge(); err != nil {
+	if err := a.LoadForge(deployTo); err != nil {
 		if utils.InStringList(action, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "" {
 			a.w.SetError(fmt.Errorf("Forjfile not loaded. %s", err))
 			return nil, false
@@ -117,28 +119,56 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		gotrace.Error("RepoTemplates repository url issue: %s", err)
 	}
 
-	// Credential management
-	if fileDesc, err := a.cli.GetAppStringValue(cred_f); err == nil && fileDesc != "" {
-		a.s.SetFile(fileDesc)
-	} else {
-		a.s.SetPath(a.w.Path(), a.f.GetDeployment())
+	// TODO: Move this code in forjfile/forge.go
+	// Setup each deployment internal data
+	deployPath := path.Join(a.w.Path(), "deployments")
+	for _, deploy := range a.f.GetDeployments() {
+		deploy.DeploymentCoreStruct.GitSetRepo(deployPath, "")
 	}
-	if err := a.s.Upgrade(func(d *creds.YamlSecure, version string) (err error) {
+
+	// Define the current deployment in create mode.
+	if action == cr_act || action == val_act {
+		// TODO: Be able to choose another deployment than the PRO one in create phase.
+
+		// Determine the default PRO deployment
+		if v, err := a.f.GetDeploymentPROType(); err != nil {
+			return err, false
+		} else {
+			gotrace.Info("Using %s deployment.", v.Name())
+			a.f.SetDeployment(v.Name())
+		}
+	} else {
+		// Setup each deployment internal data
+		if v, found := a.f.GetADeployment(deployTo); found {
+			// Define selected deployment.
+			a.d = &v.DeploymentCoreStruct
+			a.f.SetDeployment(v.Name())
+			gotrace.Info("Using %s deployment.", v.Name())
+		} else {
+			return fmt.Errorf("Unknown deployment environment '%s'. Use one defined in your Forjfile", deployTo), false
+		}
+
+	}
+
+	// Credential management
+	a.s.InitEnvDefaults(a.w.Path(), a.f.GetDeployment())
+	if fileDesc, err := a.cli.GetAppStringValue(cred_f); err == nil && fileDesc != "" {
+		a.s.SetFile(a.f.GetDeployment(), fileDesc)
+	}
+	if err := a.s.Upgrade(func(d *creds.Secure, version string) (err error) {
 		// Function to identify creds V0 and do upgrade
-		if credPath := d.DirName(); credPath == a.w.Path() { // In Workspace
+		if deployObj, err := a.f.GetDeploymentPROType(); err != nil {
+			return fmt.Errorf("Unable to upgrade. %s", err)
+		} else if credPath := d.DirName(creds.Global); credPath == a.w.Path() { // In Workspace
 			oldFile := path.Join(credPath, creds.DefaultCredsFile)
-			if info, err := os.Stat(oldFile); err == nil && !info.IsDir() { // Is the old file name
-				// V0 identified
+			d.Load()
+			if d.Version(creds.Global) == "V0" && d.Version(deployObj.Name()) == "" { // V0 identified
 				// Considered current creds is for PRO type environment
-				if deployObj, err := a.f.GetDeploymentPROType(); err != nil {
+				newfile := d.DefineDefaultCredFileName(credPath, deployObj.Name())
+				if err := os.Rename(oldFile, newfile); err != nil {
 					return fmt.Errorf("Unable to upgrade. %s", err)
-				} else {
-					newfile := d.DefineDefaultCredFileName(credPath, deployObj.Name())
-					if err := os.Rename(oldFile, newfile); err != nil {
-						return fmt.Errorf("Unable to upgrade. %s", err)
-					}
-					gotrace.Info("Credential 'V0' file upgraded to '%s'.", version)
 				}
+				gotrace.Info("Credential 'V0' file upgraded to '%s'.", version)
 			}
 		}
 		return nil
@@ -146,7 +176,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		gotrace.Info("Unable to upgrade your credentials. %s", err)
 	}
 	if err := a.s.Load(); err != nil {
-		gotrace.Info("Credential file were not loaded. %s", err)
+		gotrace.Info("Some credential files were not loaded. %s", err)
 	}
 
 	if v := a.cli.GetAction(cr_act).GetBoolAddr(no_maintain_f); v != nil {
