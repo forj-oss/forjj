@@ -69,6 +69,8 @@ type Forj struct {
 	debug_instances      []string // List of instances in debug mode
 	from_create          bool     // true when start running maintain from create
 	validation_issue     bool     // true if validation of Forjfile has failed.
+
+	scanDeploy           string   // Used by ScanAndSetObjectData
 	// TODO: enhance infra README.md with a template.
 
 	infra_readme string // Initial infra repo README.md text.

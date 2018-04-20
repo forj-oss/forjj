@@ -1,15 +1,13 @@
 package creds
 
 import (
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
 	"gopkg.in/yaml.v2"
-
 )
-
 
 type yamlSecure struct {
 	file      string
@@ -54,7 +52,7 @@ func (d *yamlSecure) save() error {
 }
 
 func (d *yamlSecure) SetForjValue(key, value string) (updated bool) {
-	
+
 	if d.Forj == nil {
 		d.Forj = make(map[string]string)
 	}
@@ -62,6 +60,11 @@ func (d *yamlSecure) SetForjValue(key, value string) (updated bool) {
 		d.Forj[key] = value
 		updated = true
 	}
+	return
+}
+
+func (d *yamlSecure) GetForjValue(key string) (ret string, found bool) {
+	ret, found = d.Forj[key]
 	return
 }
 
@@ -74,19 +77,23 @@ func (d *yamlSecure) setObjectValue(obj_name, instance_name, key_name string, va
 	if i, found := d.Objects[obj_name]; !found {
 		keys = make(map[string]*goforjj.ValueStruct)
 		instances = make(map[string]map[string]*goforjj.ValueStruct)
-		keys[key_name] = value
+		newValue := new(goforjj.ValueStruct)
+		*newValue = *value
+		keys[key_name] = newValue
 		instances[instance_name] = keys
 		d.Objects[obj_name] = instances
 		updated = true
 	} else {
 		if k, found := i[instance_name]; !found {
 			keys = make(map[string]*goforjj.ValueStruct)
-			keys[key_name] = value
+			newValue := new(goforjj.ValueStruct)
+			*newValue = *value
+			keys[key_name] = newValue
 			d.Objects[obj_name][instance_name] = keys
 			updated = true
 		} else {
 			if v, found := k[key_name]; !found || !value.Equal(v) {
-				k[key_name] = value
+				*v = *value
 				updated = true
 			}
 		}
@@ -99,15 +106,18 @@ func (d *yamlSecure) getString(obj_name, instance_name, key_name string) (string
 	return v.GetString(), found
 }
 
-func (d *yamlSecure) get(obj_name, instance_name, key_name string) (*goforjj.ValueStruct, bool) {
-	if i, found := d.Objects[obj_name]; found {
-		if k, found := i[instance_name]; found {
-			if v, found := k[key_name]; found {
-				return v, true
+func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *goforjj.ValueStruct, found bool) {
+	if i, isFound := d.Objects[obj_name]; isFound {
+		if k, isFound := i[instance_name]; isFound {
+			if v, isFound := k[key_name]; isFound {
+				ret = new(goforjj.ValueStruct)
+				*ret = *v
+				found = true
+				return
 			}
 		}
 	}
-	return nil, false
+	return
 }
 
 func (d *yamlSecure) getObjectInstance(obj_name, instance_name string) map[string]*goforjj.ValueStruct {

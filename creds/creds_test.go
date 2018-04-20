@@ -3,6 +3,8 @@ package creds
 import (
 	"path"
 	"testing"
+
+	"github.com/forj-oss/goforjj"
 )
 
 func TestInitEnvDefaults(t *testing.T) {
@@ -124,5 +126,62 @@ func TestSave(t *testing.T) {
 }
 
 func TestSetForjValue(t *testing.T) {
-	t.Log("Expecting Save to save files. NOT TESTED.")
+	t.Log("Expecting SetForjValue to set properly values. ")
+
+	s := Secure{}
+	const (
+		key1   = "key1"
+		value1 = "value1"
+		myPath = "myPath"
+		myFile = "myFile"
+		prod   = "prod"
+	)
+	s.InitEnvDefaults(myPath, prod)
+
+	// ------------- call the function
+	updated, err := s.SetForjValue(prod, key1, value1)
+
+	// -------------- testing
+	if !updated {
+		t.Error("Expected s.SetForjValue to update it. Got false")
+	} else if err != nil {
+		t.Errorf("Expected s.SetForjValue to return no error. Got %s.", err)
+	} else if v, found := s.GetForjValue(prod, key1); !found {
+		t.Errorf("Expected s.Forj[%s] to exist. Not found", key1)
+	} else if v != value1 {
+		t.Errorf("Expected s.Forj[%s] to be '%s'. Got '%s'", key1, value1, v)
+	}
+
+}
+
+func TestSetObjectValue(t *testing.T) {
+	t.Log("Expecting SetObjectValue to set properly values.")
+
+	s := Secure{}
+	const (
+		object1   = "object1"
+		object2   = "object2"
+		instance1 = "instance1"
+		key1      = "key1"
+		value1    = "value1"
+		value2    = "value2"
+		myPath    = "myPath"
+		myFile    = "myFile"
+		prod      = "prod"
+	)
+	s.InitEnvDefaults(myPath, prod)
+
+	// ------------- call the function
+	value := new(goforjj.ValueStruct)
+	value.Set(value1)
+	updated := s.SetObjectValue(prod, object1, instance1, key1, value)
+
+	// -------------- testing
+	if !updated {
+		t.Error("Expected s.SetObjectValue to return updated = true. Got false")
+	} else if v, found := s.Get(object1, instance1, key1); !found {
+		t.Error("Expected value to be found. Got false")
+	} else if v1 := v.GetString(); v1 != value1 {
+		t.Errorf("Expected value to be '%s'. Got '%s'", v1, value1)
+	}
 }

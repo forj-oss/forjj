@@ -162,6 +162,7 @@ func (d *Secure) SetFile(filePath, env string) {
 func (d *Secure) SetForjValue(env, key, value string) (_ bool, _ error) {
 	if v, found := d.envs[env]; found {
 		if v.SetForjValue(key, value) {
+			d.envs[env] = v
 			d.updated = true
 		}
 		return d.updated, nil
@@ -169,11 +170,20 @@ func (d *Secure) SetForjValue(env, key, value string) (_ bool, _ error) {
 	return d.updated, fmt.Errorf("Credential env '%s' nt found", env)
 }
 
+// SetForjValue set a value in Forj section.
+func (d *Secure) GetForjValue(env, key string) (_ string, _ bool) {
+	if v, found := d.envs[env]; found {
+		return v.GetForjValue(key)
+	}
+	return
+}
+
 // SetObjectValue set object value
 func (d *Secure) SetObjectValue(env, obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (_ bool) {
 	if v, found := d.envs[env]; found {
 		if v.setObjectValue(obj_name, instance_name, key_name, value) {
 			d.updated = true
+			d.envs[env] = v
 			return true
 		}
 	}
