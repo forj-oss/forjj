@@ -13,7 +13,7 @@ pipeline {
         stage('Tests') {
             steps {
                 sh('''set +x ; source ./build-env.sh
-                go test''')
+                go test forjj forjj/creds forjj/drivers forjj/flow forjj/forjfile forjj/git forjj/repo forjj/utils''')
             }
         }
         stage('Deploy') {
