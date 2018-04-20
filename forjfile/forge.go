@@ -621,25 +621,15 @@ func (f *Forge) getInstance(object, instance string) (_ map[string]ForjValue) {
 }
 
 func (f *Forge) Remove(object, name, key string) {
-	from := func(string) (_ string, _ bool) {
-		return "", true
-	}
-
-	f.yaml.ForjCore.SetHandler(object, name, from, (*ForjValue).Clean, key)
+	f.yaml.ForjCore.Remove(object, name, key)
 }
 
 func (f *Forge) Set(object, name, key, value string) {
-	from := func(string) (string, bool) {
-		return value, (value != "")
-	}
-	f.yaml.ForjCore.SetHandler(object, name, from, (*ForjValue).Set, key)
+	f.yaml.ForjCore.Set(object, name, key, value)
 }
 
 func (f *Forge) SetDefault(object, name, key, value string) {
-	from := func(string) (string, bool) {
-		return value, (value != "")
-	}
-	f.yaml.ForjCore.SetHandler(object, name, from, (*ForjValue).SetDefault, key)
+	f.yaml.ForjCore.SetDefault(object, name, key, value)
 }
 
 func (f *Forge) IsDirty() bool {
