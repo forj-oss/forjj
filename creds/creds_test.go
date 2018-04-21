@@ -185,3 +185,93 @@ func TestSetObjectValue(t *testing.T) {
 		t.Errorf("Expected value to be '%s'. Got '%s'", v1, value1)
 	}
 }
+
+func TestGetObjectInstance(t *testing.T) {
+	t.Log("Expecting GetObjectInstance to set properly values.")
+
+	s := Secure{}
+	const (
+		object1   = "object1"
+		object2   = "object2"
+		instance1 = "instance1"
+		key1      = "key1"
+		value1    = "value1"
+		value2    = "value2"
+		myPath    = "myPath"
+		myFile    = "myFile"
+		prod      = "prod"
+	)
+	s.InitEnvDefaults(myPath, prod)
+	value := new(goforjj.ValueStruct)
+	value.Set(value1)
+	s.SetObjectValue(prod, object1, instance1, key1, value)
+
+	// ------------- call the function
+	result := s.GetObjectInstance(object1, instance1)
+
+	// -------------- testing
+	if result == nil {
+		t.Error("Expected GetObjectInstance to return not nil. Got nil.")
+	} else if l1 := len(result); l1 != 1 {
+		t.Errorf("Expected GetObjectInstance to return a map with 1 element. Got %d.", l1)
+	} else if v, found := result[key1]; !found {
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s'. Not found.", key1)
+	} else if !v.Equal(value) {
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value1, v.GetString())
+	}
+	// ------------- call the function
+	result = s.GetObjectInstance(object2, instance1)
+
+	// -------------- testing
+	if result != nil {
+		t.Error("Expected GetObjectInstance to return not nil. Got nil.")
+	}
+
+	// --------------- Change context
+	value.Set(value2)
+	s.SetObjectValue(Global, object1, instance1, key1, value)
+
+	// ------------- call the function
+	result = s.GetObjectInstance(object1, instance1)
+
+	// -------------- testing
+	if result == nil {
+		t.Error("Expected GetObjectInstance to return not nil. Got nil.")
+	} else if l1 := len(result); l1 != 1 {
+		t.Errorf("Expected GetObjectInstance to return a map with 1 element. Got %d.", l1)
+	} else if v, found := result[key1]; !found {
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s'. Not found.", key1)
+	} else if v.Equal(value) {
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value.GetString(), v.GetString())
+	}
+
+	// --------------- Change context
+	value.Set(value1)
+	s.SetObjectValue(Global, object2, instance1, key1, value)
+
+	// ------------- call the function
+	result1 := s.GetObjectInstance(object1, instance1)
+	result2 := s.GetObjectInstance(object2, instance1)
+
+	// -------------- testing
+	if result1 == nil {
+		t.Error("Expected GetObjectInstance to return not nil. Got nil.")
+	} else if l1 := len(result1); l1 != 1 {
+		t.Errorf("Expected GetObjectInstance to return a map with 1 element. Got %d.", l1)
+	} else if v, found := result1[key1]; !found {
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s'. Not found.", key1)
+	} else if !v.Equal(value) {
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value1, v.GetString())
+	}
+
+	if result2 == nil {
+		t.Error("Expected GetObjectInstance to return not nil. Got nil.")
+	} else if l1 := len(result2); l1 != 1 {
+		t.Errorf("Expected GetObjectInstance to return a map with 1 element. Got %d.", l1)
+	} else if v, found := result2[key1]; !found {
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s'. Not found.", key1)
+	} else if !v.Equal(value) {
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value1, v.GetString())
+	}
+
+}

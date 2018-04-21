@@ -219,6 +219,9 @@ func (d *Secure) GetObjectInstance(objName, instanceName string) (values map[str
 	if v, found := d.envs[Global]; found {
 		values = v.getObjectInstance(objName, instanceName)
 		if v, found = d.envs[d.curEnv]; found {
+			if values == nil {
+				return v.getObjectInstance(objName, instanceName)
+			}
 			for name, value := range v.getObjectInstance(objName, instanceName) {
 				values[name] = value
 			}
