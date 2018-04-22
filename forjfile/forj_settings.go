@@ -10,7 +10,6 @@ import (
 type ForjSettingsStruct struct {
 	is_template            bool
 	forge                  *ForgeYaml
-	DeployTo               string `yaml:"deploy-environment,omitempty"`
 	Organization           string
 	ForjSettingsStructTmpl `yaml:",inline"`
 }
@@ -38,7 +37,7 @@ func (s *ForjSettingsStruct) mergeFrom(from *ForjSettingsStruct) {
 			if v, found := from.Get(instance, flag); found {
 				s.Set(instance, flag, v.GetString())
 			}
-		}	
+		}
 	}
 
 }

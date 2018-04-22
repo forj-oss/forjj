@@ -1,10 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"forjj/git"
-	"path"
-
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
@@ -43,7 +39,7 @@ func (a *Forj) GetUniqDriverName(driverType string) (od string) {
 	return
 }
 
-// Forjj-option: Set default
+// SetDefault Forjj-option: Set default
 // - instance
 // - flow
 func (a *Forj) SetDefault(action string) {
@@ -57,46 +53,15 @@ func (a *Forj) SetDefault(action string) {
 	}
 }
 
-func (a *Forj) SaveForge(CommitMsg string) error {
-	if err := a.f.Save(); err != nil {
-		return fmt.Errorf("Unable to write '%s'. %s", a.f.Forjfile_name(), err)
-	}
-
-	git.Do("add", a.f.Forjfile_name())
-
-	if err := git.Commit(CommitMsg, false); err != nil {
-		return fmt.Errorf("Unable to commit the organization update. %s", err)
-	}
-
-	return nil
-}
-
 // LoadForge loads the forjj options definitions from the LoadContext().
-func (a *Forj) LoadForge() (err error) {
+func (a *Forj) LoadForge(deployTo string) (err error) {
 	if v := a.forjfile_tmpl_path; v != "" && a.w.InfraPath() == v {
 		gotrace.Info("If your Forfile template has defined local settings and/or credentials data, those data will " +
 			"be moved to the internal forjj workspace.")
 		return
 	}
 
-	deployTo, _, _, _ := a.cli.GetStringValue("_app", "forjj", deployToArg)
-
 	_, err = a.f.Load(deployTo)
-
-	// Setup each deployment internal data
-	deployPath := path.Join(a.w.Path(), "deployments")
-	found := false
-	for name, deploy := range a.f.GetDeployments() {
-		deploy.DeploymentCoreStruct.GitSetRepo(deployPath, "")
-		if name == deployTo {
-			// Define selected deployment.
-			a.d = &deploy.DeploymentCoreStruct
-			found = true
-		}
-	}
-	if !found {
-		err = fmt.Errorf("Unknown deployment environment '%s'. Use one defined in your Forjfile", deployTo)
-	}
 
 	return
 }

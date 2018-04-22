@@ -69,13 +69,15 @@ type Forj struct {
 	debug_instances      []string // List of instances in debug mode
 	from_create          bool     // true when start running maintain from create
 	validation_issue     bool     // true if validation of Forjfile has failed.
+
+	scanDeploy           string   // Used by ScanAndSetObjectData
 	// TODO: enhance infra README.md with a template.
 
 	infra_readme string // Initial infra repo README.md text.
 
 	f forjfile.Forge                 // Forge Data stored in the Repository (Loaded from Forjfile)
 	w forjfile.Workspace             // Data structure to stored in the workspace. See workspace.go
-	s creds.YamlSecure               // credential file support.
+	s creds.Secure                   // credential file support.
 	o ForjjOptions                   // Data structured stored in the root of the infra repo. See forjj-options.go
 	d *forjfile.DeploymentCoreStruct // deployment information
 

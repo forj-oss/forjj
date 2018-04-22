@@ -17,7 +17,7 @@ func (a *Forj) Maintain() error {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
-	a.ScanAndSetObjectData(true)
+	a.ScanAndSetObjectData(a.f.DeployForjfile(), a.f.GetDeployment(), true)
 
 	if err := a.ValidateForjfile(); err != nil {
 		return fmt.Errorf("Your Forjfile is having issues. %s Maintain aborted.", err)

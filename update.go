@@ -32,7 +32,7 @@ func (a *Forj) Update() error {
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
 	// missing:true to check if some required values are missing.
-	if err := a.ScanAndSetObjectData(true) ; err != nil {
+	if err := a.ScanAndSetObjectData(a.f.DeployForjfile(), a.f.GetDeployment(), true) ; err != nil {
 		return fmt.Errorf("Unable to update. %s", err)
 	}
 
