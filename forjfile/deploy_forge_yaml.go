@@ -332,6 +332,9 @@ func (f *DeployForgeYaml) setHandler(object, instance string, from func(string) 
 }
 
 func (f *DeployForgeYaml) init() bool {
+	if f == nil {
+		return false
+	}
 	if f.Infra == nil {
 		f.Infra = new(RepoStruct)
 	}
@@ -370,3 +373,63 @@ func (f *DeployForgeYaml) mergeFrom(from *DeployForgeYaml) error {
 	return nil
 }
 
+func (f *DeployForgeYaml) initDefaults(forge *ForgeYaml) {
+	// Cleanup LocalSettings to ensure no local setting remain in a Forjfile
+	if f == nil {
+		return
+	}
+	f.forge = forge
+
+	f.LocalSettings = WorkspaceStruct{}
+
+	if f.Apps != nil {
+		for name, app := range f.Apps {
+			if app == nil {
+				continue
+			}
+			app.name = name
+			if app.Driver == "" {
+				app.Driver = name
+			}
+			app.set_forge(forge)
+			f.Apps[name] = app
+		}
+	}
+	if f.Repos != nil {
+		for name, repo := range f.Repos {
+			if repo == nil {
+				// Repo can be nil if we did not defined any fields under his name.
+				// ie : forjj-modules:
+				// or
+				// forjj-modules: nil
+				repo = new(RepoStruct)
+			}
+			repo.name = name
+			repo.set_forge(forge)
+			f.Repos[name] = repo
+		}
+	}
+	if f.Users != nil {
+		for name, user := range f.Users {
+			if user == nil {
+				continue
+			}
+			user.set_forge(forge)
+			f.Users[name] = user
+		}
+	}
+	if f.Groups != nil {
+		for name, group := range f.Groups {
+			if group == nil {
+				continue
+			}
+			group.set_forge(forge)
+			f.Groups[name] = group
+		}
+	}
+	if f.Infra == nil {
+		f.Infra = new(RepoStruct)
+	}
+	f.Infra.set_forge(forge)
+	f.ForjSettings.set_forge(forge)
+}
