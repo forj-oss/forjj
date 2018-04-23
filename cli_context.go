@@ -136,6 +136,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		} else {
 			gotrace.Info("Using %s deployment.", v.Name())
 			a.f.SetDeployment(v.Name())
+			a.d = &v.DeploymentCoreStruct
 		}
 	} else {
 		// Setup each deployment internal data

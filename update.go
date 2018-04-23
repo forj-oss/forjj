@@ -5,6 +5,7 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 	"log"
 	"regexp"
+	"forjj/creds"
 )
 
 // Execute an update on the workspace given.
@@ -31,13 +32,24 @@ func (a *Forj) Update() error {
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
+	// Dispatch information between Forjfile, cli and creds.
+	// Forjfiles are not saved and stay in Memory. but creds are saved.
 	// missing:true to check if some required values are missing.
-	if err := a.ScanAndSetObjectData(a.f.DeployForjfile(), a.f.GetDeployment(), true) ; err != nil {
-		return fmt.Errorf("Unable to update. %s", err)
+	if err := a.ScanAndSetObjectData(a.f.DeployForjfile(), creds.Global, true) ; err != nil {
+		return fmt.Errorf("Unable to update. Global dispatch issue. %s", err)
+	}
+	deployName := a.f.GetDeployment()
+	deploy, _ := a.f.GetADeployment(deployName)
+	if err := a.ScanAndSetObjectData(deploy.Details, deployName, true) ; err != nil {
+		return fmt.Errorf("Unable to update. '%s' dispatch issue. %s", deployName, err)
 	}
 
 	if err := a.ValidateForjfile(); err != nil {
 		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
+	}
+
+	if err := a.DefineMissingDeployRepositories(false) ; err != nil {
+		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 
 	// Checking infra repository: A valid infra repo is a git repository with at least one commit and

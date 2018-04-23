@@ -686,60 +686,13 @@ func (f *ForgeYaml) Init() {
 
 }
 
+// set_defaults
+// - set forge in all structures
+// - Define a basic Deployment with just 'production' entry
 func (f *ForgeYaml) set_defaults() {
 	// Cleanup LocalSettings to ensure no local setting remain in a Forjfile
-	f.ForjCore.LocalSettings = WorkspaceStruct{}
+	f.ForjCore.initDefaults(f)
 
-	if f.ForjCore.Apps != nil {
-		for name, app := range f.ForjCore.Apps {
-			if app == nil {
-				continue
-			}
-			app.name = name
-			if app.Driver == "" {
-				app.Driver = name
-			}
-			app.set_forge(f)
-			f.ForjCore.Apps[name] = app
-		}
-	}
-	if f.ForjCore.Repos != nil {
-		for name, repo := range f.ForjCore.Repos {
-			if repo == nil {
-				// Repo can be nil if we did not defined any fields under his name.
-				// ie : forjj-modules:
-				// or
-				// forjj-modules: nil
-				repo = new(RepoStruct)
-			}
-			repo.name = name
-			repo.set_forge(f)
-			f.ForjCore.Repos[name] = repo
-		}
-	}
-	if f.ForjCore.Users != nil {
-		for name, user := range f.ForjCore.Users {
-			if user == nil {
-				continue
-			}
-			user.set_forge(f)
-			f.ForjCore.Users[name] = user
-		}
-	}
-	if f.ForjCore.Groups != nil {
-		for name, group := range f.ForjCore.Groups {
-			if group == nil {
-				continue
-			}
-			group.set_forge(f)
-			f.ForjCore.Groups[name] = group
-		}
-	}
-	if f.ForjCore.Infra == nil {
-		f.ForjCore.Infra = new(RepoStruct)
-	}
-	f.ForjCore.Infra.set_forge(f)
-	f.ForjCore.ForjSettings.set_forge(f)
 	if len(f.Deployments) == 0 {
 		data := DeploymentStruct{}
 		data.Desc = "Production environment"
