@@ -504,14 +504,21 @@ func (f *Forge) GetInstances(object string) (ret []string) {
 }
 
 func (f *Forge) GetInfraInstance() (_ string) {
-	if f == nil || f.yaml.ForjCore.Infra == nil || f.yaml.ForjCore.Infra.apps == nil {
+	if f == nil {
 		return
 	}
-	if v, found := f.yaml.ForjCore.Infra.apps["upstream"]; found && v != nil {
-		return v.name
+	if f.yaml.ForjCore.Infra.apps != nil {
+		if v, found := f.yaml.ForjCore.Infra.apps["upstream"]; found && v != nil {
+			return v.name
+		}
 	}
-	if v, found := f.yaml.ForjCore.Infra.Apps["upstream"]; found {
-		return v
+	if f.yaml.ForjCore.Infra.Apps != nil {
+		if v, found := f.yaml.ForjCore.Infra.Apps["upstream"]; found {
+			return v
+		}
+	}
+	if f.yaml.ForjCore.Infra == nil {
+		return
 	}
 	return f.yaml.ForjCore.Infra.Upstream
 }
