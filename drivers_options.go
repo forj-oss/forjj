@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"forjj/drivers"
 	"forjj/forjfile"
+	"forjj/scandrivers"
 	"forjj/utils"
 	"path"
 	"strings"
 	"text/template"
-	"forjj/scandrivers"
 
 	"github.com/forj-oss/forjj-modules/cli"
 	"github.com/forj-oss/forjj-modules/trace"
@@ -403,23 +403,45 @@ func (a *Forj) copyCliObjectData(ffd *forjfile.DeployForgeYaml, object_name, ins
 	}
 }
 
-func (a *Forj) scanCreds(ffd *forjfile.DeployForgeYaml, deploy string) error {
+// scanCreds scan each tasks/objects flags defined in loaded plugins to:
+// - move Forjfile creds to creds.yml
+// - copy cli creds data to creds.yml
+//
+// Used by create and update
+func (a *Forj) scanCreds(ffd *forjfile.DeployForgeYaml, deploy string, missing bool) error {
 	s := scandrivers.NewScanDrivers(ffd, a.drivers)
-	s.SetScanTaskFlagsFunc(func(ffd *forjfile.DeployForgeYaml, name string, flag goforjj.YamlFlag, missing bool) error {
-		if flag.Options.Secure {
-			if err := a.moveSecureAppData(ffd, name, missing && flag.Options.Required); err != nil {
-				return err
+
+	s.SetScanTaskFlagsFunc(
+		func(name string, flag goforjj.YamlFlag) error {
+			if flag.Options.Secure {
+				if err := a.moveSecureAppData(ffd, name, missing && flag.Options.Required); err != nil {
+					return err
+				}
 			}
-		}
-		return nil
-	})
-	return nil
+			return nil
+		})
+
+	s.SetScanObjFlag(
+		func(objectName, instanceName, flagPrefix, flagName string, flag goforjj.YamlFlag) (err error) {
+			if flag.Options.Secure {
+				if err = a.moveSecureObjectData(ffd, objectName, instanceName, flagPrefix+flagName, missing && flag.Options.Required); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+
+	s.SetScanGetObjInstFunc(
+		func(objectName string) []string {
+			return ffd.GetInstances(objectName)
+		})
+
+	return s.DoScanDriversObject(deploy)
 }
 
 func (a *Forj) scanAndSetDefaults(ffd *forjfile.DeployForgeYaml, deploy string) error {
 	return nil
 }
-
 
 // ScanAndSetObjectData scan each object defined in loaded plugins:
 // - move Forjfile creds to creds.yml

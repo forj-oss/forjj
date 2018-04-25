@@ -129,12 +129,33 @@ func (a *Forj) Create() error {
 	//
 	// default values are required to be set after upstream driver execution, as some data can be returned and used by the flow.
 	//
-	gotrace.Trace("ScanAndSetObjectData from Global Forjfile...")
-	a.ScanAndSetObjectData(a.f.DeployForjfile(), creds.Global, false)
+	gotrace.Trace("From Global Forjfile:")
+	gotrace.Trace("Running ScanCreds...")
+	if err := a.scanCreds(a.f.DeployForjfile(), creds.Global, false); err != nil {
+		return fmt.Errorf("Unable to Scan for Credentials. %s", err)
+	}
+	gotrace.Trace("Running ScanAndSetDefaults...")
+	if err := a.scanAndSetDefaults(a.f.DeployForjfile(), creds.Global); err != nil {
+		return fmt.Errorf("Unable to Scan for set defaults. %s", err)
+	}
+	gotrace.Trace("Running ScanAndSetObjectData...")
+	if err := a.ScanAndSetObjectData(a.f.DeployForjfile(), creds.Global, false); err != nil {
+		return fmt.Errorf("Unable to Scan. %s", err)
+	}
+
 	for deployName, deploy := range a.f.GetDeployments() {
-		gotrace.Trace("ScanAndSetObjectData from %s Forjfile...", deployName)
+		gotrace.Trace("From %s Forjfile:", deployName)
+		gotrace.Trace("Running ScanCreds...", deployName)
+		if err := a.scanCreds(deploy.Details, deployName, false); err != nil {
+			return fmt.Errorf("Unable to Scan for Credentials. %s", err)
+		}
+		gotrace.Trace("Running ScanAndSetDefaults...")
+		if err := a.scanAndSetDefaults(a.f.DeployForjfile(), creds.Global); err != nil {
+			return fmt.Errorf("Unable to Scan for set defaults. %s", err)
+		}
+		//gotrace.Trace("ScanAndSetObjectData from %s Forjfile...", deployName)
 		// TODO: We must only extract creds from deploy Forjfiles.
-		a.ScanAndSetObjectData(deploy.Details, deployName, false)
+		//a.ScanAndSetObjectData(deploy.Details, deployName, false)
 	}
 
 	// As soon as the InfraPath gets created (or re-used) we can use the workspace in it.
