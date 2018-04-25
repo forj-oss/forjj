@@ -1,6 +1,7 @@
 package main
 
 import (
+	"forjj/creds"
 	"fmt"
 	"forjj/git"
 
@@ -17,19 +18,14 @@ func (a *Forj) Maintain() error {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
-	// Dispatch information between Forjfile, cli and creds.
-	// Forjfile or creds are not saved and stay in memory.
-	deployName := a.f.GetDeployment()
-	if err := a.ScanAndSetObjectData(a.f.DeployForjfile(), deployName, true); err != nil {
-		return fmt.Errorf("Unable to maintain. Issue on global cli/forjfile/creds dispatch. %s", err)
-	}
-	deploy, _ := a.f.GetADeployment(deployName)
-	if err := a.ScanAndSetObjectData(deploy.Details, deployName, true); err != nil {
-		return fmt.Errorf("Unable to maintain. Issue on global cli/forjfile/creds dispatch. %s", err)
-	}
-
 	if err := a.ValidateForjfile(); err != nil {
 		return fmt.Errorf("Your Forjfile is having issues. %s Maintain aborted", err)
+	}
+
+	// Dispatch information between Forjfile, cli and creds.
+	// Forjfile or creds are not saved and stay in memory.
+	if err := a.ScanAndSetObjectData(a.f.DeployForjfile(), creds.Global, true); err != nil {
+		return fmt.Errorf("Unable to maintain. Issue on global cli/forjfile/creds dispatch. %s", err)
 	}
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)

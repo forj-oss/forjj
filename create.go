@@ -1,8 +1,8 @@
 package main
 
 import (
-	"forjj/creds"
 	"fmt"
+	"forjj/creds"
 	"forjj/drivers"
 	"forjj/git"
 	"io/ioutil"
@@ -92,12 +92,6 @@ func (a *Forj) create_source_text_file(file string, data []byte) error {
 // Workspace data has been initialized or loaded.
 // forjj-options has been initialized or loaded
 func (a *Forj) Create() error {
-	// Dispatch information between Forjfile, cli and creds.
-	a.ScanAndSetObjectData(a.f.DeployForjfile(), creds.Global, false)
-	for deployName, deploy := range a.f.GetDeployments() {
-		a.ScanAndSetObjectData(deploy.Details, deployName, false)
-	}
-
 	if !*a.no_maintain {
 		log.Print("CREATE: Automatic git push and forjj maintain enabled.")
 	}
@@ -112,10 +106,6 @@ func (a *Forj) Create() error {
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-	if err := a.DefineMissingDeployRepositories(false) ; err != nil {
-		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
-	}
-
 	// TODO: Set/clone infra git remote when git-remote is set.
 
 	// In create use case, a repository should not exist. If it exists one, we need an extra option to force using
@@ -126,6 +116,25 @@ func (a *Forj) Create() error {
 	// NOTE: Forjfiles are saved at this time. (a.initial_commit)
 	if err := a.i.Create(a.f.InfraPath(), a.initial_commit, false); err != nil {
 		return fmt.Errorf("Failed to create your infra repository. %s", err)
+	}
+
+	// ------------------- Forjfile information now stay in Memory --------------------
+
+	// Scan Forjfile to extract creds and set default values
+	// We set values from cli is defined.
+	// TODO: We may need to split this in 3 differents functions:
+	// - scan Forjfile for creds,
+	// - Set Forjfile values from cli
+	// - Scan Forjfile to set defaults from drivers defautl values setup.
+	//
+	// default values are required to be set after upstream driver execution, as some data can be returned and used by the flow.
+	//
+	gotrace.Trace("ScanAndSetObjectData from Global Forjfile...")
+	a.ScanAndSetObjectData(a.f.DeployForjfile(), creds.Global, false)
+	for deployName, deploy := range a.f.GetDeployments() {
+		gotrace.Trace("ScanAndSetObjectData from %s Forjfile...", deployName)
+		// TODO: We must only extract creds from deploy Forjfiles.
+		a.ScanAndSetObjectData(deploy.Details, deployName, false)
 	}
 
 	// As soon as the InfraPath gets created (or re-used) we can use the workspace in it.
@@ -140,7 +149,7 @@ func (a *Forj) Create() error {
 	// TODO: Find a mode clever way to automatically update the repo defaults and applying flow on it automatically, if identified.
 	// For new Repositories...
 	a.DefineDefaultUpstream()
-	a.FlowInit()
+	a.FlowApply()
 
 	defer func() {
 		// save infra repository location in the workspace.

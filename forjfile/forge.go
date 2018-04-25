@@ -768,6 +768,7 @@ func (f *Forge) GetADeployment(deploy string) (v *DeploymentStruct, found bool) 
 }
 
 // Validate check if the information in the Forjfile are coherent or not and if code respect some basic rules.
+// Validate do not check default values. So, validate can be executed before setting driver default values (forj.ScanAndSetObjectData)
 func (f *Forge) Validate() error {
 
 	// ForjSettingsStruct.More

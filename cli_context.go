@@ -218,7 +218,11 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		}
 	}
 
-	// Enhance forjfile inMemory representation with Flow definition.
+	if err := a.DefineMissingDeployRepositories(action != cr_act); err != nil {
+		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err), false
+	}
+
+	// Load flow identified by Forjfile with missing repos.
 	if err := a.FlowInit(); err != nil {
 		return err, false
 	}

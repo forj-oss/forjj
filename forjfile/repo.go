@@ -13,7 +13,7 @@ type RepoStruct struct {
 	name         string
 	is_infra     bool
 	forge        *ForgeYaml
-	owner        string
+	//owner        string
 	driverOwner  *drivers.Driver
 	deployment   string                      // set to deploiment name if this repo is a deployment repo.
 	Upstream     string                      `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
@@ -107,13 +107,13 @@ func (r *RepoStruct) Model() RepoModel {
 	return model
 }
 
-func (r *RepoStruct) Owner() string {
+/*func (r *RepoStruct) Owner() string {
 	if r == nil {
 		return ""
 	}
 
 	return r.owner
-}
+}*/
 
 // SetRepoAsInfra declare this repository as the infra repository
 // This is possible only if no infra were declared.
@@ -128,8 +128,6 @@ func (r *RepoStruct) SetRepoAsInfra() error {
 	r.forge.ForjCore.Infra = r
 	return nil
 }
-
-
 
 func (r *RepoStruct) setFromInfra(infra *RepoStruct) {
 	if r == nil {
@@ -366,12 +364,12 @@ func (r *RepoStruct) Set(field, value string) {
 	}
 }
 
-func (r *RepoStruct) SetInstanceOwner(owner string) {
+/*func (r *RepoStruct) SetInstanceOwner(owner string) {
 	if r == nil {
 		return
 	}
 	r.owner = owner
-}
+}*/
 
 func (r *RepoStruct) SetPluginOwner(d *drivers.Driver) {
 	if r == nil {

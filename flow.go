@@ -2,34 +2,36 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
-// FlowStart load the flow in memory,
-// configure it with Forjfile information
-// and update Forjfile inMemory object data.
-func (a *Forj)FlowInit() error {
+// FlowInit load the flow in memory,
+func (a *Forj) FlowInit() error {
+	return a.flows.Load(a.f.GetDeclaredFlows()...)
+}
+
+// FlowApply apply flows to Forjfile
+// it updates Forjfile inMemory object data.
+func (a *Forj) FlowApply() error {
 	bInError := false
-	if err := a.flows.Load(a.f.GetDeclaredFlows() ...) ; err != nil {
-		return err
-	}
-	default_flow_to_apply := "default"
-	if v, found := a.f.Get("settings", "default", "flow") ; found {
-		default_flow_to_apply = v.GetString()
+	defaultFlowToApply := "default"
+	if v, found := a.f.Get("settings", "default", "flow"); found {
+		defaultFlowToApply = v.GetString()
 	}
 
-	if err := a.flows.Apply(default_flow_to_apply, nil, &a.f) ; err != nil {// Applying Flow to Forjfile
+	if err := a.flows.Apply(defaultFlowToApply, nil, &a.f); err != nil { // Applying Flow to Forjfile
 		gotrace.Error("Forjfile: %s", err)
 		bInError = true
 	}
 
 	for _, repo := range a.f.DeployForjfile().Repos {
-		flow_to_apply := default_flow_to_apply
+		flowToApply := defaultFlowToApply
 		if repo.Flow.Name != "" {
-			flow_to_apply = repo.Flow.Name
+			flowToApply = repo.Flow.Name
 		}
 
-		if err := a.flows.Apply(flow_to_apply, repo, &a.f) ; err != nil {// Applying Flow to Forjfile repo
+		if err := a.flows.Apply(flowToApply, repo, &a.f); err != nil { // Applying Flow to Forjfile repo
 			gotrace.Error("Repo '%s': %s", repo.GetString("name"), err)
 			bInError = true
 		}
@@ -41,4 +43,3 @@ func (a *Forj)FlowInit() error {
 
 	return nil
 }
-

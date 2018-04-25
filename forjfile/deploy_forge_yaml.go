@@ -39,6 +39,76 @@ func (f *DeployForgeYaml) GetString(object, instance, key string) (string, bool)
 	return v.GetString(), found
 }
 
+// GetInstances return a list of instances from an object type.
+func (f *DeployForgeYaml) GetInstances(object string) (ret []string) {
+	if !f.Init(f.forge) {
+		return nil
+	}
+	ret = []string{}
+	switch object {
+	case "user":
+		if f.Users == nil {
+			return
+		}
+
+		ret = make([]string, len(f.Users))
+		iCount := 0
+		for user := range f.Users {
+			ret[iCount] = user
+			iCount++
+		}
+		return
+	case "group":
+		if f.Groups == nil {
+			return
+		}
+
+		ret = make([]string, len(f.Groups))
+		iCount := 0
+		for group := range f.Groups {
+			ret[iCount] = group
+			iCount++
+		}
+		return
+	case "app":
+		if f.Apps == nil {
+			return
+		}
+
+		ret = make([]string, len(f.Apps))
+		iCount := 0
+		for app := range f.Apps {
+			ret[iCount] = app
+			iCount++
+		}
+		return
+	case "repo":
+		if f.Repos == nil {
+			return
+		}
+
+		ret = make([]string, len(f.Repos))
+		iCount := 0
+		for repo := range f.Repos {
+			ret[iCount] = repo
+			iCount++
+		}
+		return
+	case "infra", "settings":
+		return
+	default:
+		if instances, found := f.More[object]; found {
+			ret = make([]string, len(instances))
+			iCount := 0
+			for instance := range instances {
+				ret[iCount] = instance
+				iCount++
+			}
+		}
+	}
+	return
+}
+
 // Get return the value of the object instance key as ValueStruct.
 func (f *DeployForgeYaml) Get(object, instance, key string) (value *goforjj.ValueStruct, _ bool) {
 	if !f.init() {

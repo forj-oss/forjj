@@ -402,6 +402,7 @@ func (a *Forj) copyCliObjectData(ffd *forjfile.DeployForgeYaml, object_name, ins
 	}
 }
 
+
 // ScanAndSetObjectData scan each object defined in loaded plugins:
 // - move Forjfile creds to creds.yml
 // - copy cli creds data to creds.yml
@@ -432,27 +433,6 @@ func (a *Forj) ScanAndSetObjectData(ffd *forjfile.DeployForgeYaml, deploy string
 				// Do not set app object values for a driver of a different application.
 				if object_name == "app" && instance_name != driver.InstanceName {
 					continue
-				}
-
-				if object_name == "repo" {
-					if instance_owner, is_owner := a.IsRepoManaged(driver, object_name, instance_name); is_owner {
-						Repo := a.f.GetObjectInstance(object_name, instance_name).(*forjfile.RepoStruct)
-						// Getting the owner from the upstream plugins result
-						if v, found := a.drivers[instance_owner]; found && v.Plugin.Result != nil {
-							if v2, found2 := v.Plugin.Result.Data.Repos[instance_name]; found2 {
-								Repo.SetInstanceOwner(v2.Owner)
-							} else {
-								gotrace.Warning("Unable to set Repository Owner. Unable to find '%s' repository from "+
-									"upstream '%s' driver data Result.", instance_name, instance_owner)
-							}
-						} else {
-							gotrace.Warning("Unable to set Repository Owner. Unable to find '%s' repository from "+
-								"upstream '%s' driver data Result.", instance_name, instance_owner)
-						}
-					} else {
-						// Do not set repo values not managed by the driver
-						continue
-					}
 				}
 
 				// Object flags
