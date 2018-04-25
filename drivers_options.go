@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 	"text/template"
+	"forjj/scandrivers"
 
 	"github.com/forj-oss/forjj-modules/cli"
 	"github.com/forj-oss/forjj-modules/trace"
@@ -400,6 +401,23 @@ func (a *Forj) copyCliObjectData(ffd *forjfile.DeployForgeYaml, object_name, ins
 				object_name, instance, flag_name, def_value)
 		}
 	}
+}
+
+func (a *Forj) scanCreds(ffd *forjfile.DeployForgeYaml, deploy string) error {
+	s := scandrivers.NewScanDrivers(ffd, a.drivers)
+	s.SetScanTaskFlagsFunc(func(ffd *forjfile.DeployForgeYaml, name string, flag goforjj.YamlFlag, missing bool) error {
+		if flag.Options.Secure {
+			if err := a.moveSecureAppData(ffd, name, missing && flag.Options.Required); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return nil
+}
+
+func (a *Forj) scanAndSetDefaults(ffd *forjfile.DeployForgeYaml, deploy string) error {
+	return nil
 }
 
 
