@@ -18,6 +18,16 @@ type ScanDrivers struct {
 	objectFlag         func(object_name, instance_name, flag_prefix, name string, flag goforjj.YamlFlag) error
 }
 
+// Do nothing
+func (s *ScanDrivers) taskFlagDefault(name string, flag goforjj.YamlFlag) error {
+	return nil
+}
+
+// Do nothing
+func (s *ScanDrivers) objectFlagDefault(object_name, instance_name, flag_prefix, name string, flag goforjj.YamlFlag) error {
+	return nil
+}
+
 // NewScanDrivers creates a ScanDrivers object to scan Forjfile, creds or anything through drivers flags (tasks or objects)
 func NewScanDrivers(ffd *forjfile.DeployForgeYaml, drivers map[string]*drivers.Driver) (ret *ScanDrivers) {
 	if ffd == nil {
@@ -26,8 +36,10 @@ func NewScanDrivers(ffd *forjfile.DeployForgeYaml, drivers map[string]*drivers.D
 	ret = new(ScanDrivers)
 	ret.ffd = ffd
 	ret.drivers = drivers
-	ret.objectGetInstances = s.ffd.GetInstances
-
+	// Define default handlers
+	ret.objectGetInstances = ret.ffd.GetInstances
+	ret.taskFlag = ret.taskFlagDefault
+	ret.objectFlag = ret.objectFlagDefault
 	return
 }
 
