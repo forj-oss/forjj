@@ -18,20 +18,30 @@ func (a *Forj) Maintain() error {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
+	// Validate from source
 	if err := a.ValidateForjfile(); err != nil {
 		return fmt.Errorf("Your Forjfile is having issues. %s Maintain aborted", err)
 	}
 
+	if err := a.f.BuildForjfileInMem() ; err != nil {
+		return err
+	}
+
 	// Dispatch information between Forjfile, cli and creds.
 	// Forjfile or creds are not saved and stay in memory.
-	if err := a.ScanAndSetObjectData(a.f.DeployForjfile(), creds.Global, true); err != nil {
+	if err := a.ScanAndSetObjectData(a.f.InMemForjfile(), creds.Global, true); err != nil {
 		return fmt.Errorf("Unable to maintain. Issue on global cli/forjfile/creds dispatch. %s", err)
 	}
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-	if err := a.DefineMissingDeployRepositories(false); err != nil {
+	if err := a.DefineMissingDeployRepositories(a.f.InMemForjfile(), true); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
+	}
+
+	// Load flow identified by Forjfile with missing repos.
+	if err := a.FlowInit(); err != nil {
+		return err
 	}
 
 	if err := a.get_infra_repo(); err != nil {

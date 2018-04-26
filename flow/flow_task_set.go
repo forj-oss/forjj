@@ -10,7 +10,7 @@ import (
 
 type FlowTaskSet map[string]map[string]forjfile.ForjValues
 
-func (fts FlowTaskSet)apply(tmpl_data *FlowTaskModel, Forjfile *forjfile.Forge) error {
+func (fts FlowTaskSet)apply(tmpl_data *FlowTaskModel, Forjfile *forjfile.DeployForgeYaml) error {
 	tmpl := template.New("flow-set")
 	funcs := template.FuncMap{
 		"concatenate": fmt.Sprint,

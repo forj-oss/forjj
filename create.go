@@ -96,6 +96,16 @@ func (a *Forj) Create() error {
 		log.Print("CREATE: Automatic git push and forjj maintain enabled.")
 	}
 
+	if err := a.DefineMissingDeployRepositories(a.f.DeployForjfile(), false); err != nil {
+		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
+	}
+
+	// Load flow identified by Forjfile with missing repos.
+	if err := a.FlowInit(); err != nil {
+		return err
+	}
+
+
 	if err := a.ValidateForjfile(); err != nil {
 		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
 	}
@@ -105,6 +115,19 @@ func (a *Forj) Create() error {
 	}
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
+
+
+	// Credentials on master and deployment credential files.
+	gotrace.Trace("Running ScanCreds from Global Forjfile...")
+	if err := a.scanCreds(a.f.DeployForjfile(), creds.Global, false); err != nil {
+		return fmt.Errorf("Unable to Scan for Credentials. %s", err)
+	}
+	for deployName, deploy := range a.f.GetDeployments() {
+		gotrace.Trace("Running ScanCreds from %s Forjfile:", deployName)
+		if err := a.scanCreds(deploy.Details, deployName, false); err != nil {
+			return fmt.Errorf("Unable to Scan for Credentials. %s", err)
+		}
+	}
 
 	// TODO: Set/clone infra git remote when git-remote is set.
 
@@ -118,44 +141,23 @@ func (a *Forj) Create() error {
 		return fmt.Errorf("Failed to create your infra repository. %s", err)
 	}
 
-	// ------------------- Forjfile information now stay in Memory --------------------
+	// ------------------- Now we need to go forward with the ForjfileInMem
 
-	// Scan Forjfile to extract creds and set default values
-	// We set values from cli is defined.
-	// TODO: We may need to split this in 3 differents functions:
-	// - scan Forjfile for creds,
+	if err := a.f.BuildForjfileInMem() ; err != nil {
+		return fmt.Errorf("failed to build the Forjfile in memory. %s", err)
+	}
+
 	// - Set Forjfile values from cli
-	// - Scan Forjfile to set defaults from drivers defautl values setup.
+	// - Scan Forjfile to set defaults from drivers default values setup.
 	//
 	// default values are required to be set after upstream driver execution, as some data can be returned and used by the flow.
 	//
-	gotrace.Trace("From Global Forjfile:")
-	gotrace.Trace("Running ScanCreds...")
-	if err := a.scanCreds(a.f.DeployForjfile(), creds.Global, false); err != nil {
-		return fmt.Errorf("Unable to Scan for Credentials. %s", err)
-	}
-	gotrace.Trace("Running ScanAndSetDefaults...")
-	if err := a.scanAndSetDefaults(a.f.DeployForjfile(), creds.Global); err != nil {
-		return fmt.Errorf("Unable to Scan for set defaults. %s", err)
-	}
-	gotrace.Trace("Running ScanAndSetObjectData...")
-	if err := a.ScanAndSetObjectData(a.f.DeployForjfile(), creds.Global, false); err != nil {
-		return fmt.Errorf("Unable to Scan. %s", err)
-	}
 
-	for deployName, deploy := range a.f.GetDeployments() {
-		gotrace.Trace("From %s Forjfile:", deployName)
-		gotrace.Trace("Running ScanCreds...", deployName)
-		if err := a.scanCreds(deploy.Details, deployName, false); err != nil {
-			return fmt.Errorf("Unable to Scan for Credentials. %s", err)
-		}
-		gotrace.Trace("Running ScanAndSetDefaults...")
-		if err := a.scanAndSetDefaults(a.f.DeployForjfile(), creds.Global); err != nil {
-			return fmt.Errorf("Unable to Scan for set defaults. %s", err)
-		}
-		//gotrace.Trace("ScanAndSetObjectData from %s Forjfile...", deployName)
-		// TODO: We must only extract creds from deploy Forjfiles.
-		//a.ScanAndSetObjectData(deploy.Details, deployName, false)
+
+	// Set defaults and cli values
+	gotrace.Trace("Running ScanAndSetDefaults...")
+	if err := a.scanAndSetDefaults(a.f.InMemForjfile(), creds.Global); err != nil {
+		return fmt.Errorf("Unable to Scan for set defaults. %s", err)
 	}
 
 	// As soon as the InfraPath gets created (or re-used) we can use the workspace in it.

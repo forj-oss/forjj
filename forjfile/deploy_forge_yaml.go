@@ -23,6 +23,28 @@ type DeployForgeYaml struct {
 	More map[string]map[string]ForjValues `yaml:",inline,omitempty"`
 }
 
+// NewDeployForgeYaml creates an empty pre-initialized object.
+func NewDeployForgeYaml() (result *DeployForgeYaml) {
+	result = new(DeployForgeYaml)
+	if result.Apps == nil {
+		result.Apps = make(AppsStruct)
+	}
+	if result.Groups == nil {
+		result.Groups = make(GroupsStruct)
+	}
+	if result.Users == nil {
+		result.Users = make(UsersStruct)
+	}
+	if result.Repos == nil {
+		result.Repos = make(ReposStruct)
+	}
+	if result.More == nil {
+		result.More = make(map[string]map[string]ForjValues)
+	}
+	return
+
+}
+
 // Init ensure all object are well initialized to avoid core dump
 func (f *DeployForgeYaml) Init(forge *ForgeYaml) bool {
 	if f == nil {
@@ -502,4 +524,18 @@ func (f *DeployForgeYaml) initDefaults(forge *ForgeYaml) {
 	}
 	f.Infra.set_forge(forge)
 	f.ForjSettings.set_forge(forge)
+}
+
+// GetRepo return the object found
+func (f *DeployForgeYaml) GetRepo(name string) (r *RepoStruct, found bool) {
+	r, found = f.Repos[name]
+	return
+}
+
+func (f *DeployForgeYaml) Model() ForgeModel {
+	model := ForgeModel{
+		forge: f,
+	}
+
+	return model
 }

@@ -37,10 +37,19 @@ func NewScanDrivers(ffd *forjfile.DeployForgeYaml, drivers map[string]*drivers.D
 	ret.ffd = ffd
 	ret.drivers = drivers
 	// Define default handlers
-	ret.objectGetInstances = ret.ffd.GetInstances
-	ret.taskFlag = ret.taskFlagDefault
-	ret.objectFlag = ret.objectFlagDefault
+	ret.ResetHandlers()
 	return
+}
+
+func (s *ScanDrivers) ResetHandlers() {
+	if s == nil {
+		return
+	}
+	s.objectGetInstances = s.ffd.GetInstances
+	s.taskFlag = s.taskFlagDefault
+	s.objectFlag = s.objectFlagDefault
+	return
+	
 }
 
 // SetScanTaskFlagsFunc regsiter the taskFlag function to the scanDrivers
@@ -103,7 +112,7 @@ func (s *ScanDrivers) DoScanDriversObject(deploy string) (err error) {
 			instances = s.objectGetInstances(objectName)
 
 			for _, instanceName := range instances {
-				// Do not set app object values for a driver of a different application.
+				// Do not treat app object values for a driver of a different application.
 				if objectName == "app" && instanceName != driver.InstanceName {
 					continue
 				}
@@ -134,9 +143,9 @@ func (s *ScanDrivers) DoScanDriversObject(deploy string) (err error) {
 // The secret transfered flag value is moved to creds functions
 // while in Forjfile the moved value is set to {{ .creds.<flag_name> }}
 // a golang template is then used for Forfile to get the data from the default credential structure.
-func (s *ScanDrivers) DispatchObjectFlags(object_name, instance_name, flag_prefix string, flags map[string]goforjj.YamlFlag) (err error) {
-	for flag_name, flag := range flags {
-		if err = s.objectFlag(object_name, instance_name, flag_prefix+flag_name, flag_name, flag); err != nil {
+func (s *ScanDrivers) DispatchObjectFlags(objectName, instanceName, flagPrefix string, flags map[string]goforjj.YamlFlag) (err error) {
+	for flagName, flag := range flags {
+		if err = s.objectFlag(objectName, instanceName, flagPrefix, flagName, flag); err != nil {
 			return err
 		}
 	}

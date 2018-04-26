@@ -16,7 +16,7 @@ type FlowTaskIf struct {
 }
 
 // IfEvaluate will interpret
-func (fti *FlowTaskIf)IfEvaluate(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) (_ bool, _ error) {
+func (fti *FlowTaskIf)IfEvaluate(repo *forjfile.RepoStruct, Forjfile *forjfile.DeployForgeYaml) (_ bool, _ error) {
 	if fti.Rule != "" {
 		var doc bytes.Buffer
 
