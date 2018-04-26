@@ -26,6 +26,8 @@ func NewScanDrivers(ffd *forjfile.DeployForgeYaml, drivers map[string]*drivers.D
 	ret = new(ScanDrivers)
 	ret.ffd = ffd
 	ret.drivers = drivers
+	ret.objectGetInstances = s.ffd.GetInstances
+
 	return
 }
 
@@ -86,11 +88,7 @@ func (s *ScanDrivers) DoScanDriversObject(deploy string) (err error) {
 			// Instances of Forj objects
 			var instances []string
 
-			if s.SetScanGetObjInstFunc == nil {
-				instances = s.ffd.GetInstances(objectName)
-			} else {
-				instances = s.objectGetInstances(objectName)
-			}
+			instances = s.objectGetInstances(objectName)
 
 			for _, instanceName := range instances {
 				// Do not set app object values for a driver of a different application.
