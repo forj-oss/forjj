@@ -8,7 +8,7 @@ type FlowTaskModel struct {
 	List map[string]interface{}
 }
 
-func New_FlowTaskModel(current *forjfile.RepoStruct, forjf *forjfile.Forge) (ret *FlowTaskModel) {
+func New_FlowTaskModel(current *forjfile.RepoStruct, forjf *forjfile.DeployForgeYaml) (ret *FlowTaskModel) {
 	ret = new(FlowTaskModel)
 
 	ret.Repo = current.Model()

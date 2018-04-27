@@ -129,8 +129,6 @@ func (r *RepoStruct) SetRepoAsInfra() error {
 	return nil
 }
 
-
-
 func (r *RepoStruct) setFromInfra(infra *RepoStruct) {
 	if r == nil {
 		return

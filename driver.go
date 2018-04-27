@@ -6,6 +6,7 @@ import (
 	"forjj/forjfile"
 	"forjj/git"
 	"forjj/utils"
+	"forjj/creds"
 	"log"
 	"os"
 	"path"
@@ -118,7 +119,7 @@ func (a *Forj) do_driver_add(d *drivers.Driver) error {
 	if status := git.GetStatus(); status.Err != nil {
 		return fmt.Errorf("Issue to check git status. %s", status.Err)
 	} else {
-		if num := status.CountUntracked() ; num > 0 {
+		if num := status.CountUntracked(); num > 0 {
 			log.Print("Following files created by the plugin are not controlled by the plugin. You must fix it manually and contact the plugin maintainer to fix this issue.")
 			log.Printf("files: %s", strings.Join(status.Untracked(), ", "))
 			return fmt.Errorf("Unable to complete commit process. '%d' Uncontrolled files found", num)
@@ -264,7 +265,8 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	if d.DriverType == "upstream" {
 		for Name, Repo := range d.Plugin.Result.Data.Repos {
 			var repo_obj *forjfile.RepoStruct
-			if r, ok := a.f.GetObjectInstance(repo, Name).(*forjfile.RepoStruct); !ok {
+			ffd := a.f.InMemForjfile()
+			if r, ok := ffd.GetObjectInstance(repo, Name).(*forjfile.RepoStruct); !ok {
 				continue
 			} else {
 				repo_obj = r
@@ -274,15 +276,21 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 			repo_obj.SetInstanceOwner(Repo.Owner)
 			repo_obj.SetPluginOwner(d)
 			if a.f.GetInfraName() == Name {
-				a.f.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
-				a.f.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
+				ffd.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
+				ffd.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
 			}
 
-			if deployName, found := repo_obj.Get(forjfile.FieldRepoDeployName) ; found {
+			if deployName, found := repo_obj.Get(forjfile.FieldRepoDeployName); found {
 				deployObj, _ := a.f.GetADeployment(deployName.GetString())
 				deployObj.GitDefineRemote("origin", Repo.Remotes["origin"].Ssh)
 				deployObj.GitSyncFrom("origin", "master")
 			}
+		}
+		if err := a.FlowApply(); err != nil {
+			return err, false
+		}
+		if err := a.scanAndSetDefaults(a.f.InMemForjfile(), creds.Global) ; err != nil {
+			return err, false
 		}
 	}
 	// Collect application API if published by the driver.

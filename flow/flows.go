@@ -84,7 +84,7 @@ func (fs *Flows) AddRepoPath(pathStr *url.URL) (bool, error) {
 }
 
 // Apply the flow to the Forjfile loaded.
-func (fs *Flows) Apply(flowName string, repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) error {
+func (fs *Flows) Apply(flowName string, repo *forjfile.RepoStruct, Forjfile *forjfile.DeployForgeYaml) error {
 	var flow *FlowDefine
 
 	if af, found := fs.all[flowName]; found {

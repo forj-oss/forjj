@@ -17,6 +17,7 @@ func (a AppsStruct) mergeFrom(from AppsStruct) {
 		if app, found := a[k]; found {
 			app.mergeFrom(appFrom)
 		} else {
+			
 			a[k] = appFrom
 		}
 	}

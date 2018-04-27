@@ -23,6 +23,28 @@ type DeployForgeYaml struct {
 	More map[string]map[string]ForjValues `yaml:",inline,omitempty"`
 }
 
+// NewDeployForgeYaml creates an empty pre-initialized object.
+func NewDeployForgeYaml() (result *DeployForgeYaml) {
+	result = new(DeployForgeYaml)
+	if result.Apps == nil {
+		result.Apps = make(AppsStruct)
+	}
+	if result.Groups == nil {
+		result.Groups = make(GroupsStruct)
+	}
+	if result.Users == nil {
+		result.Users = make(UsersStruct)
+	}
+	if result.Repos == nil {
+		result.Repos = make(ReposStruct)
+	}
+	if result.More == nil {
+		result.More = make(map[string]map[string]ForjValues)
+	}
+	return
+
+}
+
 // Init ensure all object are well initialized to avoid core dump
 func (f *DeployForgeYaml) Init(forge *ForgeYaml) bool {
 	if f == nil {
@@ -37,6 +59,76 @@ func (f *DeployForgeYaml) Init(forge *ForgeYaml) bool {
 func (f *DeployForgeYaml) GetString(object, instance, key string) (string, bool) {
 	v, found := f.Get(object, instance, key)
 	return v.GetString(), found
+}
+
+// GetInstances return a list of instances from an object type.
+func (f *DeployForgeYaml) GetInstances(object string) (ret []string) {
+	if !f.Init(f.forge) {
+		return nil
+	}
+	ret = []string{}
+	switch object {
+	case "user":
+		if f.Users == nil {
+			return
+		}
+
+		ret = make([]string, len(f.Users))
+		iCount := 0
+		for user := range f.Users {
+			ret[iCount] = user
+			iCount++
+		}
+		return
+	case "group":
+		if f.Groups == nil {
+			return
+		}
+
+		ret = make([]string, len(f.Groups))
+		iCount := 0
+		for group := range f.Groups {
+			ret[iCount] = group
+			iCount++
+		}
+		return
+	case "app":
+		if f.Apps == nil {
+			return
+		}
+
+		ret = make([]string, len(f.Apps))
+		iCount := 0
+		for app := range f.Apps {
+			ret[iCount] = app
+			iCount++
+		}
+		return
+	case "repo":
+		if f.Repos == nil {
+			return
+		}
+
+		ret = make([]string, len(f.Repos))
+		iCount := 0
+		for repo := range f.Repos {
+			ret[iCount] = repo
+			iCount++
+		}
+		return
+	case "infra", "settings":
+		return
+	default:
+		if instances, found := f.More[object]; found {
+			ret = make([]string, len(instances))
+			iCount := 0
+			for instance := range instances {
+				ret[iCount] = instance
+				iCount++
+			}
+		}
+	}
+	return
 }
 
 // Get return the value of the object instance key as ValueStruct.
@@ -432,4 +524,68 @@ func (f *DeployForgeYaml) initDefaults(forge *ForgeYaml) {
 	}
 	f.Infra.set_forge(forge)
 	f.ForjSettings.set_forge(forge)
+}
+
+// GetRepo return the object found
+func (f *DeployForgeYaml) GetRepo(name string) (r *RepoStruct, found bool) {
+	r, found = f.Repos[name]
+	return
+}
+
+func (f *DeployForgeYaml) Model() ForgeModel {
+	model := ForgeModel{
+		forge: f,
+	}
+
+	return model
+}
+func (f *DeployForgeYaml) GetObjectInstance(object, instance string) interface{} {
+	f.initDefaults(f.forge)
+	
+	switch object {
+	case "user":
+		if f.Users == nil {
+			return nil
+		}
+		if user, found := f.Users[instance]; found {
+			return user
+		}
+	case "group":
+		if f.Groups == nil {
+			return nil
+		}
+		if group, found := f.Groups[instance]; found {
+			return group
+		}
+	case "app":
+		if f.Apps == nil {
+			return nil
+		}
+		if app, found := f.Apps[instance]; found {
+			return app
+		}
+	case "repo":
+		if f.Repos == nil {
+			return nil
+		}
+		if repo, found := f.Repos[instance]; found {
+			return repo
+		}
+	case "settings":
+		return f.ForjSettings.GetInstance(instance)
+	default:
+		return f.getInstance(object, instance)
+	}
+	return nil
+}
+
+func (f *DeployForgeYaml) getInstance(object, instance string) (_ map[string]ForjValue) {
+	f.initDefaults(f.forge)
+
+	if obj, f1 := f.More[object]; f1 {
+		if i, f2 := obj[instance]; f2 {
+			return i
+		}
+	}
+	return
 }

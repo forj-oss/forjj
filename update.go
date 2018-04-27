@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/forj-oss/forjj-modules/trace"
+	"forjj/creds"
 	"log"
 	"regexp"
-	"forjj/creds"
+
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 // Execute an update on the workspace given.
@@ -26,35 +27,47 @@ func (a *Forj) Update() error {
 		}
 	}()
 
+	if err := a.ValidateForjfile(); err != nil {
+		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry", err)
+	}
+
+	// Build in memory representation from source files loaded.
+	if err := a.f.BuildForjfileInMem(); err != nil {
+		return err
+	}
+
+	// Get it
+	ffd := a.f.InMemForjfile()
+
+	// Add missing deployment Repositories and warn
+	if err := a.DefineMissingDeployRepositories(ffd, true); err != nil {
+		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
+	}
+
+	// Load flow identified by Forjfile source with missing repos.
+	if err := a.FlowInit(); err != nil {
+		return err
+	}
+
 	if err := a.define_infra_upstream(); err != nil {
 		return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
 	}
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-	// Dispatch information between Forjfile, cli and creds.
-	// Forjfiles are not saved and stay in Memory. but creds are saved.
-	// missing:true to check if some required values are missing.
-	if err := a.ScanAndSetObjectData(a.f.DeployForjfile(), creds.Global, true) ; err != nil {
+	// Apply the flow to the inMemForjfile
+	if err := a.FlowApply(); err != nil {
+		return fmt.Errorf("Unable to apply flows. %s", err)
+	}
+
+	// Set plugin defaults for objects added dynamically in the in memory Forjfile.
+	if err := a.scanAndSetDefaults(ffd, creds.Global); err != nil {
 		return fmt.Errorf("Unable to update. Global dispatch issue. %s", err)
-	}
-	deployName := a.f.GetDeployment()
-	deploy, _ := a.f.GetADeployment(deployName)
-	if err := a.ScanAndSetObjectData(deploy.Details, deployName, true) ; err != nil {
-		return fmt.Errorf("Unable to update. '%s' dispatch issue. %s", deployName, err)
-	}
-
-	if err := a.ValidateForjfile(); err != nil {
-		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
-	}
-
-	if err := a.DefineMissingDeployRepositories(false) ; err != nil {
-		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 
 	// Checking infra repository: A valid infra repo is a git repository with at least one commit and
 	// a Forjfile from repo root.
-	if err := a.i.Use(a.f.InfraPath()) ; err != nil {
+	if err := a.i.Use(a.f.InfraPath()); err != nil {
 		return fmt.Errorf("Failed to update your infra repository. %s", err)
 	}
 
@@ -98,7 +111,6 @@ func (a *Forj) Update() error {
 	if err := a.d.GitPush(false); err != nil {
 		return fmt.Errorf("Failed to push deploy commits. %s", err)
 	}
-
 
 	/*	// If the upstream driver has updated his source, we need to get and commit them. If
 		// Commiting source code.

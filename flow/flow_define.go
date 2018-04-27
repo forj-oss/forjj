@@ -15,7 +15,7 @@ type FlowDefine struct { // Yaml structure
 	OnForj map[string]FlowTaskDef `yaml:"on-forjfile-do"`
 }
 
-func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) error {
+func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.DeployForgeYaml) error {
 	bInError := false
 
 	var tasks map[string]FlowTaskDef
@@ -92,7 +92,7 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) 
 	return nil
 }
 
-func (ftd *FlowTaskDef)if_section(repo *forjfile.RepoStruct, Forjfile *forjfile.Forge) (task_to_set bool, _ error) {
+func (ftd *FlowTaskDef)if_section(repo *forjfile.RepoStruct, Forjfile *forjfile.DeployForgeYaml) (task_to_set bool, _ error) {
 	task_to_set = true
 	if ftd.If != nil {
 		for _, ftif := range ftd.If {

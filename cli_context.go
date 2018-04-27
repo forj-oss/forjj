@@ -218,11 +218,6 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		}
 	}
 
-	// Enhance forjfile inMemory representation with Flow definition.
-	if err := a.FlowInit(); err != nil {
-		return err, false
-	}
-
 	return nil, true
 }
 

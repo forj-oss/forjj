@@ -11,7 +11,7 @@ type FlowTaskList struct {
 	list []interface{}
 }
 
-func (ftl *FlowTaskList)Get(repo *forjfile.RepoStruct, _ *forjfile.Forge) (list []interface{}) {
+func (ftl *FlowTaskList)Get(repo *forjfile.RepoStruct, _ *forjfile.DeployForgeYaml) (list []interface{}) {
 	list = []interface{}{}
 
 	switch ftl.List {

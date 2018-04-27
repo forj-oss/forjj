@@ -29,6 +29,7 @@ type Forge struct {
 	infra_path       string // Infra path used to create/save/load Forjfile
 	file_name        string // Relative path to the Forjfile.
 	yaml             *ForgeYaml
+	inMem            *DeployForgeYaml
 }
 
 // ForgeYaml represents the master Forjfile or a piece of the Forjfile template.
@@ -182,11 +183,18 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 
 	f.yaml.set_defaults()
 	loaded = true
-	if deployTo != "" {
-		f.SetDeployment(deployTo)
-	} else {
+	if deployTo == "" {
 		gotrace.Trace("Forge loaded from '%s'.", aPath)
+		return
 	}
+	deploy, found := f.yaml.Deployments[deployTo]
+	if !found {
+		err = fmt.Errorf("Deployment '%s' not defined")
+		return
+	}
+
+	// Define current deployment loaded in memory.
+	f.SetDeployment(deployTo)
 	msg := "' and '" + aPath
 
 	if deployTo == "" {
@@ -211,20 +219,49 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 		return
 	}
 
-	err = f.yaml.ForjCore.mergeFrom(&deployData)
-	if err != nil {
-		return false, fmt.Errorf("Unable to load the Deployment forjfile. %s", err)
-	}
-
+	deploy.Details = &deployData
 	f.yaml.set_defaults()
+
 	loaded = true
 	gotrace.Trace("%s deployment forge loaded from '%s'.", deployTo, aPath+msg)
 
 	return
 }
 
+// BuildForjfileInMem return a merge of the Master forjfile with the current deployment.
+func (f *Forge) BuildForjfileInMem() (err error) {
+	f.inMem, err = f.MergeFromDeployment(f.GetDeployment())
+	return
+}
+
+// MergeFromDeployment provide a merge between Master and Deployment Forjfile.
+func (f *Forge) MergeFromDeployment(deployTo string) (result *DeployForgeYaml, err error) {
+	if f == nil {
+		return nil, fmt.Errorf("Forge is nil")
+	}
+	deploy, found := f.GetADeployment(deployTo)
+	if !found {
+		return nil, fmt.Errorf("Unable to find deployment '%s'", deployTo)
+	}
+	result = NewDeployForgeYaml()
+	if err = result.mergeFrom(&f.yaml.ForjCore); err != nil {
+		return nil, fmt.Errorf("Unable to load the master forjfile. %s", err)
+	}
+	if err = result.mergeFrom(deploy.Details); err != nil {
+		return nil, fmt.Errorf("Unable to merge the Deployment forjfile to master one. %s", err)
+	}
+	result.initDefaults(f.yaml)
+	return
+}
+
+// DeployForjfile return the Forjfile master object
 func (f *Forge) DeployForjfile() *DeployForgeYaml {
 	return &f.yaml.ForjCore
+}
+
+// DeployForjfile return the Forjfile master object
+func (f *Forge) InMemForjfile() *DeployForgeYaml {
+	return f.inMem
 }
 
 func loadFile(aPath string) (file string, yaml_data []byte, err error) {
@@ -540,41 +577,7 @@ func (f *Forge) GetObjectInstance(object, instance string) interface{} {
 	if !f.Init() {
 		return nil
 	}
-	switch object {
-	case "user":
-		if f.yaml.ForjCore.Users == nil {
-			return nil
-		}
-		if user, found := f.yaml.ForjCore.Users[instance]; found {
-			return user
-		}
-	case "group":
-		if f.yaml.ForjCore.Groups == nil {
-			return nil
-		}
-		if group, found := f.yaml.ForjCore.Groups[instance]; found {
-			return group
-		}
-	case "app":
-		if f.yaml.ForjCore.Apps == nil {
-			return nil
-		}
-		if app, found := f.yaml.ForjCore.Apps[instance]; found {
-			return app
-		}
-	case "repo":
-		if f.yaml.ForjCore.Repos == nil {
-			return nil
-		}
-		if repo, found := f.yaml.ForjCore.Repos[instance]; found {
-			return repo
-		}
-	case "settings":
-		return f.yaml.ForjCore.ForjSettings.GetInstance(instance)
-	default:
-		return f.getInstance(object, instance)
-	}
-	return nil
+	return f.yaml.ForjCore.GetObjectInstance(object, instance)
 }
 
 func (f *Forge) ObjectLen(object string) int {
@@ -613,18 +616,6 @@ func (f *Forge) ObjectLen(object string) int {
 		return 0
 	}
 	return 0
-}
-
-func (f *Forge) getInstance(object, instance string) (_ map[string]ForjValue) {
-	if !f.Init() {
-		return
-	}
-	if obj, f1 := f.yaml.ForjCore.More[object]; f1 {
-		if i, f2 := obj[instance]; f2 {
-			return i
-		}
-	}
-	return
 }
 
 func (f *Forge) Remove(object, name, key string) {
@@ -717,9 +708,13 @@ func (f *ForgeYaml) set_defaults() {
 }
 
 func (f *ForgeYaml) dirty() {
+	if f == nil {
+		return
+	}
 	f.updated = true
 }
 
+// GetDeclaredFlows returns the list of flow to load from the Master Forjfile and the deploy Forjfile.
 func (f *Forge) GetDeclaredFlows() (result []string) {
 	flows := make(map[string]bool)
 
@@ -728,6 +723,14 @@ func (f *Forge) GetDeclaredFlows() (result []string) {
 			flows[repo.Flow.Name] = true
 		}
 	}
+	if deploy, _ := f.GetADeployment(f.GetDeployment()); deploy != nil && deploy.Details != nil {
+		for _, repo := range deploy.Details.Repos {
+			if repo.Flow.Name != "" {
+				flows[repo.Flow.Name] = true
+			}
+		}
+	}
+
 	if flow := f.yaml.ForjCore.ForjSettings.Default.getFlow(); flow != "" {
 		flows[flow] = true
 	}
@@ -741,14 +744,6 @@ func (f *Forge) GetDeclaredFlows() (result []string) {
 		result = append(result, name)
 	}
 	return
-}
-
-func (f *Forge) Model() ForgeModel {
-	model := ForgeModel{
-		forge: f,
-	}
-
-	return model
 }
 
 // GetDeployment returns the current deployment environment
@@ -768,6 +763,7 @@ func (f *Forge) GetADeployment(deploy string) (v *DeploymentStruct, found bool) 
 }
 
 // Validate check if the information in the Forjfile are coherent or not and if code respect some basic rules.
+// Validate do not check default values. So, validate can be executed before setting driver default values (forj.ScanAndSetObjectData)
 func (f *Forge) Validate() error {
 
 	// ForjSettingsStruct.More
@@ -855,6 +851,6 @@ func (f *Forge) GetUpstreamApps() (v AppsStruct, found bool) {
 
 // GetRepo return the object found
 func (f *Forge) GetRepo(name string) (r *RepoStruct, found bool) {
-	r, found = f.yaml.ForjCore.Repos[name]
+	r, found = f.yaml.ForjCore.GetRepo(name)
 	return
 }

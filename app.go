@@ -70,7 +70,6 @@ type Forj struct {
 	from_create          bool     // true when start running maintain from create
 	validation_issue     bool     // true if validation of Forjfile has failed.
 
-	scanDeploy           string   // Used by ScanAndSetObjectData
 	// TODO: enhance infra README.md with a template.
 
 	infra_readme string // Initial infra repo README.md text.
@@ -151,13 +150,15 @@ type ForjCurrentModel struct {
 }
 
 // Model is used to build a Model to use by text/templates
+// Used to interpret data from the Forjfile in memory.
 func (a *Forj) Model(object_name, instance_name, key string) *ForjModel {
+	ffd := a.f.InMemForjfile()
 	data := ForjModel{
-		Forjfile: a.f.DeployForjfile(),
+		Forjfile: ffd,
 		Current: ForjCurrentModel{
 			Type:  object_name,
 			Name:  instance_name,
-			Data:  a.f.GetObjectInstance(object_name, instance_name),
+			Data:  ffd.GetObjectInstance(object_name, instance_name),
 			Creds: a.s.GetObjectInstance(object_name, instance_name),
 		},
 	}
