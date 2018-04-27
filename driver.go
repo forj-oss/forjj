@@ -265,18 +265,19 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	if d.DriverType == "upstream" {
 		for Name, Repo := range d.Plugin.Result.Data.Repos {
 			var repo_obj *forjfile.RepoStruct
-			if r, ok := a.f.GetObjectInstance(repo, Name).(*forjfile.RepoStruct); !ok {
+			ffd := a.f.InMemForjfile()
+			if r, ok := ffd.GetObjectInstance(repo, Name).(*forjfile.RepoStruct); !ok {
 				continue
 			} else {
 				repo_obj = r
 			}
 			repo_obj.Set("remote", Repo.Remotes["origin"].Ssh)
 			repo_obj.Set("remote-url", Repo.Remotes["origin"].Url)
-			//repo_obj.SetInstanceOwner(Repo.Owner)
+			repo_obj.SetInstanceOwner(Repo.Owner)
 			repo_obj.SetPluginOwner(d)
 			if a.f.GetInfraName() == Name {
-				a.f.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
-				a.f.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
+				ffd.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
+				ffd.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
 			}
 
 			if deployName, found := repo_obj.Get(forjfile.FieldRepoDeployName); found {
@@ -288,7 +289,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		if err := a.FlowApply(); err != nil {
 			return err, false
 		}
-		if err := a.ScanAndSetObjectData(a.f.DeployForjfile(), creds.Global, false) ; err != nil {
+		if err := a.scanAndSetDefaults(a.f.InMemForjfile(), creds.Global) ; err != nil {
 			return err, false
 		}
 	}

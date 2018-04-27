@@ -1,8 +1,8 @@
 package main
 
 import (
-	"forjj/creds"
 	"fmt"
+	"forjj/creds"
 	"forjj/git"
 
 	"github.com/forj-oss/forjj-modules/trace"
@@ -23,25 +23,34 @@ func (a *Forj) Maintain() error {
 		return fmt.Errorf("Your Forjfile is having issues. %s Maintain aborted", err)
 	}
 
-	if err := a.f.BuildForjfileInMem() ; err != nil {
+	if err := a.f.BuildForjfileInMem(); err != nil {
 		return err
-	}
-
-	// Dispatch information between Forjfile, cli and creds.
-	// Forjfile or creds are not saved and stay in memory.
-	if err := a.ScanAndSetObjectData(a.f.InMemForjfile(), creds.Global, true); err != nil {
-		return fmt.Errorf("Unable to maintain. Issue on global cli/forjfile/creds dispatch. %s", err)
 	}
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
-	if err := a.DefineMissingDeployRepositories(a.f.InMemForjfile(), true); err != nil {
+	ffd := a.f.InMemForjfile()
+	if err := a.DefineMissingDeployRepositories(ffd, true); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 
 	// Load flow identified by Forjfile with missing repos.
 	if err := a.FlowInit(); err != nil {
 		return err
+	}
+
+	// Dispatch information between Forjfile, cli and creds.
+	// Forjfile or creds are not saved and stay in memory.
+	if err := a.scanCreds(ffd, creds.Global, true); err != nil {
+		return err
+	}
+
+	if err := a.FlowApply(); err != nil {
+		return err
+	}
+
+	if err := a.scanAndSetDefaults(ffd, creds.Global); err != nil {
+		return fmt.Errorf("Unable to maintain. Issue on global cli/forjfile/creds dispatch. %s", err)
 	}
 
 	if err := a.get_infra_repo(); err != nil {
@@ -60,14 +69,14 @@ func (a *Forj) do_maintain() error {
 	// Loop on instances to maintain them
 	instances := a.define_drivers_execution_order()
 	for _, instance := range instances {
-		if err := a.do_driver_maintain(instance); err != nil {
+		if err := a.doInstanceMaintain(instance); err != nil {
 			return fmt.Errorf("Unable to maintain requested resources of %s. %s", instance, err)
 		}
 	}
 	return nil
 }
 
-func (a *Forj) do_driver_maintain(instance string) error {
+func (a *Forj) doInstanceMaintain(instance string) error {
 	if instance == "none" {
 		return nil
 	}

@@ -539,3 +539,53 @@ func (f *DeployForgeYaml) Model() ForgeModel {
 
 	return model
 }
+func (f *DeployForgeYaml) GetObjectInstance(object, instance string) interface{} {
+	f.initDefaults(f.forge)
+	
+	switch object {
+	case "user":
+		if f.Users == nil {
+			return nil
+		}
+		if user, found := f.Users[instance]; found {
+			return user
+		}
+	case "group":
+		if f.Groups == nil {
+			return nil
+		}
+		if group, found := f.Groups[instance]; found {
+			return group
+		}
+	case "app":
+		if f.Apps == nil {
+			return nil
+		}
+		if app, found := f.Apps[instance]; found {
+			return app
+		}
+	case "repo":
+		if f.Repos == nil {
+			return nil
+		}
+		if repo, found := f.Repos[instance]; found {
+			return repo
+		}
+	case "settings":
+		return f.ForjSettings.GetInstance(instance)
+	default:
+		return f.getInstance(object, instance)
+	}
+	return nil
+}
+
+func (f *DeployForgeYaml) getInstance(object, instance string) (_ map[string]ForjValue) {
+	f.initDefaults(f.forge)
+
+	if obj, f1 := f.More[object]; f1 {
+		if i, f2 := obj[instance]; f2 {
+			return i
+		}
+	}
+	return
+}

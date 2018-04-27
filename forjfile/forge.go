@@ -577,41 +577,7 @@ func (f *Forge) GetObjectInstance(object, instance string) interface{} {
 	if !f.Init() {
 		return nil
 	}
-	switch object {
-	case "user":
-		if f.yaml.ForjCore.Users == nil {
-			return nil
-		}
-		if user, found := f.yaml.ForjCore.Users[instance]; found {
-			return user
-		}
-	case "group":
-		if f.yaml.ForjCore.Groups == nil {
-			return nil
-		}
-		if group, found := f.yaml.ForjCore.Groups[instance]; found {
-			return group
-		}
-	case "app":
-		if f.yaml.ForjCore.Apps == nil {
-			return nil
-		}
-		if app, found := f.yaml.ForjCore.Apps[instance]; found {
-			return app
-		}
-	case "repo":
-		if f.yaml.ForjCore.Repos == nil {
-			return nil
-		}
-		if repo, found := f.yaml.ForjCore.Repos[instance]; found {
-			return repo
-		}
-	case "settings":
-		return f.yaml.ForjCore.ForjSettings.GetInstance(instance)
-	default:
-		return f.getInstance(object, instance)
-	}
-	return nil
+	return f.yaml.ForjCore.GetObjectInstance(object, instance)
 }
 
 func (f *Forge) ObjectLen(object string) int {
@@ -650,18 +616,6 @@ func (f *Forge) ObjectLen(object string) int {
 		return 0
 	}
 	return 0
-}
-
-func (f *Forge) getInstance(object, instance string) (_ map[string]ForjValue) {
-	if !f.Init() {
-		return
-	}
-	if obj, f1 := f.yaml.ForjCore.More[object]; f1 {
-		if i, f2 := obj[instance]; f2 {
-			return i
-		}
-	}
-	return
 }
 
 func (f *Forge) Remove(object, name, key string) {
@@ -769,7 +723,7 @@ func (f *Forge) GetDeclaredFlows() (result []string) {
 			flows[repo.Flow.Name] = true
 		}
 	}
-	if deploy, _ := f.GetADeployment(f.GetDeployment()); deploy != nil {
+	if deploy, _ := f.GetADeployment(f.GetDeployment()); deploy != nil && deploy.Details != nil {
 		for _, repo := range deploy.Details.Repos {
 			if repo.Flow.Name != "" {
 				flows[repo.Flow.Name] = true
