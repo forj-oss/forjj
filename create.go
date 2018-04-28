@@ -105,7 +105,6 @@ func (a *Forj) Create() error {
 		return err
 	}
 
-
 	if err := a.ValidateForjfile(); err != nil {
 		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
 	}
@@ -115,7 +114,6 @@ func (a *Forj) Create() error {
 	}
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
-
 
 	// Credentials on master and deployment credential files.
 	gotrace.Trace("Running ScanCreds from Global Forjfile...")
@@ -143,21 +141,8 @@ func (a *Forj) Create() error {
 
 	// ------------------- Now we need to go forward with the ForjfileInMem
 
-	if err := a.f.BuildForjfileInMem() ; err != nil {
+	if err := a.f.BuildForjfileInMem(); err != nil {
 		return fmt.Errorf("failed to build the Forjfile in memory. %s", err)
-	}
-
-	// - Set Forjfile values from cli
-	// - Scan Forjfile to set defaults from drivers default values setup.
-	//
-	// default values are required to be set after upstream driver execution, as some data can be returned and used by the flow.
-	//
-
-
-	// Set defaults and cli values
-	gotrace.Trace("Running ScanAndSetDefaults...")
-	if err := a.scanAndSetDefaults(a.f.InMemForjfile(), creds.Global); err != nil {
-		return fmt.Errorf("Unable to Scan for set defaults. %s", err)
 	}
 
 	// As soon as the InfraPath gets created (or re-used) we can use the workspace in it.
@@ -173,6 +158,18 @@ func (a *Forj) Create() error {
 	// For new Repositories...
 	a.DefineDefaultUpstream()
 	a.FlowApply()
+
+	// - Set Forjfile values from cli
+	// - Scan Forjfile to set defaults from drivers default values setup.
+	//
+	// default values are required to be set after upstream driver execution, as some data can be returned and used by the flow.
+	//
+
+	// Set defaults and cli values after new objects created by flow.
+	gotrace.Trace("Running ScanAndSetDefaults...")
+	if err := a.scanAndSetDefaults(a.f.InMemForjfile(), creds.Global); err != nil {
+		return fmt.Errorf("Unable to Scan for set defaults. %s", err)
+	}
 
 	defer func() {
 		// save infra repository location in the workspace.
