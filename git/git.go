@@ -56,7 +56,7 @@ func GetStatus() (gs *Status) {
 func Get(opts ...string) (string, error) {
 	gotrace.Trace("RUNNING: git %s", strings.Join(opts, " "))
 	out, err := exec.Command("git", opts...).Output()
-	return string(out), err
+	return strings.Trim(string(out), " \n"), err
 }
 
 // GetWithStatusCode Call a git command and get the output as string output.
@@ -199,7 +199,7 @@ func RemoteURL(remote string) (string, bool, error) {
 		if v == "" {
 			remotes = []string{}
 		} else {
-			remotes = strings.Split(strings.Trim(v, "\n "), "\n")
+			remotes = strings.Split(v, "\n")
 		}
 	}
 
