@@ -1,14 +1,21 @@
 projects:
-    forjj:
-tasks:
-    ✔ @high Define list of deployment repositories automatically @done (2018-4-17 15:33:46)
-    ✔ @high At create/Update Time set deploy upstream and sync @done (2018-4-17 23:32:10)
-    ✔ @high After maintain, push deploy code. if the repo did not exist, sync it. @done (2018-4-18 18:00:50)
-    ☐ @low Identify all deployed files to help forjj maintain to completely manage deploy repo list of files and remove older one.  
-    ✔ @high Fix issue to deploy Jenkins @done (2018-4-16 22:11:29)
-    ✔ @high Maintain issue: Missing deployment code. @done (2018-4-16 22:10:59)
-    ✔ @high Support for deployment creds @done (2018-4-17 11:05:57)
-    ☐ @low Simplify Repo creation with Defaults so that we do not need to re-apply the full flow. create.go:157,1
-    ☐ @low Create/maintain root README.md of each deployment repositories
-    ☐ @low Jenkins: Move templates files to infra repo 
-    ☐ @critical Jenkins: permit to use another collection of templates files. We may have a workaround...
+  forjj:
+    tasks:
+      ✔ @high  bug: Forjj create from template do not create proper deployment forjfile. @done (2018-4-27 14:07:07)
+      ☐ @low projects from Forjfile template is not defined in generated Forjfile
+      ☐ @low Do not require application type at Forjfile loaded, but at validation phase. workaround add type in each applications
+      ☐ @low Simplify Repo creation with Defaults so that we do not need to re-apply the full flow. create.go:157,1
+      ☐ @low Create/maintain root README.md of each deployment repositories
+      ☐ @low Jenkins: Move templates files to infra repo
+      ☐ @low If infra is not declared, the infra is not passed to the upstream (not attached to any driver). It requires a repo declaration.
+      ☐ @low Projects sections has not been kept from the Forjfile template definition.
+      ☐ @low Pre-check docker before starting.
+      ☐ @high Integration testing: Create fake forj plugin to report REST API status and test it from Jenkins, before forjj deployment.
+      ☐ @high Github: If configuration files are not loaded, we just have a warning. We should have an error.
+      ✔ @critical when forjj update is executed on non declared deployment repos, all deployment repos are disabled by github plugin. @done (2018-4-27 14:07:39)
+      ☐ @critical Deployment repositories not added in Forjfile.
+      ☐ @critical When deployment defined in Forjfile template, the production deployment is not selected and used.
+
+  github:
+    tasks:
+      ☐ @low display source/deploy files information
