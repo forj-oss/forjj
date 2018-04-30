@@ -605,6 +605,7 @@ func (a *Forj) DefineMissingDeployRepositories(ffd *forjfile.DeployForgeYaml, wa
 			if r.IsInfra() {
 				return fmt.Errorf("Deployment repository can't be your Infra Source repository '%s'. Fix your Forjfile", repoName)
 			}
+			r.Set(forjfile.FieldRepoDeployName, deployName) // Identify repo as deployment repository
 			continue
 		}
 		repo := ffd.NewRepoStruct(repoName)
