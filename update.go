@@ -112,60 +112,6 @@ func (a *Forj) Update() error {
 		return fmt.Errorf("Failed to push deploy commits. %s", err)
 	}
 
-	/*	// If the upstream driver has updated his source, we need to get and commit them. If
-		// Commiting source code.
-		if d, found := a.drivers[a.w.Instance]; no_new_infra && found {
-			if err := a.do_driver_commit(d); err != nil {
-				return fmt.Errorf("Failed to commit '%s' source files. %s", a.w.Instance, err)
-			}
-		}
-
-		// a.o.update_options()
-
-		// Save&add forjj-repos, save&add forjj-options & then commit
-		defer func() {
-			// Save forjj-repos.yml
-			if err := a.RepoCodeSave(); err != nil {
-				log.Printf("%s", err)
-			}
-			if err := a.SaveForjjPluginsOptions(); err != nil {
-				log.Printf("%s", err)
-			}
-
-			// Save forjj-options.yml
-			a.SaveForge(fmt.Sprintf("Organization %s updated.", a.w.Organization))
-			log.Printf("As soon as you are happy with your fixes, do a git push to submit your collection of fixes related to '%s' to your team.", a.Branch)
-		}()
-
-		// Loop on drivers requested like jenkins classified as ci type.
-		for instance, d := range a.drivers {
-
-			if instance == a.w.Instance {
-				continue // Do not try to update infra-upstream twice.
-			}
-
-			repos_num := a.GetReposRequestedFor(instance, "update")
-			gotrace.Trace("Instance '%s' hosts %s.", instance, NumReposDisplay(repos_num))
-			if !d.AppRequest() && repos_num == 0 {
-				continue // Do not try to update a non requested app (--apps) or an instance having no requested repo updates.
-			}
-
-			if err, aborted := a.do_driver_task("update", instance); err != nil {
-				if !aborted {
-					return fmt.Errorf("Failed to update '%s' source files. %s", instance, err)
-				}
-				log.Printf("Warning. %s", err)
-			}
-
-			// Committing source code.
-			if err := a.do_driver_commit(d); err != nil {
-				return fmt.Errorf("Failed to commit '%s' source files. %s", instance, err)
-			}
-
-		}
-
-		// TODO: Implement flow_close() to close the create task
-		// flow_close()*/
 	return nil
 }
 
