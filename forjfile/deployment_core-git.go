@@ -66,7 +66,7 @@ func (d *DeploymentCoreStruct) GitSyncUp() error {
 			return fmt.Errorf("Internal error! Unable to sync up. The synchronization was not initiliazed. You must call GitSyncFrom, Once")
 		}
 		if git.Do("fetch", d.syncRemote) == 0 {
-			if found, _ := git.RemoteBranchExist(d.syncRemote); found {
+			if found, _ := git.RemoteBranchExist(d.syncRemoteBranch); found {
 				git.Do("reset", d.syncRemoteBranch)
 				git.Do("branch", "--set-upstream-to="+d.syncRemoteBranch)
 				d.syncStatus = 1
