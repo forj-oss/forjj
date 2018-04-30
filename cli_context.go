@@ -156,14 +156,16 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	if fileDesc, err := a.cli.GetAppStringValue(cred_f); err == nil && fileDesc != "" {
 		a.s.SetFile(a.f.GetDeployment(), fileDesc)
 	}
+	if err := a.s.Load(); err != nil {
+		gotrace.Info("Some credential files were not loaded. %s", err)
+	}
 	if err := a.s.Upgrade(func(d *creds.Secure, version string) (err error) {
 		// Function to identify creds V0 and do upgrade
 		if deployObj, err := a.f.GetDeploymentPROType(); err != nil {
 			return fmt.Errorf("Unable to upgrade. %s", err)
 		} else if credPath := d.DirName(creds.Global); credPath == a.w.Path() { // In Workspace
 			oldFile := path.Join(credPath, creds.DefaultCredsFile)
-			d.Load()
-			if d.Version(creds.Global) == "V0" && d.Version(deployObj.Name()) == "" { // V0 identified
+			if d.Version(creds.Global) == "V0" && d.Version(deployObj.Name()) == "" { // global loaded, but missing deploy one ie version="" => V0 identified
 				// Considered current creds is for PRO type environment
 				newfile := d.DefineDefaultCredFileName(credPath, deployObj.Name())
 				if err := os.Rename(oldFile, newfile); err != nil {
@@ -175,9 +177,6 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		return nil
 	}); err != nil {
 		gotrace.Info("Unable to upgrade your credentials. %s", err)
-	}
-	if err := a.s.Load(); err != nil {
-		gotrace.Info("Some credential files were not loaded. %s", err)
 	}
 
 	if v := a.cli.GetAction(cr_act).GetBoolAddr(no_maintain_f); v != nil {

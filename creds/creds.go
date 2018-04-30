@@ -54,7 +54,9 @@ func (d *Secure) IsLoaded(env string) (_ bool) {
 	return
 }
 
-// IsOld return true if the env file loaded is old.
+// Version return the version of creds loaded.
+// If a file is loaded, at least version = V0
+// if no file were loaded, verison is empty.
 func (d *Secure) Version(env string) (_ string) {
 	if d == nil {
 		return
@@ -80,7 +82,7 @@ func (d *Secure) DirName(env string) (_ string) {
 // Load security files (global + deployment one)
 func (d *Secure) Load() error {
 	inError := false
-	for _, env := range d.envs {
+	for key, env := range d.envs {
 		if _, err := os.Stat(env.file); err != nil {
 			gotrace.Trace(" '%s'. %s. Ignored", env.file, err)
 			continue
@@ -89,6 +91,7 @@ func (d *Secure) Load() error {
 			gotrace.Error("%s", err)
 			inError = true
 		}
+		d.envs[key] = env
 	}
 	if inError {
 		return fmt.Errorf("Issues detected while loading credential files")
