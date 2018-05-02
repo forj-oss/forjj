@@ -139,8 +139,22 @@ func (a *Forj) Create() error {
 		return fmt.Errorf("Failed to create your infra repository. %s", err)
 	}
 
+	for deployName := range a.f.GetDeployments() {
+		if err := a.createDeployment(deployName); err != nil {
+			return fmt.Errorf("failed to build the '%s' deployment source. %s", deployName, err)
+		}
+	}
+
+	return nil
+}
+
+// createDeployment creates all initial files for each environment.
+func (a *Forj) createDeployment(deploy string) error {
 	// ------------------- Now we need to go forward with the ForjfileInMem
 
+	a.f.SetDeployment(deploy)
+
+	// Loaded from current deployment
 	if err := a.f.BuildForjfileInMem(); err != nil {
 		return fmt.Errorf("failed to build the Forjfile in memory. %s", err)
 	}
@@ -220,7 +234,6 @@ func (a *Forj) Create() error {
 	} else {
 		gotrace.Trace("The remote repository doesn't exist. Pushing %s repository ignored.", a.d.Name())
 	}
-
 	return nil
 }
 

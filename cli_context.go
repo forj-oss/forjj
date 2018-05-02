@@ -69,6 +69,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// Read definition file from repo.
 	is_valid_action := (utils.InStringList(action, val_act, cr_act, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "")
 	need_to_create := (action == cr_act)
+	need_to_update := (action == upd_act)
 	need_to_validate := (action == val_act)
 	if err := a.f.SetInfraPath(a.w.InfraPath(), is_valid_action && (need_to_create || need_to_validate)); err != nil {
 		a.w.SetError(err)
@@ -91,7 +92,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		if v, found := a.f.Get("settings", "default", "dev-deploy"); found {
 			deployTo = v.GetString()
 		} else {
-			a.w.SetError(fmt.Errorf("No development environment found in your Forjfile. "+
+			a.w.SetError(fmt.Errorf("No development environment found in your Forjfile. " +
 				"If you want to introduce a DEV time in your forge flow, create at least one DEV deployment."))
 			return nil, false
 		}
@@ -148,16 +149,18 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// Setup each deployment internal data
 	deployPath := path.Join(a.w.Path(), "deployments")
 	deployPublish, _, _ := a.cli.GetBoolValue("_app", "forjj", "deploy-publish")
-	for _, deploy := range a.f.GetDeployments() {
-		if deploy.Type == "DEV" && !deployPublish {
-			deploy.DeploymentCoreStruct.GitSetRepo(path.Dir(a.i.Path()), "")
-		} else {
-			deploy.DeploymentCoreStruct.GitSetRepo(deployPath, "")
+	for name, deploy := range a.f.GetDeployments() {
+		deploy.DeploymentCoreStruct.GitSetRepo(deployPath, "")
+
+		if deploy.Type == "DEV" && !deployPublish && need_to_update {
+			devRepoWS := path.Join(deploy.GetRepoPath(), name)
+			devRepoAside := path.Dir(a.f.InfraPath())
+			os.Symlink(devRepoWS, devRepoAside)
 		}
 	}
 
 	// Define the current deployment in create mode.
-	if action == cr_act || action == val_act {
+	if need_to_create || need_to_validate {
 		// TODO: Be able to choose another deployment than the PRO one in create phase.
 
 		// Determine the default PRO deployment
