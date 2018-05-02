@@ -67,7 +67,7 @@ func (d *DeploymentCoreStruct) GitSyncUp() error {
 		}
 		if git.Do("fetch", d.syncRemote) == 0 {
 			if found, _ := git.RemoteBranchExist(d.syncRemoteBranch); found {
-				git.Do("reset", d.syncRemoteBranch)
+				git.Do("reset", d.syncRemoteBranch, "--hard")
 				git.Do("branch", "--set-upstream-to="+d.syncRemoteBranch)
 				d.syncStatus = 1
 			} else {
