@@ -35,10 +35,11 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps (DevOps Cultu
 	update_action_help = `Update the infra. Used to create/update/remove projects and infrastructure migration
 (for example from local jenkins to a mesos jenkins solution)
 `
-	update_orga_help     = "organization workspace used to store repositories locally or in docker volume."
-	updateDeployToHelp   = "Deploy environment to update."
-	maintainDeployToHelp = "Deploy environment to maintain."
-	flow_help            = "Define the default flow to apply to new repositories."
+	update_orga_help        = "organization workspace used to store repositories locally or in docker volume."
+	updateDeployToHelp      = "Deploy environment to update."
+	updateDeployPublishHelp = "Publish deployment generated source code to the deployment repository (commit/push)."
+	maintainDeployToHelp    = "Deploy environment to maintain."
+	flow_help               = "Define the default flow to apply to new repositories."
 
 	add_action_help    = "Add a component to your Software factory."
 	remove_action_help = "Remove a component from your Software factory."

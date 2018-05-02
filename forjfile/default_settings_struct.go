@@ -4,12 +4,13 @@ import "github.com/forj-oss/goforjj"
 
 type DefaultSettingsStruct struct {
 	forge            *ForgeYaml
-	UpstreamInstance string                `yaml:"upstream-instance,omitempty"` // TODO: to remove - obsolete
-	Flow             string                `yaml:",omitempty"`
-	More             map[string]string     `yaml:",inline"`
+	UpstreamInstance string            `yaml:"upstream-instance,omitempty"` // TODO: to remove - obsolete
+	Flow             string            `yaml:",omitempty"`
+	DevDeploy        string            `yaml:",omitempty"`
+	More             map[string]string `yaml:",inline"`
 }
 
-
+// Get return the value of the default setting.
 func (s *DefaultSettingsStruct) Get(key string) (value *goforjj.ValueStruct, _ bool) {
 	switch key {
 	// TODO: Remove obsolete reference to "upstream-instance"
@@ -17,12 +18,15 @@ func (s *DefaultSettingsStruct) Get(key string) (value *goforjj.ValueStruct, _ b
 		return value.SetIfFound(s.UpstreamInstance, (s.UpstreamInstance != ""))
 	case "flow":
 		return value.SetIfFound(s.Flow, (s.Flow != ""))
+	case "dev-deploy":
+		return value.SetIfFound(s.DevDeploy, (s.DevDeploy != ""))
 	default:
 		v, f := s.More[key]
 		return value.SetIfFound(v, f)
 	}
 }
 
+// Set udpate the value of the default setting key.
 func (s *DefaultSettingsStruct) Set(key string, value string) {
 	switch key {
 	case "upstream-instance":
@@ -33,6 +37,12 @@ func (s *DefaultSettingsStruct) Set(key string, value string) {
 	case "flow":
 		if s.Flow != value {
 			s.Flow = value
+			s.forge.dirty()
+		}
+		return
+	case "dev-deploy":
+		if s.DevDeploy != value {
+			s.DevDeploy = value
 			s.forge.dirty()
 		}
 		return
@@ -49,10 +59,17 @@ func (s *DefaultSettingsStruct) Set(key string, value string) {
 	}
 }
 
-func (d *DefaultSettingsStruct) set_forge(f *ForgeYaml) {
-	d.forge = f
+// set_forge set the forge reference.
+func (s *DefaultSettingsStruct) set_forge(f *ForgeYaml) {
+	s.forge = f
 }
 
-func (d *DefaultSettingsStruct) getFlow() string {
-	return d.Flow
+// getFlow return the default flow used.
+func (s *DefaultSettingsStruct) getFlow() string {
+	return s.Flow
+}
+
+// getDevDeploy return the default Development environment.
+func (s *DefaultSettingsStruct) getDevDeploy() string {
+	return s.DevDeploy
 }

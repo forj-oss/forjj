@@ -104,12 +104,14 @@ func (a *Forj) Update() error {
 
 	commitMsg := fmt.Sprintf("Forge '%s' updated.", a.w.Organization)
 
-	if err := a.d.GitCommit(commitMsg); err != nil {
-		return fmt.Errorf("Failed to commit deploy files. %s", err)
-	}
+	if deployPublish, found, _ := a.cli.GetBoolValue("_app", "forjj", "deploy-publish"); found && deployPublish {
+		if err := a.d.GitCommit(commitMsg); err != nil {
+			return fmt.Errorf("Failed to commit deploy files. %s", err)
+		}
 
-	if err := a.d.GitPush(false); err != nil {
-		return fmt.Errorf("Failed to push deploy commits. %s", err)
+		if err := a.d.GitPush(false); err != nil {
+			return fmt.Errorf("Failed to push deploy commits. %s", err)
+		}
 	}
 
 	return nil
