@@ -153,9 +153,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		deploy.DeploymentCoreStruct.GitSetRepo(deployPath, "")
 
 		if deploy.Type == "DEV" && !deployPublish && need_to_update {
-			devRepoWS := path.Join(deploy.GetRepoPath(), name)
-			devRepoAside := path.Dir(a.f.InfraPath())
-			os.Symlink(devRepoWS, devRepoAside)
+			devRepoWS := deploy.GetRepoPath()
+			devRepoAside := path.Join(path.Dir(a.f.InfraPath()), name)
+			os.Remove(devRepoAside)
+
+			if err := os.Symlink(devRepoWS, devRepoAside); err != nil {
+				gotrace.Error("Unable to create link to %s in %s. \n%s", devRepoWS, devRepoAside, err)
+			}
 		}
 	}
 
