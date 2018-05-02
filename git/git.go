@@ -203,9 +203,9 @@ func RemoteURL(remote string) (string, bool, error) {
 		}
 	}
 
-	remMatch, _ := regexp.Compile(`^ *(\w+) *(.*) \((fetch)\)$`)
+	remMatch, _ := regexp.Compile(`^ *(\w+)[ \t]*(.*) \((fetch)\)$`)
 	for _, aRemote := range remotes {
-		if v := remMatch.FindStringSubmatch(aRemote); v != nil && v[0] == remote {
+		if v := remMatch.FindStringSubmatch(aRemote); v != nil && v[1] == remote {
 			return v[1], true, nil
 		}
 	}
@@ -218,7 +218,7 @@ func EnsureRemoteIs(name, url string) error {
 		return err
 	} else if found {
 		if ru != url {
-			Do("remote", "set-url", url)
+			Do("remote", "set-url", name, url)
 		}
 	} else {
 		Do("remote", "add", name, url)
