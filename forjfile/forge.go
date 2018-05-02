@@ -49,7 +49,12 @@ type WorkspaceStruct struct {
 	More                   map[string]string `yaml:",inline"`
 }
 
-const forjfileName = "Forjfile"
+const (
+	forjfileName   = "Forjfile"
+	DevDeployType  = "DEV"
+	testDeployType = "TEST"
+	ProDeployType  = "PRO"
+)
 
 // TODO: Load multiple templates that will be merged.
 
@@ -99,10 +104,14 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	}
 
 	f.Workspace = f.yaml.ForjCore.LocalSettings
-	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
-	// Setting defaults
+	// Setting internals and some predefined objects
 	f.yaml.set_defaults()
 	loaded = true
+
+	// Setting default values found in Forjfile/forj-settings/default/...
+	f.yaml.defineDefaults(false) // Do not warn if default are set.
+
+	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
 	return
 }
 
@@ -183,13 +192,21 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 
 	f.yaml.set_defaults()
 	loaded = true
+
+	f.yaml.defineDefaults(true) // Do warn if default are set to suggest updating the Forfile instead.
+
+	if deployTo == "" { // if deploy was not requested, it will use the default dev-deploy if set by defineDefaults or Forjfile.
+		if v, found := f.Get("settings", "default", "dev-deploy"); found {
+			deployTo = v.GetString()
+		}
+	}
 	if deployTo == "" {
 		gotrace.Trace("Forge loaded from '%s'.", aPath)
 		return
 	}
 	deploy, found := f.yaml.Deployments[deployTo]
 	if !found {
-		err = fmt.Errorf("Deployment '%s' not defined")
+		err = fmt.Errorf("Deployment '%s' not defined", deployTo)
 		return
 	}
 
@@ -197,9 +214,6 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 	f.SetDeployment(deployTo)
 	msg := "' and '" + aPath
 
-	if deployTo == "" {
-		return
-	}
 	loaded = false
 	// Loading Deployment forjfile
 	aPath = path.Join(f.infra_path, "deployments", deployTo, f.Forjfile_name())
@@ -654,7 +668,7 @@ func (f *Forge) Apps() map[string]*AppStruct {
 	return f.yaml.ForjCore.Apps
 }
 
-// Initialize the forge. (Forjfile in repository infra)
+// Init Initialize the forge. (Forjfile in repository infra)
 func (f *ForgeYaml) Init() {
 	if f.ForjCore.Groups == nil {
 		f.ForjCore.Groups = make(map[string]*GroupStruct)
@@ -684,6 +698,26 @@ func (f *ForgeYaml) Init() {
 
 }
 
+// defineDefaults update default values defining in Forjfile/forj-settings/default/
+//
+func (f *ForgeYaml) defineDefaults(warn bool) {
+
+	comm := func(msg string, params ...interface{}) {
+		if warn {
+			gotrace.Warning(msg+" To eliminate this warning, set the value in Forjfile/forj-settings/default/...", params...)
+		} else {
+			gotrace.Info(msg, params...)
+		}
+	}
+
+	for name, deploy := range f.Deployments {
+		if deploy.Type == DevDeployType && f.ForjCore.ForjSettings.Default.getDevDeploy() == "" {
+			comm("Defining development deployment '%s' as Default (dev-deploy).", name)
+			f.ForjCore.ForjSettings.Default.Set("dev-deploy", name)
+		}
+	}
+}
+
 // set_defaults
 // - set forge in all structures
 // - Define a basic Deployment with just 'production' entry
@@ -695,7 +729,7 @@ func (f *ForgeYaml) set_defaults() {
 		data := DeploymentStruct{}
 		data.Desc = "Production environment"
 		data.name = "production"
-		data.Type = "PRO"
+		data.Type = ProDeployType
 		f.Deployments = make(map[string]*DeploymentStruct)
 		f.Deployments[data.name] = &data
 		gotrace.Info("No deployment defined. Created single 'production' deployment. If you want to change that update your forjfile and create a deployment Forfile per deployment under 'deployments/<deploymentName>'.")
@@ -793,18 +827,31 @@ func (f *Forge) Validate() error {
 
 	// DeploymentStruct
 	pro := false
+	devDefault := f.yaml.ForjCore.ForjSettings.Default.getDevDeploy()
+	devDefaultFound := false
 	for name, deploy := range f.yaml.Deployments {
 		if deploy.Type == "" {
 			return fmt.Errorf("Deployment declaration error in '%s'. Missing type. Provide at least `Type: (PRO|TEST|DEV)`", name)
 		}
-		if deploy.Type == "PRO" && pro {
-			return fmt.Errorf("Deployment declaration error in '%s'. You cannot have more than 1 deployment of type 'PRO'. Please fix it.", name)
+		if deploy.Type == ProDeployType {
+			if pro {
+				return fmt.Errorf("Deployment declaration error in '%s'. You cannot have more than 1 deployment of type 'PRO'. Please fix it", name)
+			} else {
+				pro = true
+			}
 		}
+		if deploy.Type == DevDeployType && devDefault == deploy.name {
+			devDefaultFound = true
+		}
+	}
+	if devDefault != "" && !devDefaultFound {
+		return fmt.Errorf("Deployment declaration error in '%s'. '%s' is not a valid default DEV deployment name. Please fix it", "forj-settings/default/dev-deploy", devDefault)
 	}
 
 	return nil
 }
 
+// GetDeployments returns all deployments.
 func (f *Forge) GetDeployments() (result map[string]*DeploymentStruct) {
 	result = f.yaml.Deployments
 	return
