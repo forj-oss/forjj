@@ -13,6 +13,19 @@ then
    DIFF=$(which diff 2>/dev/null)
 fi
 
+DOWNLOAD_PROG="$(which wget)"
+DOWNLOAD_PROG_ARGS=" -q -O "
+if [[ "$DOWNLOAD_PROG" = "" ]]
+then
+    DOWNLOAD_PROG="$(which curl)"
+    DOWNLOAD_PROG_ARGS=" -s -o "
+fi
+
+if [[ "$DOWNLOAD_PROG" = "" ]]
+then    
+    echo "Unable to refresh forjj. Missing wget or curl. Please install one of them and retry."
+    exit 1
+fi
 
 set -e
 mkdir -p ~/bin
@@ -20,9 +33,10 @@ cd ~/bin
 
 set +e
 echo "Refreshing do-refresh-forjj.sh..."
-wget -q -O ~/bin/do-refresh-forjj.new https://github.com/forj-oss/forjj/master/bin/do-refresh-forjj.sh
+$DOWNLOAD_PROG $DOWNLOAD_PROG_ARGS ~/bin/do-refresh-forjj.new https://github.com/forj-oss/forjj/raw/master/bin/do-refresh-forjj.sh
+DO_REFRESH_STATUS=$?
 echo "Downloading forjj..."
-wget -q -O ~/bin/forjj.new https://github.com/forj-oss/forjj/releases/download/$VERSION/forjj
+$DOWNLOAD_PROG $DOWNLOAD_PROG_ARGS ~/bin/forjj.new https://github.com/forj-oss/forjj/releases/download/$VERSION/forjj
 set -e
 if [[ -f forjj ]] 
 then
@@ -47,8 +61,14 @@ else
 fi
 chmod +x forjj
 
-if [[ -f ~/bin/do-refresh-forjj.new ]] 
+if [[ $DO_REFRESH_STATUS -eq 0 ]] 
 then
-    chmod +x ~/bin/do-refresh-forjj.new
-    mv ~/bin/do-refresh-forjj.new ~/bin/do-refresh-forjj
+    if [[ -f ~/bin/do-refresh-forjj.new ]] 
+    then
+        chmod +x ~/bin/do-refresh-forjj.new
+        mv ~/bin/do-refresh-forjj.new ~/bin/do-refresh-forjj.sh
+    fi
+else
+    rm -f ~/bin/do-refresh-forjj.new
+    echo "Unable to refresh the refresher script... wget https://github.com/forj-oss/forjj/raw/master/bin/do-refresh-forjj.sh fails."
 fi
