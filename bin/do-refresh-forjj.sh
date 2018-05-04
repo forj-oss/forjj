@@ -41,6 +41,8 @@ set -e
 if [[ -f forjj ]] 
 then
     chmod +x ~/bin/forjj.new
+    OLD_FORJJ="$(forjj --version 2>/dev/null)"
+    NEW_FORJJ="$(forjj.new --version 2>/dev/null)"
     if [[ "$OLD_FORJJ" != "$NEW_FORJJ" ]]
     then
         if [[ "$DIFF" != "" ]]
@@ -48,8 +50,8 @@ then
             $DIFF --side-by-side <(/home/larsonsh/src/forj/bin/forjj --version 2>/dev/null| sed 's/, /\n/g') <(forjj --version | sed 's/, /\n/g')
         else
             echo "Forjj has been updated:"
-            echo "OLD: $(forjj --version 2>/dev/null)"
-            echo "NEW: $(forjj.new --version 2>/dev/null)"
+            echo "OLD: $OLD_FORJJ"
+            echo "NEW: $NEW_FORJJ"
         fi
         rm -f forjj
         mv forjj.new forjj
