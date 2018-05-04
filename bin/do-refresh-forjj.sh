@@ -38,16 +38,18 @@ DO_REFRESH_STATUS=$?
 echo "Downloading forjj..."
 $DOWNLOAD_PROG $DOWNLOAD_PROG_ARGS ~/bin/forjj.new https://github.com/forj-oss/forjj/releases/download/$VERSION/forjj
 set -e
-if [[ -f forjj ]] 
+if [[ -f ~/bin/forjj ]] 
 then
     chmod +x ~/bin/forjj.new
-    OLD_FORJJ="$(forjj --version 2>/dev/null)"
-    NEW_FORJJ="$(forjj.new --version 2>/dev/null)"
+    OLD_FORJJ="$(~/bin/forjj --version 2>/dev/null)"
+    NEW_FORJJ="$(~/bin/forjj.new --version 2>/dev/null)"
     if [[ "$OLD_FORJJ" != "$NEW_FORJJ" ]]
     then
         if [[ "$DIFF" != "" ]]
         then
-            $DIFF --side-by-side <(/home/larsonsh/src/forj/bin/forjj --version 2>/dev/null| sed 's/, /\n/g') <(forjj --version | sed 's/, /\n/g')
+            set +e
+            $DIFF --side-by-side <(~/bin/forjj --version 2>/dev/null| sed 's/, /\n/g') <(~/bin/forjj.new --version | sed 's/, /\n/g')
+            set -e
         else
             echo "Forjj has been updated:"
             echo "OLD: $OLD_FORJJ"
