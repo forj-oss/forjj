@@ -424,7 +424,7 @@ func (a *Forj) init() {
 // LoadInternalData()
 func (a *Forj) LoadInternalData() {
 	a.InternalForjData = make(map[string]string)
-	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount", "deploy-mount"}
+	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount", "deploy-mount", "username"}
 	for _, param := range ldata {
 		a.InternalForjData[param] = a.getInternalData(param)
 	}
@@ -475,6 +475,8 @@ func (a *Forj) getInternalData(param string) (result string) {
 		} else {
 			gotrace.Trace("Warning. deploy-mount requested outside plugin context.")
 		}
+	case "username": // username running forjj command.
+		result = os.Getenv("LOGNAME")
 	}
 	gotrace.Trace("'%s' requested. Value returned '%s'", param, result)
 	return
