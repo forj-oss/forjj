@@ -45,6 +45,7 @@ type Forj struct {
 	//flags_loaded map[string]string // key/values for flags loaded. Used when doing a create AND maintain at the same time (create case)
 
 	drivers         map[string]*drivers.Driver // List of drivers data/flags/... per instance name (key)
+	plugins         *goforjj.Plugins           // List of plugins loaded
 	drivers_options drivers.DriversOptions     // forjj-maintain.yml See infra-maintain.go
 
 	cli *cli.ForjCli // ForjCli data
@@ -223,6 +224,7 @@ func (a *Forj) init() {
 		nil)
 
 	a.drivers = make(map[string]*drivers.Driver)
+	a.plugins = goforjj.NewPlugins()
 	//a.Actions = make(map[string]*ActionOpts)
 	//a.o.Drivers = make(map[string]*drivers.Driver)
 

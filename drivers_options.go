@@ -65,7 +65,6 @@ func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{})
 // Read Driver yaml document
 func (a *Forj) read_driver(instance_name string) (err error) {
 	var (
-		yaml_data []byte
 		driver    *drivers.Driver
 	)
 	if d, ok := a.drivers[instance_name]; ok {
@@ -76,13 +75,13 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 		return
 	}
 
-	repos := []string{"forjj-" + driver.Name, driver.Name, "forjj-contribs"}
-	reposSubPaths := []string{"", "", path.Join(driver.DriverType, driver.Name)}
-	if yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, repos, reposSubPaths, driver.Name+".yaml"); err != nil {
-		return
-	}
+	if driver.Plugin, err = a.plugins.Load(instance_name, driver.Name, driver.DriverType, func() (yaml_data []byte, err error) {
+		repos := []string{"forjj-" + driver.Name, driver.Name, "forjj-contribs"}
+		reposSubPaths := []string{"", "", path.Join(driver.DriverType, driver.Name)}
+		yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, repos, reposSubPaths, driver.Name+".yaml")
 
-	if err = driver.Plugin.PluginDefLoad(yaml_data); err != nil {
+		return
+	}); err != nil {
 		return
 	}
 
