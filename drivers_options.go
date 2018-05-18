@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/url"
 	"bytes"
 	"fmt"
 	"forjj/drivers"
@@ -75,13 +76,26 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 		return
 	}
 
-	if driver.Plugin, err = a.plugins.Load(instance_name, driver.Name, driver.DriverType, func() (yaml_data []byte, err error) {
-		repos := []string{"forjj-" + driver.Name, driver.Name, "forjj-contribs"}
-		reposSubPaths := []string{"", "", path.Join(driver.DriverType, driver.Name)}
-		yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, repos, reposSubPaths, driver.Name+".yaml")
+	if driver.Plugin, err = a.plugins.Load(instance_name, driver.Name, driver.DriverType, 
+		map[string]func() (yaml_data []byte, err error) {
+			"master": func() (yaml_data []byte, err error) {
+				repos := []string{"forjj-" + driver.Name, driver.Name, "forjj-contribs"}
+				reposSubPaths := []string{"", "", path.Join(driver.DriverType, driver.Name)}
+				yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, repos, reposSubPaths, driver.Name+".yaml")
 
-		return
-	}); err != nil {
+				return
+			},
+			"extended": func() (yaml_data []byte, err error) {
+			    srcUri := new(url.URL)
+				srcUri.Path = path.Join(a.i.Path(), "apps", driver.DriverType, instance_name)
+
+				//if a.f.
+
+				yaml_data, err = utils.ReadDocumentFrom([]*url.URL{srcUri}, []string{""}, []string{""}, "plugin-extent.yaml")
+
+				return
+			},
+		}); err != nil {
 		return
 	}
 
