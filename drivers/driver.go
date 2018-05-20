@@ -16,7 +16,7 @@ type Driver struct {
 	InstanceName  string                      // Instance name.
 	Name          string                      // Name of driver to load Yaml.Name is the real internal driver name.
 	cmds          map[string]DriverCmdOptions // List of flags per commands
-	Plugin        *goforjj.Plugin             // Plugin Data
+	Plugin        *goforjj.Driver             // Plugin driver data
 	InfraRepo     bool                        // True if this driver instance is the one hosting the infra repository.
 	FlagFile      string                      // Path to the predefined plugin or generic forjj plugin flag file.
 	ForjjFlagFile bool                        // true if the flag_file is set by forjj.

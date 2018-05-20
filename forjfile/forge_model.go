@@ -4,6 +4,7 @@ import "github.com/forj-oss/forjj-modules/trace"
 
 type ForgeModel struct {
 	forge *DeployForgeYaml
+	Application AppModel
 }
 
 // Get return the value of the object instance key
