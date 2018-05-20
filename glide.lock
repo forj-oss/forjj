@@ -1,5 +1,5 @@
 hash: 0bd1ddd8decf20ee37a025811a3600c07f2f5058eb89335da6aefe2d3428a2da
-updated: 2018-05-19T18:57:42.486308502Z
+updated: 2018-05-20T07:26:32.979648433Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -21,7 +21,7 @@ imports:
   - cli/tools
   - trace
 - name: github.com/forj-oss/goforjj
-  version: 3b69eb7eafce6aba2d0f6c15d915d22ae1c0b340
+  version: 085bb6f5a2f97c60efec076fd905d7ef799d90c8
 - name: github.com/kr/text
   version: e2ffdb16a802fe2bb95e2e35ff34f0e53aeef34f
 - name: github.com/kvz/logstreamer
