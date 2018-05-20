@@ -2,6 +2,15 @@
 
 source lib/build-env.fcts.sh
 
+if [[ -f .build-env.def ]]
+then
+    for var in $(grep -e '^\(.*=.*\)' .build-env.def)
+    do
+       eval "export $var"
+    done
+    echo "build-env.def loaded."
+fi
+
 unset MODS
 MODS=(`cat build-env.modules`)
 for MOD in $MODS

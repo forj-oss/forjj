@@ -32,11 +32,19 @@ then
    BUILD_COMMIT=$(git log --format="%H" -1)
    BUILD_DATE="$(git log --format="%ai" -1 | sed 's/ /_/g')"
    GIT_TAG="$(git tag -l --points-at HEAD)"
-   if [[ "$GIT_TAG" = "" ]] || [[ "$GIT_TAG" = "latest" ]]
+
+   BUILD_TAG=false
+   if [[ "$GIT_TAG" != "" ]] && [[ "$GIT_TAG" != "latest" ]]
    then
-      BUILD_TAG=false
-   else
-      BUILD_TAG=true
+      if [[ -f version.go ]]
+      then
+         if [[ "$(grep $GIT_TAG version.go)" != "" ]]
+         then
+            BUILD_TAG=true
+         fi
+      else
+         BUILD_TAG=true
+      fi
    fi
    BUILD_FLAGS="$1 -ldflags '-X main.build_branch=$BUILD_BRANCH -X main.build_commit=$BUILD_COMMIT -X main.build_date=$BUILD_DATE -X main.build_tag=$BUILD_TAG'"
    shift

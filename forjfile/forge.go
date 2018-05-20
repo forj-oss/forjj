@@ -901,3 +901,13 @@ func (f *Forge) GetRepo(name string) (r *RepoStruct, found bool) {
 	r, found = f.yaml.ForjCore.GetRepo(name)
 	return
 }
+
+// Model defines a simple struct to expose Current Application (ie driver instance)
+func (f *Forge) Model(instance string) (fModel ForgeModel) {
+	if f.inMem == nil {
+		fModel.Application.app = f.yaml.ForjCore.Apps[instance]
+		return
+	} 
+	fModel.Application.app = f.inMem.Apps[instance]
+	return
+}

@@ -7,6 +7,7 @@ import (
 	"forjj/forjfile"
 	"forjj/scandrivers"
 	"forjj/utils"
+	"net/url"
 	"path"
 	"strings"
 	"text/template"
@@ -65,8 +66,7 @@ func (a *Forj) GetDriversFlags(o *cli.ForjObject, c *cli.ForjCli, _ interface{})
 // Read Driver yaml document
 func (a *Forj) read_driver(instance_name string) (err error) {
 	var (
-		yaml_data []byte
-		driver    *drivers.Driver
+		driver *drivers.Driver
 	)
 	if d, ok := a.drivers[instance_name]; ok {
 		driver = d
@@ -76,13 +76,34 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 		return
 	}
 
-	repos := []string{"forjj-" + driver.Name, driver.Name, "forjj-contribs"}
-	reposSubPaths := []string{"", "", path.Join(driver.DriverType, driver.Name)}
-	if yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, repos, reposSubPaths, driver.Name+".yaml"); err != nil {
-		return
-	}
+	if driver.Plugin, err = a.plugins.Load(instance_name, driver.Name, driver.DriverType,
+		map[string]func(*goforjj.YamlPlugin) (yaml_data []byte, err error) {
+			"master": func(_ *goforjj.YamlPlugin) (yaml_data []byte, err error) {
+				repos := []string{"forjj-" + driver.Name, driver.Name, "forjj-contribs"}
+				reposSubPaths := []string{"", "", path.Join(driver.DriverType, driver.Name)}
+				yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, repos, reposSubPaths, driver.Name+".yaml")
 
-	if err = driver.Plugin.PluginDefLoad(yaml_data); err != nil {
+				return
+			},
+			"extended": func(plugin *goforjj.YamlPlugin) (yaml_data []byte, err error) {
+				srcUri := new(url.URL)
+				srcUri.Path = path.Join(a.f.InfraPath(), "apps", driver.DriverType, instance_name)
+
+				if v := plugin.ExtendRelPath; v != "" {
+					tmpl := template.New("extended")
+					a.f.BuildForjfileInMem()
+					relPath, err := utils.Evaluate(v, tmpl, a.f.Model(instance_name), template.FuncMap{})
+					if err != nil {
+						return nil, fmt.Errorf("Unable to interpret 'extend_relative_path'. %s", err)
+					}
+					srcUri.Path = path.Join(srcUri.Path, relPath)
+				}
+
+				yaml_data, _ = utils.ReadDocumentFrom([]*url.URL{srcUri}, []string{""}, []string{""}, "plugin-extent.yaml")
+
+				return
+			},
+		}); err != nil {
 		return
 	}
 

@@ -19,4 +19,10 @@ fi
 source $BUILD_SCRIPT_LIB_PATH/run-build-env.sh
 # From BuildEnv:modules/go/bin/glide.sh
 
-docker_run ${BE_PROJECT}-go-env /usr/bin/glide "$@"
+GOPATH=$(cd $GOPATH ; pwd)
+
+if [[ "$(echo $@ | grep $GOPATH)" != "" ]] 
+then
+    printf "\e[1mbuild-env INFO!\e[0m Replacing $GOPATH by /go in 'docker run'.\n"
+fi
+eval "$(echo docker_run ${BE_PROJECT}-go-env /usr/bin/glide "$@" | sed 's|'$GOPATH'|/go|g')"

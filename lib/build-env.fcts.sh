@@ -78,6 +78,14 @@ function be_common_load {
 function unset_build_env {
     if [ "$BUILD_ENV_PATH" != "" ]
     then
+        if [[ -f $BUILD_ENV_PROJECT/.build-env.def ]]
+        then
+            for var in $(sed 's/^\(.*\)=.*/\1/g' $BUILD_ENV_PROJECT/.build-env.def)
+            do
+               unset $var
+            done
+            echo "build-env.def unloaded."
+        fi
         export PATH=$BUILD_ENV_PATH
         unset BUILD_ENV_PATH
         unset PROMPT_ADDONS_BUILD_ENV

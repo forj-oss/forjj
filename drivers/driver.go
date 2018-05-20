@@ -1,19 +1,14 @@
 package drivers
 
 import (
-	"os"
 	"fmt"
-	"github.com/forj-oss/goforjj"
-	"github.com/forj-oss/forjj-modules/trace"
-	"path"
 	"forjj/utils"
-)
+	"os"
+	"path"
 
-// DriverModel: Structure used as template context. The way to get it: Driver.Model()
-type DriverModel struct {
-	InstanceName string
-	Name         string
-}
+	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
+)
 
 type Driver struct {
 	DriverType    string                      // driver type name
@@ -21,18 +16,18 @@ type Driver struct {
 	InstanceName  string                      // Instance name.
 	Name          string                      // Name of driver to load Yaml.Name is the real internal driver name.
 	cmds          map[string]DriverCmdOptions // List of flags per commands
-	Plugin        goforjj.PluginDef           // Plugin Data
+	Plugin        *goforjj.Driver             // Plugin driver data
 	InfraRepo     bool                        // True if this driver instance is the one hosting the infra repository.
 	FlagFile      string                      // Path to the predefined plugin or generic forjj plugin flag file.
 	ForjjFlagFile bool                        // true if the flag_file is set by forjj.
 	app_request   bool                        // true if the driver is loaded by a apps create/update/maintain task (otherwise requested by Repos or flows request.)
 	Runtime       *goforjj.YamlPluginRuntime  // Reference to the plugin runtime information given by the plugin yaml file.
-											  // When a driver is initially loaded, it will be saved here, and used it as ref every where.
-											  // So we are sure that :
-											  // - any change in plugin is not failing a running environment.
-											  // - If no plugin is referenced from cli, we can start it without loading it from the plugin.yaml.
-											  // - We can manage plugins versions and update when needed or requested.
-	DriverAPIUrl  string                      // Recognized application API url shared between plugins
+	// When a driver is initially loaded, it will be saved here, and used it as ref every where.
+	// So we are sure that :
+	// - any change in plugin is not failing a running environment.
+	// - If no plugin is referenced from cli, we can start it without loading it from the plugin.yaml.
+	// - We can manage plugins versions and update when needed or requested.
+	DriverAPIUrl string // Recognized application API url shared between plugins
 }
 
 func NewDriver(driver, driver_type, instance string, cli_requested bool) *Driver {
@@ -45,7 +40,7 @@ func NewDriver(driver, driver_type, instance string, cli_requested bool) *Driver
 	return d
 }
 
-func (d *Driver)Init() {
+func (d *Driver) Init() {
 	if d.cmds != nil {
 		return
 	}
@@ -57,16 +52,16 @@ func (d *Driver)Init() {
 	}
 }
 
-func (d *Driver)IsValidCommand(command string) bool {
+func (d *Driver) IsValidCommand(command string) bool {
 	_, ok := d.cmds[command]
 	return ok
 }
 
-func (d *Driver)InitCmdFlag(command, key_name, option_name string) {
+func (d *Driver) InitCmdFlag(command, key_name, option_name string) {
 	d.cmds[command].flags[key_name] = DriverCmdOptionFlag{driver_flag_name: option_name}
 }
 
-func (d *Driver)AppRequest() bool {
+func (d *Driver) AppRequest() bool {
 	return d.app_request
 }
 
@@ -109,7 +104,7 @@ func (d *Driver) CheckFlagAfter() (err error) {
 	if err = utils.Touch(flag_file); err != nil {
 		return err
 	}
-	gotrace.Trace("Forjj has flagged (%s) for driver '%s(%s)'",flag_file, d.Name, d.DriverType)
+	gotrace.Trace("Forjj has flagged (%s) for driver '%s(%s)'", flag_file, d.Name, d.DriverType)
 
 	return
 }
@@ -118,13 +113,3 @@ func (d *Driver) CheckFlagAfter() (err error) {
 func (d *Driver) HasNoFiles() bool {
 	return (len(d.Plugin.Result.Data.Files) == 0)
 }
-
-
-func (d *Driver) Model() (m *DriverModel) {
-	m = &DriverModel{
-		InstanceName: d.InstanceName,
-		Name:         d.Name,
-	}
-	return
-}
-
