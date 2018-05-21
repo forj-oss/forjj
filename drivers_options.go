@@ -77,7 +77,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 	}
 
 	if driver.Plugin, err = a.plugins.Load(instance_name, driver.Name, driver.DriverType,
-		map[string]func(*goforjj.YamlPlugin) (yaml_data []byte, err error) {
+		map[string]func(*goforjj.YamlPlugin) (yaml_data []byte, err error){
 			"master": func(_ *goforjj.YamlPlugin) (yaml_data []byte, err error) {
 				repos := []string{"forjj-" + driver.Name, driver.Name, "forjj-contribs"}
 				reposSubPaths := []string{"", "", path.Join(driver.DriverType, driver.Name)}
@@ -303,9 +303,9 @@ func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action
 		action_data = action
 	}
 	if tc, found := d.Plugin.Yaml.Tasks[action]; found {
-		for flag_name := range tc {
+		for flag_name, flag := range tc {
 			if v, found := a.GetDriversActionsParameter(d, flag_name, action_data); found {
-				r.Forj[flag_name] = v
+				r.SetForjFlag(flag_name, v, flag.IsExtentFlag())
 			}
 		}
 	}
@@ -561,6 +561,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 			}
 
 			keys := make(goforjj.InstanceKeys)
+			extent := make(goforjj.InstanceExtentKeys)
 
 			flags := Obj.FlagsRange("setup")
 
@@ -585,6 +586,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 				} else {
 					// From Forjfile
 					if v, found := ffd.Get(object_name, instance_name, key); !found {
+						gotrace.Trace("%s/%s: NOT ADDED: Key '%s' has not been found in Forjfile. ", object_name, instance_name, key)
 						continue
 					} else {
 						value.Set(v)
@@ -593,10 +595,18 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 				if err := value.Evaluate(a.Model(object_name, instance_name, key)); err != nil {
 					return fmt.Errorf("Unable to evaluate '%s'. %s", value.GetString(), err)
 				}
-				gotrace.Trace("%s/%s: Key '%s' has been set to '%s'", object_name, instance_name, key, value.GetString())
-				keys[key] = value
+				if value.GetString() == "" {
+					gotrace.Trace("%s/%s: NOT ADDED: Key '%s' has not been added and set", object_name, instance_name, key)
+					continue
+				}
+				gotrace.Trace("%s/%s: ADDED: Key '%s' has been added and set to '%s'", object_name, instance_name, key, value.GetString())
+				if flag.IsExtentFlag() {
+					extent[key] = value
+				} else {
+					keys[key] = value
+				}
 			}
-			r.AddObjectActions(object_name, instance_name, keys)
+			r.AddObjectActions(object_name, instance_name, keys, extent)
 		}
 	}
 	return nil
