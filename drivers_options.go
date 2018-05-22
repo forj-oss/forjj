@@ -601,7 +601,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 					continue
 				}
 				gotrace.Trace("%s/%s: ADDED: Key '%s' has been added and set to '%s'", object_name, instance_name, key, value.GetString())
-				if flag.IsExtentFlag() {
+				if flag.IsExtentFlag() && !flag.Options.Secure {
 					extent[key] = value
 				} else {
 					keys[key] = value
