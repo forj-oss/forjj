@@ -305,7 +305,7 @@ func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action
 	if tc, found := d.Plugin.Yaml.Tasks[action]; found {
 		for flag_name, flag := range tc {
 			if v, found := a.GetDriversActionsParameter(d, flag_name, action_data); found {
-				r.SetForjFlag(flag_name, v, flag.IsExtentFlag())
+				r.SetForjFlag(flag_name, v, flag.Options.Secure, flag.IsExtentFlag())
 			}
 		}
 	}
@@ -562,6 +562,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 
 			keys := make(goforjj.InstanceKeys)
 			extent := make(goforjj.InstanceExtentKeys)
+			creds := make(map[string]string)
 
 			flags := Obj.FlagsRange("setup")
 
@@ -605,8 +606,11 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 				} else {
 					keys[key] = value
 				}
+				if flag.Options.Secure {
+					creds[key] = value.GetString()
+				}
 			}
-			r.AddObjectActions(object_name, instance_name, keys, extent)
+			r.AddObjectActions(object_name, instance_name, keys, extent, creds)
 		}
 	}
 	return nil
