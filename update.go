@@ -22,9 +22,10 @@ func (a *Forj) Update() error {
 		// save infra repository location in the workspace.
 		a.w.Save()
 
+		/* Disable until forjj propose a way to change it from cli.
 		if err := a.s.Save(); err != nil {
 			log.Printf("%s", err)
-		}
+		}*/
 	}()
 
 	if err := a.ValidateForjfile(); err != nil {
