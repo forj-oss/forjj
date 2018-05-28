@@ -123,9 +123,27 @@ func (f *Forge) GetForjfileFileLoaded() string {
 	return f.file_loaded
 }
 
+// selectCore do:
+// - return inMem if defined
+// - or return yaml if defined
+// - or return nil
+// 
+func (f *Forge) selectCore() (forge *DeployForgeYaml) {
+	forge = f.InMemForjfile()
+	if forge != nil {
+		return
+	}
+	forge = f.DeployForjfile()
+	return
+}
+
 // GetInfraRepo return the infra repository object if defined.
 func (f *Forge) GetInfraRepo() *RepoStruct {
-	return f.yaml.ForjCore.Infra
+	forge := f.selectCore()
+	if forge == nil {
+		return nil
+	}
+	return forge.Infra
 }
 
 func (f *Forge) SetInfraAsRepo() {
@@ -135,27 +153,35 @@ func (f *Forge) SetInfraAsRepo() {
 	}
 
 	var repo *RepoStruct
-
-	if v, found := f.yaml.ForjCore.Infra.More["name"]; found && v != "" {
-		f.yaml.ForjCore.Infra.name = v
-	}
-
-	if f.yaml.ForjCore.Infra.name == "" || f.yaml.ForjCore.Infra.name == "none" {
+	forge := f.selectCore()
+	if forge == nil {
 		return
 	}
 
-	if r, found_repo := f.yaml.ForjCore.Repos[f.yaml.ForjCore.Infra.name]; found_repo {
+	if v, found := forge.Infra.More["name"]; found && v != "" {
+		forge.Infra.name = v
+	}
+
+	if forge.Infra.name == "" || forge.Infra.name == "none" {
+		return
+	}
+
+	if r, found_repo := forge.Repos[forge.Infra.name]; found_repo {
 		repo = r
 	}
 	if repo == nil {
 		repo = new(RepoStruct)
-		f.yaml.ForjCore.Repos[f.yaml.ForjCore.Infra.name] = repo
+		forge.Repos[forge.Infra.name] = repo
 	}
-	repo.setFromInfra(f.yaml.ForjCore.Infra)
+	repo.setFromInfra(forge.Infra)
 }
 
 func (f *Forge) GetInfraName() string {
-	return f.yaml.ForjCore.Infra.name
+	forge := f.selectCore()
+	if forge == nil {
+		return ""
+	}
+	return forge.Infra.name
 }
 
 // Load : Load Forjfile stored in a Repository.
@@ -270,6 +296,9 @@ func (f *Forge) MergeFromDeployment(deployTo string) (result *DeployForgeYaml, e
 
 // DeployForjfile return the Forjfile master object
 func (f *Forge) DeployForjfile() *DeployForgeYaml {
+	if f.yaml == nil {
+		return nil
+	}
 	return &f.yaml.ForjCore
 }
 
@@ -477,6 +506,10 @@ func (f *Forge) GetInstances(object string) (ret []string) {
 	if !f.Init() {
 		return nil
 	}
+	forge := f.selectCore()
+	if forge == nil {
+		return nil
+	}
 	ret = []string{}
 	switch object {
 	case "deployment":
@@ -492,49 +525,49 @@ func (f *Forge) GetInstances(object string) (ret []string) {
 		return
 
 	case "user":
-		if f.yaml.ForjCore.Users == nil {
+		if forge.Users == nil {
 			return
 		}
 
-		ret = make([]string, len(f.yaml.ForjCore.Users))
+		ret = make([]string, len(forge.Users))
 		iCount := 0
-		for user := range f.yaml.ForjCore.Users {
+		for user := range forge.Users {
 			ret[iCount] = user
 			iCount++
 		}
 		return
 	case "group":
-		if f.yaml.ForjCore.Groups == nil {
+		if forge.Groups == nil {
 			return
 		}
 
-		ret = make([]string, len(f.yaml.ForjCore.Groups))
+		ret = make([]string, len(forge.Groups))
 		iCount := 0
-		for group := range f.yaml.ForjCore.Groups {
+		for group := range forge.Groups {
 			ret[iCount] = group
 			iCount++
 		}
 		return
 	case "app":
-		if f.yaml.ForjCore.Apps == nil {
+		if forge.Apps == nil {
 			return
 		}
 
-		ret = make([]string, len(f.yaml.ForjCore.Apps))
+		ret = make([]string, len(forge.Apps))
 		iCount := 0
-		for app := range f.yaml.ForjCore.Apps {
+		for app := range forge.Apps {
 			ret[iCount] = app
 			iCount++
 		}
 		return
 	case "repo":
-		if f.yaml.ForjCore.Repos == nil {
+		if forge.Repos == nil {
 			return
 		}
 
-		ret = make([]string, len(f.yaml.ForjCore.Repos))
+		ret = make([]string, len(forge.Repos))
 		iCount := 0
-		for repo := range f.yaml.ForjCore.Repos {
+		for repo := range forge.Repos {
 			ret[iCount] = repo
 			iCount++
 		}
@@ -542,7 +575,7 @@ func (f *Forge) GetInstances(object string) (ret []string) {
 	case "infra", "settings":
 		return
 	default:
-		if instances, found := f.yaml.ForjCore.More[object]; found {
+		if instances, found := forge.More[object]; found {
 			ret = make([]string, len(instances))
 			iCount := 0
 			for instance := range instances {
@@ -558,20 +591,24 @@ func (f *Forge) GetInfraInstance() (_ string) {
 	if f == nil {
 		return
 	}
-	if f.yaml.ForjCore.Infra.apps != nil {
-		if v, found := f.yaml.ForjCore.Infra.apps["upstream"]; found && v != nil {
+	forge := f.selectCore()
+	if forge == nil {
+		return
+	}
+	if forge.Infra.apps != nil {
+		if v, found := forge.Infra.apps["upstream"]; found && v != nil {
 			return v.name
 		}
 	}
-	if f.yaml.ForjCore.Infra.Apps != nil {
-		if v, found := f.yaml.ForjCore.Infra.Apps["upstream"]; found {
+	if forge.Infra.Apps != nil {
+		if v, found := forge.Infra.Apps["upstream"]; found {
 			return v
 		}
 	}
-	if f.yaml.ForjCore.Infra == nil {
+	if forge.Infra == nil {
 		return
 	}
-	return f.yaml.ForjCore.Infra.Upstream
+	return forge.Infra.Upstream
 }
 
 func (f *Forge) GetString(object, instance, key string) (string, bool) {
@@ -584,47 +621,59 @@ func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _
 	if !f.Init() {
 		return
 	}
-	return f.yaml.ForjCore.Get(object, instance, key)
+	forge := f.selectCore()
+	if forge == nil {
+		return
+	}
+	return forge.Get(object, instance, key)
 }
 
 func (f *Forge) GetObjectInstance(object, instance string) interface{} {
 	if !f.Init() {
 		return nil
 	}
-	return f.yaml.ForjCore.GetObjectInstance(object, instance)
+	forge := f.selectCore()
+	if forge == nil {
+		return nil
+	}
+	return forge.GetObjectInstance(object, instance)
 }
 
 func (f *Forge) ObjectLen(object string) int {
 	if !f.Init() {
 		return 0
 	}
+	forge := f.selectCore()
+	if forge == nil {
+		return 0
+	}
 	switch object {
 	case "infra":
 		return 1
 	case "user":
-		if f.yaml.ForjCore.Users == nil {
+		if forge.Users == nil {
 			return 0
 		}
-		return len(f.yaml.ForjCore.Users)
+		return len(forge.Users)
 	case "group":
-		if f.yaml.ForjCore.Groups == nil {
+		if forge.Groups == nil {
 			return 0
 		}
-		return len(f.yaml.ForjCore.Groups)
+		return len(forge.Groups)
 	case "app":
-		if f.yaml.ForjCore.Apps == nil {
+		if forge.Apps == nil {
 			return 0
 		}
-		return len(f.yaml.ForjCore.Apps)
+		return len(forge.Apps)
 	case "repo":
-		if f.yaml.ForjCore.Repos == nil {
+		if forge.Repos == nil {
 			return 0
 		}
-		return len(f.yaml.ForjCore.Repos)
+		return len(forge.Repos)
 	case "settings":
 		return 1
 	default:
-		if v, found := f.yaml.ForjCore.More[object]; found {
+		if v, found := forge.More[object]; found {
 			return len(v)
 		}
 		return 0
@@ -633,15 +682,27 @@ func (f *Forge) ObjectLen(object string) int {
 }
 
 func (f *Forge) Remove(object, name, key string) {
-	f.yaml.ForjCore.Remove(object, name, key)
+	forge := f.selectCore()
+	if forge == nil {
+		return 
+	}	
+	forge.Remove(object, name, key)
 }
 
 func (f *Forge) Set(object, name, key, value string) {
-	f.yaml.ForjCore.Set(object, name, key, value)
+	forge := f.selectCore()
+	if forge == nil {
+		return 
+	}	
+	forge.Set(object, name, key, value)
 }
 
 func (f *Forge) SetDefault(object, name, key, value string) {
-	f.yaml.ForjCore.SetDefault(object, name, key, value)
+	forge := f.selectCore()
+	if forge == nil {
+		return 
+	}	
+	forge.SetDefault(object, name, key, value)
 }
 
 func (f *Forge) IsDirty() bool {
@@ -664,8 +725,12 @@ func (f *Forge) Apps() map[string]*AppStruct {
 	if !f.Init() {
 		return nil
 	}
-
-	return f.yaml.ForjCore.Apps
+	forge := f.selectCore()
+	if forge == nil {
+		return nil
+	}	
+	
+	return forge.Apps
 }
 
 // Init Initialize the forge. (Forjfile in repository infra)
@@ -751,8 +816,12 @@ func (f *ForgeYaml) dirty() {
 // GetDeclaredFlows returns the list of flow to load from the Master Forjfile and the deploy Forjfile.
 func (f *Forge) GetDeclaredFlows() (result []string) {
 	flows := make(map[string]bool)
+	forge := f.selectCore()
+	if forge == nil {
+		return 
+	}	
 
-	for _, repo := range f.yaml.ForjCore.Repos {
+	for _, repo := range forge.Repos {
 		if repo.Flow.Name != "" {
 			flows[repo.Flow.Name] = true
 		}
@@ -765,7 +834,7 @@ func (f *Forge) GetDeclaredFlows() (result []string) {
 		}
 	}
 
-	if flow := f.yaml.ForjCore.ForjSettings.Default.getFlow(); flow != "" {
+	if flow := forge.ForjSettings.Default.getFlow(); flow != "" {
 		flows[flow] = true
 	}
 
@@ -799,6 +868,10 @@ func (f *Forge) GetADeployment(deploy string) (v *DeploymentStruct, found bool) 
 // Validate check if the information in the Forjfile are coherent or not and if code respect some basic rules.
 // Validate do not check default values. So, validate can be executed before setting driver default values (forj.ScanAndSetObjectData)
 func (f *Forge) Validate() error {
+	forge := f.selectCore()
+	if forge == nil {
+		return fmt.Errorf("No Forjfile Data to validate")
+	}	
 
 	// ForjSettingsStruct.More
 
@@ -807,7 +880,7 @@ func (f *Forge) Validate() error {
 	// AppYamlStruct.More
 
 	// Repository apps connection
-	for _, repo := range f.yaml.ForjCore.Repos {
+	for _, repo := range forge.Repos {
 		if repo.Apps == nil {
 			continue
 		}
@@ -827,7 +900,7 @@ func (f *Forge) Validate() error {
 
 	// DeploymentStruct
 	pro := false
-	devDefault := f.yaml.ForjCore.ForjSettings.Default.getDevDeploy()
+	devDefault := forge.ForjSettings.Default.getDevDeploy()
 	devDefaultFound := false
 	for name, deploy := range f.yaml.Deployments {
 		if deploy.Type == "" {
@@ -857,7 +930,7 @@ func (f *Forge) GetDeployments() (result map[string]*DeploymentStruct) {
 	return
 }
 
-// GetDeploymentType return the first
+// GetDeploymentType return the first found
 func (f *Forge) GetDeploymentType(deployType string) (v map[string]*DeploymentStruct, found bool) {
 	v = make(map[string]*DeploymentStruct)
 
@@ -870,7 +943,7 @@ func (f *Forge) GetDeploymentType(deployType string) (v map[string]*DeploymentSt
 	return
 }
 
-// GetDeploymentType return the first
+// GetDeploymentPROType return the PRO deployment structure
 func (f *Forge) GetDeploymentPROType() (v *DeploymentStruct, err error) {
 
 	if deployObjs, _ := f.GetDeploymentType("PRO"); len(deployObjs) != 1 {
@@ -898,7 +971,11 @@ func (f *Forge) GetUpstreamApps() (v AppsStruct, found bool) {
 
 // GetRepo return the object found
 func (f *Forge) GetRepo(name string) (r *RepoStruct, found bool) {
-	r, found = f.yaml.ForjCore.GetRepo(name)
+	forge := f.selectCore()
+	if forge == nil {
+		return 
+	}	
+	r, found = forge.GetRepo(name)
 	return
 }
 
@@ -907,7 +984,7 @@ func (f *Forge) Model(instance string) (fModel ForgeModel) {
 	if f.inMem == nil {
 		fModel.Application.app = f.yaml.ForjCore.Apps[instance]
 		return
-	} 
+	}
 	fModel.Application.app = f.inMem.Apps[instance]
 	return
 }
