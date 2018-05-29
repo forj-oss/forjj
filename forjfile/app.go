@@ -2,39 +2,41 @@ package forjfile
 
 import (
 	"fmt"
+
 	"github.com/forj-oss/goforjj"
 )
 
 const (
-	appName = "name"
-	appType = "type"
+	appName   = "name"
+	appType   = "type"
 	appDriver = "driver"
 )
+
 type AppStruct struct {
-	forge *ForgeYaml
-	name   string
+	forge         *ForgeYaml
+	name          string
 	AppYamlStruct `yaml:",inline"`
 }
 
 type AppYamlStruct struct {
-	Type   string
-	Driver string
+	Type    string
+	Driver  string
 	Version string
 	// TODO: Support for object dedicated to the application instance (not shared)
 	// Objects map[string]map[string]string
 	Flows map[string]AppFlowYaml `yaml:",omitempty"`
-	more   ForjValues
-	More   map[string]string `yaml:",inline"`
+	more  ForjValues
+	More  map[string]string `yaml:",inline"`
 }
 
 type AppFlowYaml struct {
-	name string
+	name    string
 	Service string `yaml:"used-as,omitempty"`
 	Options map[string]string
 }
 
-func (a *AppStruct)Flags() (flags []string) {
-	flags = make([]string, 3, 3 + len(a.more))
+func (a *AppStruct) Flags() (flags []string) {
+	flags = make([]string, 3, 3+len(a.more))
 	flags[0] = appName
 	flags[1] = appType
 	flags[2] = appDriver
@@ -44,7 +46,7 @@ func (a *AppStruct)Flags() (flags []string) {
 	return
 }
 
-func (r *AppStruct)Model() AppModel {
+func (r *AppStruct) Model() AppModel {
 	model := AppModel{
 		app: r,
 	}
@@ -66,7 +68,7 @@ func (a *AppStruct) UnmarshalYAML(unmarchal func(interface{}) error) error {
 
 	app.more = make(ForjValues)
 	for key, value := range app.More {
-		app.more[key] = ForjValue{value:value}
+		app.more[key] = ForjValue{value: value}
 	}
 
 	a.AppYamlStruct = app
@@ -79,18 +81,20 @@ func (a *AppStruct) MarshalYAML() (interface{}, error) {
 	return a.AppYamlStruct, nil
 }
 
-func (a *AppStruct)Name() string {
+func (a *AppStruct) Name() string {
 	return a.name
 }
 
-func (a *AppStruct)Get(flag string) (value *goforjj.ValueStruct, _ bool) {
+// Get return the flag value. 
+// found is true if value exist in more or if the value is not empty
+func (a *AppStruct) Get(flag string) (value *goforjj.ValueStruct, _ bool) {
 	switch flag {
 	case appName:
-		return value.Set(a.name), true
+		return value.Set(a.name), (a.name != "")
 	case appType:
-		return value.Set(a.Type), true
+		return value.Set(a.Type), (a.Type != "")
 	case appDriver:
-		return value.Set(a.Driver), true
+		return value.Set(a.Driver), (a.Driver != "")
 	default:
 		v, f := a.more[flag]
 		return value.SetIfFound(v.Get(), f)
@@ -98,15 +102,15 @@ func (a *AppStruct)Get(flag string) (value *goforjj.ValueStruct, _ bool) {
 	return
 }
 
-func (r *AppStruct)SetHandler(from func(field string)(string, bool), set func(*ForjValue, string) (bool), keys...string) {
+func (r *AppStruct) SetHandler(from func(field string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
 	for _, key := range keys {
-		if v, found := from(key) ; found {
+		if v, found := from(key); found {
 			r.Set(key, v, set)
 		}
 	}
 }
 
-func (a *AppStruct)Set(flag, value string, set func(*ForjValue, string) (bool)) {
+func (a *AppStruct) Set(flag, value string, set func(*ForjValue, string) bool) {
 	switch flag {
 	case "name":
 		if a.name != value {
@@ -124,8 +128,10 @@ func (a *AppStruct)Set(flag, value string, set func(*ForjValue, string) (bool)) 
 			a.forge.dirty()
 		}
 	default:
-		if a.more == nil { a.more = make(ForjValues) }
-		if v, found := a.more[flag] ; found && value == "" {
+		if a.more == nil {
+			a.more = make(ForjValues)
+		}
+		if v, found := a.more[flag]; found && value == "" {
 			a.forge.dirty()
 			delete(a.more, flag)
 		} else {
