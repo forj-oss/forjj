@@ -127,7 +127,7 @@ func (f *Forge) GetForjfileFileLoaded() string {
 // - return inMem if defined
 // - or return yaml if defined
 // - or return nil
-// 
+//
 func (f *Forge) selectCore() (forge *DeployForgeYaml) {
 	forge = f.InMemForjfile()
 	if forge != nil {
@@ -684,24 +684,24 @@ func (f *Forge) ObjectLen(object string) int {
 func (f *Forge) Remove(object, name, key string) {
 	forge := f.selectCore()
 	if forge == nil {
-		return 
-	}	
+		return
+	}
 	forge.Remove(object, name, key)
 }
 
 func (f *Forge) Set(object, name, key, value string) {
 	forge := f.selectCore()
 	if forge == nil {
-		return 
-	}	
+		return
+	}
 	forge.Set(object, name, key, value)
 }
 
 func (f *Forge) SetDefault(object, name, key, value string) {
 	forge := f.selectCore()
 	if forge == nil {
-		return 
-	}	
+		return
+	}
 	forge.SetDefault(object, name, key, value)
 }
 
@@ -728,8 +728,8 @@ func (f *Forge) Apps() map[string]*AppStruct {
 	forge := f.selectCore()
 	if forge == nil {
 		return nil
-	}	
-	
+	}
+
 	return forge.Apps
 }
 
@@ -818,8 +818,8 @@ func (f *Forge) GetDeclaredFlows() (result []string) {
 	flows := make(map[string]bool)
 	forge := f.selectCore()
 	if forge == nil {
-		return 
-	}	
+		return
+	}
 
 	for _, repo := range forge.Repos {
 		if repo.Flow.Name != "" {
@@ -874,14 +874,14 @@ func (f *Forge) Validate() error {
 	forge := f.selectCore()
 	if forge == nil {
 		return fmt.Errorf("No Forjfile Data to validate")
-	}	
+	}
 
 	// ForjSettingsStruct.More
 
 	// Repo connected to a valid deployment
 	for _, repo := range forge.Repos {
-		if v := repo.Deployment ; v != "" {
-			if deploy, found := f.yaml.Deployments[v] ; !found {
+		if v := repo.Deployment; v != "" {
+			if deploy, found := f.yaml.Deployments[v]; !found {
 				return fmt.Errorf("Repo '%s': Deployment '%s' doesn't exist. Check deployments section of your Forjfile", repo.name, deploy.name)
 			}
 		}
@@ -900,7 +900,7 @@ func (f *Forge) Validate() error {
 	}
 
 	// RepoStruct.More (infra : Repos)
-	
+
 	// AppYamlStruct.More
 
 	// Repository apps connection
@@ -997,8 +997,8 @@ func (f *Forge) GetUpstreamApps() (v AppsStruct, found bool) {
 func (f *Forge) GetRepo(name string) (r *RepoStruct, found bool) {
 	forge := f.selectCore()
 	if forge == nil {
-		return 
-	}	
+		return
+	}
 	r, found = forge.GetRepo(name)
 	return
 }

@@ -61,7 +61,17 @@ func (r *RepoStruct) Flags() (flags []string) {
 		return
 	}
 	flags = make([]string, 8, 8+len(r.More))
-	coreList := []string{FieldRepoName, FieldRepoUpstream, FieldRepoGitRemote, FieldRepoRemote, FieldRepoRemoteURL, FieldRepoTitle, FieldRepoFlow, FieldRepoTemplate}
+	coreList := []string{
+		FieldRepoName, 
+		FieldRepoUpstream, 
+		FieldRepoGitRemote, 
+		FieldRepoRemote, 
+		FieldRepoRemoteURL, 
+		FieldRepoTitle, 
+		FieldRepoFlow, 
+		FieldRepoTemplate,
+		FieldRepoDeployName,
+	}
 	for index, name := range coreList {
 		flags[index] = name
 	}
