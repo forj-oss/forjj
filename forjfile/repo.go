@@ -12,10 +12,12 @@ import (
 type RepoStruct struct {
 	name         string
 	is_infra     bool
+	isDeploy     bool
 	forge        *ForgeYaml
 	owner        string
 	driverOwner  *drivers.Driver
 	deployment   string                      // set to deploiment name if this repo is a deployment repo.
+	Deployment   string                      `yaml:"deployment-attached,omitempty"`
 	Upstream     string                      `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
 	GitRemote    string                      `yaml:"git-remote,omitempty"`
 	remote       goforjj.PluginRepoRemoteUrl // Git remote string to use/set
@@ -38,6 +40,7 @@ const (
 	FieldRepoFlow       = "flow"
 	FieldRepoTemplate   = "repo-template"
 	FieldRepoDeployName = "deployment-name"
+	FieldRepoDeployType = "deployment-type"
 )
 
 // Apply will register the repository and execute any flow on it if needed
@@ -214,6 +217,11 @@ func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 		return value.SetIfFound(r.RepoTemplate, (r.RepoTemplate != ""))
 	case FieldRepoDeployName:
 		return value.SetIfFound(r.deployment, (r.deployment != ""))
+	case FieldRepoDeployType:
+		if v, found := r.forge.Deployments[r.deployment] ; found {
+			return value.SetIfFound(v.Type, found)
+		}
+		return value.SetIfFound("", false)
 	default:
 		v, f := r.More[field]
 		return value.SetIfFound(v, f)

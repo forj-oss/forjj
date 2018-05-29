@@ -861,6 +861,9 @@ func (f *Forge) SetDeployment(deployTo string) {
 
 // GetADeployment return the Deployment Object wanted
 func (f *Forge) GetADeployment(deploy string) (v *DeploymentStruct, found bool) {
+	if deploy == "" {
+		return
+	}
 	v, found = f.yaml.Deployments[deploy]
 	return
 }
@@ -875,8 +878,29 @@ func (f *Forge) Validate() error {
 
 	// ForjSettingsStruct.More
 
-	// RepoStruct.More (infra : Repos)
+	// Repo connected to a valid deployment
+	for _, repo := range forge.Repos {
+		if v := repo.Deployment ; v != "" {
+			if deploy, found := f.yaml.Deployments[v] ; !found {
+				return fmt.Errorf("Repo '%s': Deployment '%s' doesn't exist. Check deployments section of your Forjfile", repo.name, deploy.name)
+			}
+		}
+	}
 
+	// check if we declared deployment repository in deploy Forjfile.
+	for _, deploy := range f.GetDeployments() {
+		if deploy.Details.Repos == nil {
+			continue
+		}
+		for _, repo := range deploy.Details.Repos {
+			if repo.Deployment != "" {
+				return fmt.Errorf("Unable to declare a deployment Repository in the deployment %s/Forjfile. Remove 'deployment' entry for repo %s", deploy.Name(), repo.name)
+			}
+		}
+	}
+
+	// RepoStruct.More (infra : Repos)
+	
 	// AppYamlStruct.More
 
 	// Repository apps connection
