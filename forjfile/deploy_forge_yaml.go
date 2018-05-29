@@ -456,9 +456,12 @@ func (f *DeployForgeYaml) mergeFrom(from *DeployForgeYaml) error {
 	f.Apps.mergeFrom(from.Apps)
 	f.ForjSettings.mergeFrom(&from.ForjSettings)
 	f.Groups.mergeFrom(from.Groups)
-	f.Infra.mergeFrom(from.Infra)
 	f.Users.mergeFrom(from.Users)
 	f.Repos.mergeFrom(from.Repos)
+	if f.Infra == nil && from.Infra != nil {
+		f.Infra = f.Repos[from.Infra.name]
+	}
+	f.Infra.mergeFrom(from.Infra)
 	for k, v := range from.More {
 		f.More[k] = v
 	}
