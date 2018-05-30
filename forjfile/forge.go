@@ -35,7 +35,7 @@ type Forge struct {
 // ForgeYaml represents the master Forjfile or a piece of the Forjfile template.
 type ForgeYaml struct {
 	updated     bool
-	Deployments map[string]*DeploymentStruct
+	Deployments Deployments
 	ForjCore    DeployForgeYaml `yaml:",inline"`
 }
 
@@ -186,11 +186,6 @@ func (f *Forge) GetInfraName() string {
 
 // Load : Load Forjfile stored in a Repository.
 func (f *Forge) Load(deployTo string) (loaded bool, err error) {
-	var (
-		yaml_data []byte
-		file      string
-	)
-
 	if !f.Init() {
 		return false, fmt.Errorf("Forge is nil.")
 	}
@@ -202,47 +197,66 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 	}
 
 	aPath := path.Join(f.infra_path, f.Forjfile_name())
-	if fi, d, e := loadFile(aPath); e != nil {
-		err = e
-		return
-	} else {
-		yaml_data = d
-		file = fi
-	}
 
-	f.file_loaded = aPath
-	if e := yaml.Unmarshal(yaml_data, &f.yaml); e != nil {
-		err = fmt.Errorf("Unable to load %s. %s", file, e)
+	// Loading master forjfile
+	if _, err = f.load(&f.yaml, aPath); err != nil {
 		return
 	}
 
-	f.yaml.set_defaults()
-	loaded = true
+	// Loading All Deployments forjfiles
+	for deployName, deployData := range f.yaml.Deployments {
+		deployDetail := new(DeployForgeYaml)
 
-	f.yaml.defineDefaults(true) // Do warn if default are set to suggest updating the Forfile instead.
+		aPath = path.Join(f.infra_path, "deployments", deployName, f.Forjfile_name())
+
+		if _, err = f.load(deployDetail, aPath); err != nil {
+			return
+		}
+		deployData.Details = deployDetail
+	}
+
+	if deployTo != "" {
+		if _, found := f.yaml.Deployments.GetADeployment(deployTo); !found {
+			err = fmt.Errorf("Deployment '%s' not defined", deployTo)
+			return
+		}
+
+		gotrace.Info("Deployment environment selected: %s", deployTo)
+	}
 
 	if deployTo == "" { // if deploy was not requested, it will use the default dev-deploy if set by defineDefaults or Forjfile.
 		if v, found := f.Get("settings", "default", "dev-deploy"); found {
 			deployTo = v.GetString()
+			gotrace.Info("Default DEV deployment environment selected: %s", deployTo)
 		}
 	}
 	if deployTo == "" {
-		gotrace.Trace("Forge loaded from '%s'.", aPath)
-		return
-	}
-	deploy, found := f.yaml.Deployments[deployTo]
-	if !found {
-		err = fmt.Errorf("Deployment '%s' not defined", deployTo)
-		return
+		if deploys, _ := f.yaml.Deployments.GetDeploymentType("DEV"); len(deploys) == 1 {
+			deployTo = deploys.One().Name()
+			gotrace.Info("Single DEV deployment environment selected: %s", deployTo)
+		}
 	}
 
-	// Define current deployment loaded in memory.
-	f.SetDeployment(deployTo)
-	msg := "' and '" + aPath
+	if deployTo != "" {
+		// Define current deployment loaded in memory.
+		f.SetDeployment(deployTo)
+	}
 
-	loaded = false
-	// Loading Deployment forjfile
-	aPath = path.Join(f.infra_path, "deployments", deployTo, f.Forjfile_name())
+	f.yaml.set_defaults()
+
+	f.yaml.defineDefaults(true) // Do warn if default are set to suggest updating the Forfile instead.
+
+	loaded = true
+
+	return
+}
+
+func (f *Forge) load(deployData interface{}, aPath string) (loaded bool, err error) {
+	var (
+		yaml_data []byte
+		file      string
+	)
+
 	if fi, d, e := loadFile(aPath); e != nil {
 		err = e
 		return
@@ -252,19 +266,15 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 	}
 
 	f.deployFileLoaded = aPath
-	var deployData DeployForgeYaml
 
-	if e := yaml.Unmarshal(yaml_data, &deployData); e != nil {
+	if e := yaml.Unmarshal(yaml_data, deployData); e != nil {
 		err = fmt.Errorf("Unable to load deployment file '%s'. %s", file, e)
 		return
 	}
-
-	deploy.Details = &deployData
-	f.yaml.set_defaults()
-
 	loaded = true
-	gotrace.Trace("%s deployment forge loaded from '%s'.", deployTo, aPath+msg)
 
+	f.yaml.set_defaults()
+	gotrace.Trace("%s loaded.", aPath)
 	return
 }
 
@@ -861,10 +871,7 @@ func (f *Forge) SetDeployment(deployTo string) {
 
 // GetADeployment return the Deployment Object wanted
 func (f *Forge) GetADeployment(deploy string) (v *DeploymentStruct, found bool) {
-	if deploy == "" {
-		return
-	}
-	v, found = f.yaml.Deployments[deploy]
+	v, found = f.yaml.Deployments.GetADeployment(deploy)
 	return
 }
 
@@ -889,7 +896,7 @@ func (f *Forge) Validate() error {
 
 	// check if we declared deployment repository in deploy Forjfile.
 	for _, deploy := range f.GetDeployments() {
-		if deploy.Details.Repos == nil {
+		if deploy.Details == nil || deploy.Details.Repos == nil {
 			continue
 		}
 		for _, repo := range deploy.Details.Repos {
@@ -949,37 +956,24 @@ func (f *Forge) Validate() error {
 }
 
 // GetDeployments returns all deployments.
-func (f *Forge) GetDeployments() (result map[string]*DeploymentStruct) {
+func (f *Forge) GetDeployments() (result Deployments) {
 	result = f.yaml.Deployments
 	return
 }
 
-// GetDeploymentType return the first found
-func (f *Forge) GetDeploymentType(deployType string) (v map[string]*DeploymentStruct, found bool) {
-	v = make(map[string]*DeploymentStruct)
-
-	for name, deploy := range f.yaml.Deployments {
-		if deploy.Type == deployType {
-			v[name] = deploy
-			found = true
-		}
-	}
+func (f *Forge) GetDeploymentsModel() (ret *DeploymentsModel) {
+	ret = NewDeploymentsModel(f.GetDeployments())
 	return
+}
+
+// GetDeploymentType return the first found
+func (f *Forge) GetDeploymentType(deployType string) (Deployments, bool) {
+	return f.yaml.Deployments.GetDeploymentType(deployType)
 }
 
 // GetDeploymentPROType return the PRO deployment structure
 func (f *Forge) GetDeploymentPROType() (v *DeploymentStruct, err error) {
-
-	if deployObjs, _ := f.GetDeploymentType("PRO"); len(deployObjs) != 1 {
-		err = fmt.Errorf("Found more than one PRO environment")
-	} else {
-		for k := range deployObjs {
-			v = deployObjs[k]
-			break
-		}
-	}
-
-	return
+	return f.yaml.Deployments.GetDeploymentPROType()
 }
 
 func (f *Forge) GetUpstreamApps() (v AppsStruct, found bool) {

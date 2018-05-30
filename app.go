@@ -138,16 +138,18 @@ const (
 // ForjModel is used by template mechanism
 type ForjModel struct {
 	Forjfile *forjfile.DeployForgeYaml
+	Deployments *forjfile.DeploymentsModel
 	Current  ForjCurrentModel
 	Secret   string
 }
 
 // ForjCurrentModel is a sub struct of ForjModel
 type ForjCurrentModel struct {
-	Type  string
-	Name  string
-	Data  interface{}
-	Creds map[string]*goforjj.ValueStruct
+	Type       string
+	Name       string
+	Deployment string
+	Data       interface{}
+	Creds      map[string]*goforjj.ValueStruct
 }
 
 // Model is used to build a Model to use by text/templates
@@ -156,9 +158,11 @@ func (a *Forj) Model(object_name, instance_name, key string) *ForjModel {
 	ffd := a.f.InMemForjfile()
 	data := ForjModel{
 		Forjfile: ffd,
+		Deployments: forjfile.NewDeploymentsModel(a.f.GetDeployments()),
 		Current: ForjCurrentModel{
 			Type:  object_name,
 			Name:  instance_name,
+			Deployment: a.f.GetDeployment(),
 			Data:  ffd.GetObjectInstance(object_name, instance_name),
 			Creds: a.s.GetObjectInstance(object_name, instance_name),
 		},

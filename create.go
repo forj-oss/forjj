@@ -97,12 +97,7 @@ func (a *Forj) Create() error {
 	}
 
 	// Identify deployment repositories from main Forjfile
-	// Error reported if repo is declared only from a deployment Forjfile.
-	if err := a.DeclareDeployRepositories() ; err != nil {
-		return err
-	}
-
-	if err := a.DefineMissingDeployRepositories(a.f.DeployForjfile(), false); err != nil {
+	if err := a.DefineDeployRepositories(a.f.DeployForjfile(), false); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 

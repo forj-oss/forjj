@@ -18,12 +18,6 @@ func (a *Forj) Maintain() error {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
-	// Identify deployment repositories from main Forjfile
-	// Error reported if repo is declared only from a deployment Forjfile.
-	if err := a.DeclareDeployRepositories() ; err != nil {
-		return err
-	}
-
 	// Validate from source
 	if err := a.ValidateForjfile(); err != nil {
 		return fmt.Errorf("Your Forjfile is having issues. %s Maintain aborted", err)
@@ -36,7 +30,7 @@ func (a *Forj) Maintain() error {
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
 	ffd := a.f.InMemForjfile()
-	if err := a.DefineMissingDeployRepositories(ffd, true); err != nil {
+	if err := a.DefineDeployRepositories(ffd, true); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 

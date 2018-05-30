@@ -60,15 +60,15 @@ func (r *RepoStruct) Flags() (flags []string) {
 		flags = make([]string, 0)
 		return
 	}
-	flags = make([]string, 8, 8+len(r.More))
+	flags = make([]string, 9, 9+len(r.More))
 	coreList := []string{
-		FieldRepoName, 
-		FieldRepoUpstream, 
-		FieldRepoGitRemote, 
-		FieldRepoRemote, 
-		FieldRepoRemoteURL, 
-		FieldRepoTitle, 
-		FieldRepoFlow, 
+		FieldRepoName,
+		FieldRepoUpstream,
+		FieldRepoGitRemote,
+		FieldRepoRemote,
+		FieldRepoRemoteURL,
+		FieldRepoTitle,
+		FieldRepoFlow,
 		FieldRepoTemplate,
 		FieldRepoDeployName,
 	}
@@ -228,7 +228,7 @@ func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 	case FieldRepoDeployName:
 		return value.SetIfFound(r.deployment, (r.deployment != ""))
 	case FieldRepoDeployType:
-		if v, found := r.forge.Deployments[r.deployment] ; found {
+		if v, found := r.forge.Deployments[r.deployment]; found {
 			return value.SetIfFound(v.Type, found)
 		}
 		return value.SetIfFound("", false)
@@ -537,4 +537,15 @@ func (r *RepoStruct) IsInfra() bool {
 		return false
 	}
 	return r.is_infra
+}
+
+func (r *RepoStruct) Role() string {
+	switch {
+	case r.is_infra:
+		return "infra"
+	case r.isDeploy:
+		return "deploy"
+	default:
+		return "code"
+	}
 }

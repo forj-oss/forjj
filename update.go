@@ -32,12 +32,6 @@ func (a *Forj) Update() error {
 		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry", err)
 	}
 
-	// Identify deployment repositories from main Forjfile
-	// Error reported if repo is declared only from a deployment Forjfile.
-	if err := a.DeclareDeployRepositories() ; err != nil {
-		return err
-	}
-
 	// Build in memory representation from source files loaded.
 	if err := a.f.BuildForjfileInMem(); err != nil {
 		return err
@@ -47,7 +41,7 @@ func (a *Forj) Update() error {
 	ffd := a.f.InMemForjfile()
 
 	// Add missing deployment Repositories and warn
-	if err := a.DefineMissingDeployRepositories(ffd, true); err != nil {
+	if err := a.DefineDeployRepositories(ffd, true); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 
