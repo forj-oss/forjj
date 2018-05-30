@@ -41,7 +41,7 @@ func (a *Forj) Update() error {
 	ffd := a.f.InMemForjfile()
 
 	// Add missing deployment Repositories and warn
-	if err := a.DefineMissingDeployRepositories(ffd, true); err != nil {
+	if err := a.DefineDeployRepositories(ffd, true); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 

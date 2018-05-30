@@ -96,7 +96,8 @@ func (a *Forj) Create() error {
 		log.Print("CREATE: Automatic git push and forjj maintain enabled.")
 	}
 
-	if err := a.DefineMissingDeployRepositories(a.f.DeployForjfile(), false); err != nil {
+	// Identify deployment repositories from main Forjfile
+	if err := a.DefineDeployRepositories(a.f.DeployForjfile(), false); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 

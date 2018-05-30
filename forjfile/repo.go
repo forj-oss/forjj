@@ -12,10 +12,12 @@ import (
 type RepoStruct struct {
 	name         string
 	is_infra     bool
+	isDeploy     bool
 	forge        *ForgeYaml
 	owner        string
 	driverOwner  *drivers.Driver
 	deployment   string                      // set to deploiment name if this repo is a deployment repo.
+	Deployment   string                      `yaml:"deployment-attached,omitempty"`
 	Upstream     string                      `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
 	GitRemote    string                      `yaml:"git-remote,omitempty"`
 	remote       goforjj.PluginRepoRemoteUrl // Git remote string to use/set
@@ -38,6 +40,7 @@ const (
 	FieldRepoFlow       = "flow"
 	FieldRepoTemplate   = "repo-template"
 	FieldRepoDeployName = "deployment-name"
+	FieldRepoDeployType = "deployment-type"
 )
 
 // Apply will register the repository and execute any flow on it if needed
@@ -57,8 +60,18 @@ func (r *RepoStruct) Flags() (flags []string) {
 		flags = make([]string, 0)
 		return
 	}
-	flags = make([]string, 8, 8+len(r.More))
-	coreList := []string{FieldRepoName, FieldRepoUpstream, FieldRepoGitRemote, FieldRepoRemote, FieldRepoRemoteURL, FieldRepoTitle, FieldRepoFlow, FieldRepoTemplate}
+	flags = make([]string, 9, 9+len(r.More))
+	coreList := []string{
+		FieldRepoName,
+		FieldRepoUpstream,
+		FieldRepoGitRemote,
+		FieldRepoRemote,
+		FieldRepoRemoteURL,
+		FieldRepoTitle,
+		FieldRepoFlow,
+		FieldRepoTemplate,
+		FieldRepoDeployName,
+	}
 	for index, name := range coreList {
 		flags[index] = name
 	}
@@ -214,6 +227,11 @@ func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 		return value.SetIfFound(r.RepoTemplate, (r.RepoTemplate != ""))
 	case FieldRepoDeployName:
 		return value.SetIfFound(r.deployment, (r.deployment != ""))
+	case FieldRepoDeployType:
+		if v, found := r.forge.Deployments[r.deployment]; found {
+			return value.SetIfFound(v.Type, found)
+		}
+		return value.SetIfFound("", false)
 	default:
 		v, f := r.More[field]
 		return value.SetIfFound(v, f)
@@ -519,4 +537,15 @@ func (r *RepoStruct) IsInfra() bool {
 		return false
 	}
 	return r.is_infra
+}
+
+func (r *RepoStruct) Role() string {
+	switch {
+	case r.is_infra:
+		return "infra"
+	case r.isDeploy:
+		return "deploy"
+	default:
+		return "code"
+	}
 }

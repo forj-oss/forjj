@@ -30,7 +30,7 @@ func (a *Forj) Maintain() error {
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
 	ffd := a.f.InMemForjfile()
-	if err := a.DefineMissingDeployRepositories(ffd, true); err != nil {
+	if err := a.DefineDeployRepositories(ffd, true); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 
