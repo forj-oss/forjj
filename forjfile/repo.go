@@ -41,6 +41,7 @@ const (
 	FieldRepoTemplate   = "repo-template"
 	FieldRepoDeployName = "deployment-name"
 	FieldRepoDeployType = "deployment-type"
+	FieldRepoRole       = "role"
 )
 
 // Apply will register the repository and execute any flow on it if needed
@@ -60,7 +61,7 @@ func (r *RepoStruct) Flags() (flags []string) {
 		flags = make([]string, 0)
 		return
 	}
-	flags = make([]string, 9, 9+len(r.More))
+	flags = make([]string, 10, 10+len(r.More))
 	coreList := []string{
 		FieldRepoName,
 		FieldRepoUpstream,
@@ -71,6 +72,7 @@ func (r *RepoStruct) Flags() (flags []string) {
 		FieldRepoFlow,
 		FieldRepoTemplate,
 		FieldRepoDeployName,
+		FieldRepoRole,
 	}
 	for index, name := range coreList {
 		flags[index] = name
@@ -232,6 +234,15 @@ func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 			return value.SetIfFound(v.Type, found)
 		}
 		return value.SetIfFound("", false)
+	case FieldRepoRole:
+		switch {
+		case r.is_infra:
+			return value.SetIfFound("infra", true)
+		case r.isDeploy:
+			return value.SetIfFound("deploy", true)
+		default:
+			return value.SetIfFound("code", true)
+		}
 	default:
 		v, f := r.More[field]
 		return value.SetIfFound(v, f)
@@ -364,6 +375,18 @@ func (r *RepoStruct) Set(field, value string) {
 	case FieldRepoDeployName:
 		if r.deployment != value {
 			r.deployment = value
+		}
+	case FieldRepoRole:
+		switch value {
+		case "infra":
+			r.is_infra = true
+			r.isDeploy = false
+		case "deploy":
+			r.is_infra = false
+			r.isDeploy = true
+		default:
+			r.is_infra = false
+			r.isDeploy = false
 		}
 	default:
 		if r.More == nil {
