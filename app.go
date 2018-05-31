@@ -137,7 +137,7 @@ const (
 
 // ForjModel is used by template mechanism
 type ForjModel struct {
-	Forjfile *forjfile.DeployForgeYaml
+	Forjfile *forjfile.DeployForgeModel
 	Deployments *forjfile.DeploymentsModel
 	Current  ForjCurrentModel
 	Secret   string
@@ -157,7 +157,7 @@ type ForjCurrentModel struct {
 func (a *Forj) Model(object_name, instance_name, key string) *ForjModel {
 	ffd := a.f.InMemForjfile()
 	data := ForjModel{
-		Forjfile: ffd,
+		Forjfile: forjfile.NewDeployForgeModel(ffd),
 		Deployments: forjfile.NewDeploymentsModel(a.f.GetDeployments()),
 		Current: ForjCurrentModel{
 			Type:  object_name,

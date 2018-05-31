@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"forjj/creds"
 	"forjj/drivers"
 	"forjj/forjfile"
 	"forjj/git"
 	"forjj/utils"
-	"forjj/creds"
 	"log"
 	"os"
 	"path"
@@ -275,7 +275,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 			repo_obj.Set("remote-url", Repo.Remotes["origin"].Url)
 			repo_obj.SetInstanceOwner(Repo.Owner)
 			repo_obj.SetPluginOwner(d)
-			if a.f.GetInfraName() == Name {
+			if a.f.GetInfraName() == Name { // 'infra' *Repostruct is a copy, not a ref to the repos["<infra>"] *RepoStruct
 				ffd.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
 				ffd.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
 			}
@@ -289,7 +289,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		if err := a.FlowApply(); err != nil {
 			return err, false
 		}
-		if err := a.scanAndSetDefaults(a.f.InMemForjfile(), creds.Global) ; err != nil {
+		if err := a.scanAndSetDefaults(a.f.InMemForjfile(), creds.Global); err != nil {
 			return err, false
 		}
 	}

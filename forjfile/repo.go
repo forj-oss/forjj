@@ -130,36 +130,14 @@ func (r *RepoStruct) Owner() string {
 	return r.owner
 }
 
-// SetRepoAsInfra declare this repository as the infra repository
-// This is possible only if no infra were declared.
-//
-func (r *RepoStruct) SetRepoAsInfra() error {
-	// Copy the infra repo in list of repositories, tagged as infra.
-	if r.forge.ForjCore.Infra != nil {
-		return fmt.Errorf("Unable to re-define a repository as Infra. Already defined")
-	}
-
-	r.is_infra = true
-	r.forge.ForjCore.Infra = r
-	return nil
-}
-
 func (r *RepoStruct) setFromInfra(infra *RepoStruct) {
 	if r == nil {
 		return
 	}
+	infra.is_infra = true
+	infra.isDeploy = false
 	*r = *infra
 	delete(r.More, "name")
-	r.is_infra = true
-}
-
-func (r *RepoStruct) setToInfra(infra *RepoStruct) {
-	if r == nil {
-		return
-	}
-
-	*infra = *r
-	infra.is_infra = false // Unset it to ensure data is saved in yaml
 }
 
 func (r *RepoStruct) GetString(field string) string {
@@ -384,7 +362,7 @@ func (r *RepoStruct) Set(field, value string) {
 		case "deploy":
 			r.is_infra = false
 			r.isDeploy = true
-		default:
+		case "code":
 			r.is_infra = false
 			r.isDeploy = false
 		}
@@ -560,15 +538,4 @@ func (r *RepoStruct) IsInfra() bool {
 		return false
 	}
 	return r.is_infra
-}
-
-func (r *RepoStruct) Role() string {
-	switch {
-	case r.is_infra:
-		return "infra"
-	case r.isDeploy:
-		return "deploy"
-	default:
-		return "code"
-	}
 }
