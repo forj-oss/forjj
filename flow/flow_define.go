@@ -1,10 +1,11 @@
 package flow
 
 import (
-	"forjj/forjfile"
-	"github.com/forj-oss/forjj-modules/trace"
 	"fmt"
+	"forjj/forjfile"
 	"forjj/utils"
+
+	"github.com/forj-oss/forjj-modules/trace"
 )
 
 type FlowDefine struct { // Yaml structure
@@ -15,7 +16,7 @@ type FlowDefine struct { // Yaml structure
 	OnForj map[string]FlowTaskDef `yaml:"on-forjfile-do"`
 }
 
-func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.DeployForgeYaml) error {
+func (fd *FlowDefine) apply(repo *forjfile.RepoStruct, Forjfile *forjfile.DeployForgeYaml) error {
 	bInError := false
 
 	var tasks map[string]FlowTaskDef
@@ -41,8 +42,8 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.DeployF
 			continue
 		}
 
-		if ! task_to_set {
-			gotrace.Trace("Flow task not applied to %s. if condition fails.", onWhat)
+		if !task_to_set {
+			gotrace.Trace("Flow task not applied to %s. The 'if' condition fails.\n---", onWhat)
 			continue
 		}
 
@@ -92,7 +93,7 @@ func (fd *FlowDefine)apply(repo *forjfile.RepoStruct, Forjfile *forjfile.DeployF
 	return nil
 }
 
-func (ftd *FlowTaskDef)if_section(repo *forjfile.RepoStruct, Forjfile *forjfile.DeployForgeYaml) (task_to_set bool, _ error) {
+func (ftd *FlowTaskDef) if_section(repo *forjfile.RepoStruct, Forjfile *forjfile.DeployForgeYaml) (task_to_set bool, _ error) {
 	task_to_set = true
 	if ftd.If != nil {
 		for _, ftif := range ftd.If {

@@ -84,6 +84,8 @@ type Forj struct {
 	flows flow.Flows
 
 	i repository.GitRepoStruct // Infra Repository management.
+
+	deployContext forjDeployContext
 }
 
 /*const (

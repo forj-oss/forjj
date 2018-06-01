@@ -96,18 +96,21 @@ func (a *Forj) Create() error {
 		log.Print("CREATE: Automatic git push and forjj maintain enabled.")
 	}
 
+	if err := a.ValidateForjfile(); err != nil {
+		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
+	}
+
 	// Identify deployment repositories from main Forjfile
 	if err := a.DefineDeployRepositories(a.f.DeployForjfile(), false); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 
+	// Defining information about current deployment repository
+	a.defineDeployContext()
+
 	// Load flow identified by Forjfile with missing repos.
 	if err := a.FlowInit(); err != nil {
 		return err
-	}
-
-	if err := a.ValidateForjfile(); err != nil {
-		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
 	}
 
 	if err := a.define_infra_upstream(); err != nil {

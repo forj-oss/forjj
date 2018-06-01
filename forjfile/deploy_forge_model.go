@@ -4,8 +4,8 @@ type DeployForgeModel struct {
 	// LocalSettings should not be used from a Forjfile except if this one is a template one.
 	LocalSettings WorkspaceStruct
 	ForjSettings  ForjSettingsStruct
-	Infra         RepoModelStruct
-	Repos         map[string]RepoModelStruct
+	Infra         RepoModel
+	Repos         map[string]RepoModel
 	Apps          map[string]AppModel
 	Users         UsersStruct
 	Groups        GroupsStruct
@@ -18,12 +18,10 @@ func NewDeployForgeModel(forge *DeployForgeYaml) (ret *DeployForgeModel) {
 	ret = new(DeployForgeModel)
 	ret.LocalSettings = forge.LocalSettings
 	ret.ForjSettings = forge.ForjSettings
-	ret.Infra.From(forge.Infra)
-	ret.Repos = make(map[string]RepoModelStruct)
+	ret.Infra = forge.Infra.Model()
+	ret.Repos = make(map[string]RepoModel)
 	for name, repo := range forge.Repos {
-		ret.Repos[name] = RepoModelStruct{
-			data: repo,
-		}
+		ret.Repos[name] = repo.Model()
 	}
 	ret.Apps = make(map[string]AppModel)
 	for name, app := range forge.Apps {

@@ -539,12 +539,24 @@ func (a *Forj) RepoManagedBy(object_name, instance_name string) (_ string) {
 	return
 }
 
+// defineDeployContext initialize the deployment context for GetObjectData
+func (a *Forj) defineDeployContext() {
+	// Getting information about deployment repository
+	a.deployContext.to = a.f.GetDeployment()
+	if deploy, found := a.f.GetADeployment(a.deployContext.to) ; found {
+		a.deployContext.obj = deploy
+		a.deployContext.repoAttached = deploy.AttachedRepo()
+		a.deployContext.repoAttached.SetCurrentDeploy()
+	}
+}
+
 // GetObjectsData build the list of Object required by the plugin provided from the cli flags.
 // Information retrieved from InMemForjfile
 //
 func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, action string) error {
 	// Loop on each plugin object
 	ffd := a.f.InMemForjfile()
+
 	for object_name, Obj := range d.Plugin.Yaml.Objects {
 		Obj_instances := ffd.GetInstances(object_name)
 		for _, instance_name := range Obj_instances {
@@ -553,10 +565,17 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 				continue
 			}
 
-			// Filter on repo to be supported by the driver instance.
 			if object_name == "repo" {
+				// Filter on repo to be supported by the driver instance.
 				if _, is_owner := a.IsRepoManaged(d, object_name, instance_name); !is_owner {
 					continue
+				}
+				// Filter on deploy repos. Working only with the deployment repository of the current deployment.
+				if repo, found := ffd.GetRepo(instance_name) ; found {
+					if repo.Role() == "deploy" && a.deployContext.repoName() != instance_name {
+						gotrace.Trace("Deploy repository '%s' out of deployment '%s' scope", instance_name, a.deployContext.to)
+						continue
+					}
 				}
 			}
 
