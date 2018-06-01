@@ -65,3 +65,17 @@ func (r *RepoModel) HasApps(rules ...string) (_ bool) {
 func (r *RepoModel) IsCurrentDeploy() bool {
 	return r.repo.IsCurrentDeploy()
 }
+
+// IsDeployable return true if the repository identified is deployable in the current deployment context
+func (r RepoModel) IsDeployable() bool {
+	if r.repo.forge.ForjCore.deployTo == "" {
+		return false // We are not in a deployable context (no merge done between master and deployment Forjfiles)
+	}
+	if r.repo.Role() == "code" {
+		return true
+	}
+	if r.repo.Role() == "infra" {
+		return (r.repo.forge.ForjCore.deployTo == r.repo.deployment)
+	}
+	return r.repo.IsCurrentDeploy()
+}

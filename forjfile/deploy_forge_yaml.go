@@ -10,9 +10,9 @@ import (
 
 // DeployForgeYaml represents a dedicated deployed Forge.
 type DeployForgeYaml struct {
-	forge *ForgeYaml
-	// LocalSettings should not be used from a Forjfile except if this one is a template one.
-	LocalSettings WorkspaceStruct    `yaml:"local-settings,omitempty"` // ignored if Normal Forjfile
+	forge         *ForgeYaml
+	deployTo      string             // Name of the deployment merged
+	LocalSettings WorkspaceStruct    `yaml:"local-settings,omitempty"` // ignored if Normal Forjfile. Otherwisem this is a template Forjfile.
 	ForjSettings  ForjSettingsStruct `yaml:"forj-settings"`
 	Infra         *RepoStruct
 	Repos         ReposStruct `yaml:"repositories"`
@@ -544,7 +544,7 @@ func (f *DeployForgeYaml) Model() ForgeModel {
 }
 func (f *DeployForgeYaml) GetObjectInstance(object, instance string) interface{} {
 	f.initDefaults(f.forge)
-	
+
 	switch object {
 	case "user":
 		if f.Users == nil {

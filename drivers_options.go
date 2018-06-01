@@ -576,6 +576,9 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 						gotrace.Trace("Deploy repository '%s' out of deployment '%s' scope", instance_name, a.deployContext.to)
 						continue
 					}
+					if repo.AttachedToDeployment() == "" {
+						gotrace.Warning("Repository '%s' has no deployment information. Forjj will ignore it. To eliminate this warning, remove the repo or move it to a Deployment Forjfile. You can also declare this repo as a Deployment repository for a deployment with `deploy-repo-of: <deployment name>`")
+					}
 				}
 			}
 

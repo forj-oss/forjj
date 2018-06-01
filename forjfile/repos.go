@@ -64,3 +64,9 @@ func (r ReposStruct) HasAppWith(rules ...string) (found bool, err error) {
 	}
 	return
 }
+
+func (r ReposStruct) attachToDeploy(deployName string) {
+	for _, repo := range r {
+		repo.deployment = deployName
+	}
+}
