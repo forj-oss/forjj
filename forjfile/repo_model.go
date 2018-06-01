@@ -1,26 +1,59 @@
 package forjfile
 
-import "github.com/forj-oss/forjj-modules/trace"
+import (
+	"github.com/forj-oss/forjj-modules/trace"
+)
 
-// Model used by template to secure data.
-
+// RepoModelStruct is the RepoStruct model
 type RepoModel struct {
-	Apps map[string]RepoAppModel
 	repo *RepoStruct
+	Apps map[string]RepoAppModel
 }
 
-func (r *RepoModel)Get(field string) (_ string) {
-	if r.repo == nil {
-		return
-	}
+// From build the repo model from a RepoStruct
+func (r *RepoModel) From(repo *RepoStruct) {
+	r.repo = repo
+}
+
+// Get return value for any recognized fields of a repository object.
+func (r RepoModel) Get(field string) string {
 	return r.repo.GetString(field)
 }
 
-func (r *RepoModel)HasApps(rules ...string) (_ bool) {
-		if r.repo == nil {
+// RemoteUrl return the remote URL field
+func (r RepoModel) RemoteUrl() string {
+	return r.repo.RemoteUrl()
+}
+
+// RemoteType return the remote type field
+func (r RepoModel) RemoteType() string {
+	return r.repo.RemoteType()
+}
+
+// UpstreamAPIUrl return the remote API url field
+func (r RepoModel) UpstreamAPIUrl() string {
+	return r.repo.UpstreamAPIUrl()
+}
+
+// Role return the repository role
+func (r RepoModel) Role() string {
+	return r.repo.GetString("role")
+}
+
+// Owner return the repository owner field
+func (r RepoModel) Owner() string {
+	return r.repo.Owner()
+}
+
+// HasApps check is repo applications rules return true or not.
+// a rule is true if the key:value is found in the application object attached.
+//
+// See details in RepoStruct.HasApps()
+func (r *RepoModel) HasApps(rules ...string) (_ bool) {
+	if r.repo == nil {
 		return
 	}
-	if v, err := r.repo.HasApps(rules...) ; err != nil {
+	if v, err := r.repo.HasApps(rules...); err != nil {
 		gotrace.Error("%s", err)
 	} else {
 		return v
@@ -28,8 +61,7 @@ func (r *RepoModel)HasApps(rules ...string) (_ bool) {
 	return
 }
 
-type RepoAppModel struct {
-	Default bool
-	AppName string
+// IsCurrentDeploy returns true if the current repo is the current deployment repository.
+func (r *RepoModel) IsCurrentDeploy() bool {
+	return r.repo.IsCurrentDeploy()
 }
-
