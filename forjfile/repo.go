@@ -10,41 +10,43 @@ import (
 )
 
 type RepoStruct struct {
-	name         string
-	is_infra     bool
-	isDeploy     bool
-	forge        *ForgeYaml
-	owner        string
-	driverOwner  *drivers.Driver
-	deployment   string                      // set to deploiment name if this repo is a deployment repo.
-	Deployment   string                      `yaml:"deployment-attached,omitempty"`
-	Upstream     string                      `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
-	GitRemote    string                      `yaml:"git-remote,omitempty"`
-	remote       goforjj.PluginRepoRemoteUrl // Git remote string to use/set
-	Title        string                      `yaml:",omitempty"`
-	RepoTemplate string                      `yaml:"repo-template,omitempty"`
-	Flow         RepoFlow                    `yaml:",omitempty"`
-	More         map[string]string           `yaml:",inline"`
-	apps         map[string]*AppStruct       // List of applications connected to this repo. Defaults are added automatically.
-	Apps         map[string]string           `yaml:"in-relation-with"` // key: <AppRelName>, value: <appName>
+	name            string
+	is_infra        bool
+	isDeploy        bool
+	isCurrentDeploy bool
+	forge           *ForgeYaml
+	owner           string
+	driverOwner     *drivers.Driver
+	deployment      string                      // set to deploiment name if this repo is a deployment repo.
+	Deployment      string                      `yaml:"deployment-attached,omitempty"`
+	Upstream        string                      `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
+	GitRemote       string                      `yaml:"git-remote,omitempty"`
+	remote          goforjj.PluginRepoRemoteUrl // Git remote string to use/set
+	Title           string                      `yaml:",omitempty"`
+	RepoTemplate    string                      `yaml:"repo-template,omitempty"`
+	Flow            RepoFlow                    `yaml:",omitempty"`
+	More            map[string]string           `yaml:",inline"`
+	apps            map[string]*AppStruct       // List of applications connected to this repo. Defaults are added automatically.
+	Apps            map[string]string           `yaml:"in-relation-with"` // key: <AppRelName>, value: <appName>
 }
 
 const (
-	FieldRepoName       = "name"
-	FieldRepoUpstream   = "upstream"
-	FieldRepoApps       = "apps"
-	FieldRepoGitRemote  = "git-remote"
-	FieldRepoRemote     = "remote"
-	FieldRepoRemoteURL  = "remote-url"
-	FieldRepoTitle      = "title"
-	FieldRepoFlow       = "flow"
-	FieldRepoTemplate   = "repo-template"
-	FieldRepoDeployName = "deployment-name"
-	FieldRepoDeployType = "deployment-type"
-	FieldRepoRole       = "role"
+	FieldRepoName          = "name"
+	FieldRepoUpstream      = "upstream"
+	FieldRepoApps          = "apps"
+	FieldRepoGitRemote     = "git-remote"
+	FieldRepoRemote        = "remote"
+	FieldRepoRemoteURL     = "remote-url"
+	FieldRepoTitle         = "title"
+	FieldRepoFlow          = "flow"
+	FieldRepoTemplate      = "repo-template"
+	FieldRepoDeployName    = "deployment-name"
+	FieldRepoDeployType    = "deployment-type"
+	FieldRepoRole          = "role"
+	FieldCurrentDeployRepo = "current-deployment-repo"
 )
 
-// Apply will register the repository and execute any flow on it if needed
+// Register will register the repository
 func (r *RepoStruct) Register() {
 	if r == nil {
 		return
@@ -61,7 +63,6 @@ func (r *RepoStruct) Flags() (flags []string) {
 		flags = make([]string, 0)
 		return
 	}
-	flags = make([]string, 10, 10+len(r.More))
 	coreList := []string{
 		FieldRepoName,
 		FieldRepoUpstream,
@@ -73,7 +74,9 @@ func (r *RepoStruct) Flags() (flags []string) {
 		FieldRepoTemplate,
 		FieldRepoDeployName,
 		FieldRepoRole,
+		FieldCurrentDeployRepo,
 	}
+	flags = make([]string, len(coreList), len(coreList)+len(r.More))
 	for index, name := range coreList {
 		flags[index] = name
 	}
@@ -102,9 +105,10 @@ type RepoFlow struct {
 
 func (r *RepoStruct) Model() RepoModel {
 	model := RepoModel{
-		repo: r,
 		Apps: make(map[string]RepoAppModel),
 	}
+
+	model.From(r)
 
 	if r == nil {
 		return model
@@ -213,20 +217,19 @@ func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 		}
 		return value.SetIfFound("", false)
 	case FieldRepoRole:
-		switch {
-		case r.is_infra:
-			return value.SetIfFound("infra", true)
-		case r.isDeploy:
-			return value.SetIfFound("deploy", true)
-		default:
-			return value.SetIfFound("code", true)
+		return value.SetIfFound(r.Role(), true)
+	case FieldCurrentDeployRepo:
+		if r.isCurrentDeploy {
+			return value.SetIfFound("true", true)
 		}
+		return value.SetIfFound("false", true)
 	default:
 		v, f := r.More[field]
 		return value.SetIfFound(v, f)
 	}
 }
 
+// SetHandler is the generic setter function.
 func (r *RepoStruct) SetHandler(from func(field string) (string, bool), keys ...string) {
 	if r == nil {
 		return
@@ -366,6 +369,8 @@ func (r *RepoStruct) Set(field, value string) {
 			r.is_infra = false
 			r.isDeploy = false
 		}
+	case FieldCurrentDeployRepo:
+		r.SetCurrentDeploy()
 	default:
 		if r.More == nil {
 			r.More = make(map[string]string)
@@ -432,6 +437,7 @@ func (r *RepoStruct) set_forge(f *ForgeYaml) {
 // If the rule is not well formatted, an error is returned.
 // If the repo has no application, HasApps return false.
 // If no rules are provided and at least one application exist, HasApps return true.
+// If all rules are true, HasApps return true
 //
 // TODO: Write Unit test of HasApps
 func (r *RepoStruct) HasApps(rules ...string) (found bool, err error) {
@@ -538,4 +544,41 @@ func (r *RepoStruct) IsInfra() bool {
 		return false
 	}
 	return r.is_infra
+}
+
+func (r *RepoStruct) Role() string {
+	switch {
+	case r.is_infra:
+		return "infra"
+	case r.isDeploy:
+		return "deploy"
+	default:
+		return "code"
+	}
+}
+
+// Name return the internal reponame.
+func (r *RepoStruct) Name() string {
+	if r == nil {
+		return ""
+	}
+	return r.name
+}
+
+// IsCurrentDeploy return True if this repo is the current deployment repository
+func (r *RepoStruct) IsCurrentDeploy() (ret bool) {
+	if r == nil {
+		return
+	}
+	return r.isCurrentDeploy
+}
+
+// SetCurrentDeploy set True if this repo IS the current deployment repository
+// No check made on other repositories.
+// At a time, only one repository should be considered as the current deployment repository
+func (r *RepoStruct) SetCurrentDeploy() {
+	if r == nil {
+		return
+	}
+	r.isCurrentDeploy = true
 }
