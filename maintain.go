@@ -34,6 +34,9 @@ func (a *Forj) Maintain() error {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
 
+	// Defining information about current deployment repository
+	a.defineDeployContext()
+
 	// Load flow identified by Forjfile with missing repos.
 	if err := a.FlowInit(); err != nil {
 		return err
