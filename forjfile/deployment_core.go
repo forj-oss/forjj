@@ -56,7 +56,6 @@ func (d *DeploymentCoreStruct) AttachRepo(repo *RepoStruct, organization string)
 	if repoName == repo.name {
 		return
 	}
-	repo.Deployment = d.name
 }
 
 // AttachedRepo return the Deployment attached repository.

@@ -17,8 +17,8 @@ type RepoStruct struct {
 	forge           *ForgeYaml
 	owner           string
 	driverOwner     *drivers.Driver
-	deployment      string                      // set to deploiment name if this repo is a deployment repo.
-	Deployment      string                      `yaml:"deployment-attached,omitempty"`
+	deployment      string                      // set to deploiment name where the repo is planned to be deployed.
+	Deployment      string                      `yaml:"deploy-repo-of,omitempty"`
 	Upstream        string                      `yaml:"upstream-app,omitempty"` // Name of the application upstream hosting this repository.
 	GitRemote       string                      `yaml:"git-remote,omitempty"`
 	remote          goforjj.PluginRepoRemoteUrl // Git remote string to use/set
@@ -581,4 +581,8 @@ func (r *RepoStruct) SetCurrentDeploy() {
 		return
 	}
 	r.isCurrentDeploy = true
+}
+
+func (r *RepoStruct) AttachedToDeployment() string {
+	return r.deployment
 }
