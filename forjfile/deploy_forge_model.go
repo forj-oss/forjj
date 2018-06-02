@@ -5,6 +5,7 @@ type DeployForgeModel struct {
 	LocalSettings WorkspaceStruct
 	ForjSettings  ForjSettingsStruct
 	Infra         RepoModel
+	Deploy        RepoModel
 	Repos         map[string]RepoModel
 	Apps          map[string]AppModel
 	Users         UsersStruct
@@ -22,6 +23,9 @@ func NewDeployForgeModel(forge *DeployForgeYaml) (ret *DeployForgeModel) {
 	ret.Repos = make(map[string]RepoModel)
 	for name, repo := range forge.Repos {
 		ret.Repos[name] = repo.Model()
+		if repo.IsCurrentDeploy() {
+			ret.Deploy = repo.Model()
+		}
 	}
 	ret.Apps = make(map[string]AppModel)
 	for name, app := range forge.Apps {

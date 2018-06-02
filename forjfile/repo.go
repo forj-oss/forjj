@@ -362,12 +362,14 @@ func (r *RepoStruct) Set(field, value string) {
 		case "infra":
 			r.is_infra = true
 			r.isDeploy = false
+			r.isCurrentDeploy = false
 		case "deploy":
 			r.is_infra = false
 			r.isDeploy = true
 		case "code":
 			r.is_infra = false
 			r.isDeploy = false
+			r.isCurrentDeploy = false
 		}
 	case FieldCurrentDeployRepo:
 		r.SetCurrentDeploy()
@@ -570,7 +572,7 @@ func (r *RepoStruct) IsCurrentDeploy() (ret bool) {
 	if r == nil {
 		return
 	}
-	return r.isCurrentDeploy
+	return r.isCurrentDeploy && r.isDeploy
 }
 
 // SetCurrentDeploy set True if this repo IS the current deployment repository
@@ -578,6 +580,9 @@ func (r *RepoStruct) IsCurrentDeploy() (ret bool) {
 // At a time, only one repository should be considered as the current deployment repository
 func (r *RepoStruct) SetCurrentDeploy() {
 	if r == nil {
+		return
+	}
+	if !r.isDeploy {
 		return
 	}
 	r.isCurrentDeploy = true
