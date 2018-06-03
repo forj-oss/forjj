@@ -14,10 +14,9 @@ import (
 // GitSetRepo define where the Deployment repo is located. It creates the repo even just empty and sync if possible and origin given.
 // It switch to master branch
 func (d *DeploymentCoreStruct) GitSetRepo(aPath, origin string) (err error) {
-	if v, err := utils.Abs(path.Join(aPath, d.name)); err != nil {
+	d.repoPath, err = utils.Abs(path.Join(aPath, d.name))
+	if err != nil {
 		return err
-	} else {
-		d.repoPath = v
 	}
 
 	if err = git.EnsureRepoExist(d.repoPath); err != nil {
@@ -36,10 +35,6 @@ func (d *DeploymentCoreStruct) GitSetRepo(aPath, origin string) (err error) {
 // GitDefineRemote helps to configure a deployment repository with a remote
 func (d *DeploymentCoreStruct) GitDefineRemote(name, uri string) (err error) {
 	return d.runInContext(func() (err error) {
-		if err = os.Chdir(d.repoPath); err != nil {
-			return
-		}
-
 		if err = git.EnsureRemoteIs(name, uri); err != nil {
 			return
 		}
@@ -60,6 +55,7 @@ func (d *DeploymentCoreStruct) GitSyncFrom(remote, branch string) error {
 	})
 }
 
+// GitSyncUp set and report sync status
 func (d *DeploymentCoreStruct) GitSyncUp() error {
 	return d.runInContext(func() (_ error) {
 		if d.syncStatus == 0 {
@@ -164,10 +160,17 @@ func (d *DeploymentCoreStruct) GitResetBranchFromRemote(branch, remote string) {
 
 // runInContext ensure GIT commands are executed in the right GIT repo context.
 func (d *DeploymentCoreStruct) runInContext(doRun func() error) (err error) {
+	if d.savedPath != "" {
+		return doRun()
+	}
+
 	if err = d.savePath(); err != nil {
 		return err
 	}
 	defer d.restorePath()
+	if err = os.Chdir(d.repoPath); err != nil {
+		return
+	}
 	return doRun()
 }
 
@@ -189,6 +192,7 @@ func (d *DeploymentCoreStruct) savePath() error {
 	}
 	d.savedPath = v
 	gotrace.Trace("GIT: Moved to '%s'", d.repoPath)
+	git.Indent("---- GIT"+git.ShowGitPath(), " - ", "--------")
 	return err
 }
 
@@ -203,5 +207,6 @@ func (d *DeploymentCoreStruct) restorePath() (err error) {
 	}
 	gotrace.Trace("GIT: Restored to '%s'", d.savedPath)
 	d.savedPath = ""
+	git.UnIndent()
 	return
 }
