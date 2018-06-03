@@ -543,7 +543,7 @@ func (a *Forj) RepoManagedBy(object_name, instance_name string) (_ string) {
 func (a *Forj) defineDeployContext() {
 	// Getting information about deployment repository
 	a.deployContext.to = a.f.GetDeployment()
-	if deploy, found := a.f.GetADeployment(a.deployContext.to) ; found {
+	if deploy, found := a.f.GetADeployment(a.deployContext.to); found {
 		a.deployContext.obj = deploy
 		a.deployContext.repoAttached = deploy.AttachedRepo()
 		a.deployContext.repoAttached.SetCurrentDeploy()
@@ -571,7 +571,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 					continue
 				}
 				// Filter on deploy repos. Working only with the deployment repository of the current deployment.
-				if repo, found := ffd.GetRepo(instance_name) ; found {
+				if repo, found := ffd.GetRepo(instance_name); found {
 					if repo.Role() == "deploy" && a.deployContext.repoName() != instance_name {
 						gotrace.Trace("Deploy repository '%s' out of deployment '%s' scope", instance_name, a.deployContext.to)
 						continue
@@ -618,7 +618,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 				if err := value.Evaluate(a.Model(object_name, instance_name, key)); err != nil {
 					return fmt.Errorf("Unable to evaluate '%s'. %s", value.GetString(), err)
 				}
-				if value.GetString() == "" {
+				if value.GetString() == "" && len(value.GetStringSlice()) == 0 {
 					gotrace.Trace("%s/%s: NOT ADDED: Key '%s' has not been added and set", object_name, instance_name, key)
 					continue
 				}

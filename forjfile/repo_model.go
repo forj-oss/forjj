@@ -62,7 +62,7 @@ func (r *RepoModel) HasApps(rules ...string) (_ bool) {
 }
 
 // IsCurrentDeploy returns true if the current repo is the current deployment repository.
-func (r *RepoModel) IsCurrentDeploy() bool {
+func (r RepoModel) IsCurrentDeploy() bool {
 	return r.repo.IsCurrentDeploy()
 }
 
