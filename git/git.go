@@ -13,14 +13,46 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
-// Git Call git command with arguments. All print out displayed. It returns git Return code.
+type gitContext struct {
+	end    string
+	indent string
+}
+
+var context gitContext
+
+// Do Call git command with arguments. All print out displayed. It returns git Return code.
 func Do(opts ...string) int {
 	colorCyan, colorReset := utils.DefColor(36)
-	log.Printf("%sgit %s%s\n", colorCyan, strings.Join(opts, " "), colorReset)
+	log.Printf("%s%sgit %s%s\n", colorCyan, context.indent, strings.Join(opts, " "), colorReset)
 	return utils.RunCmd("git", opts...)
 }
 
-// Status return an GitStatus struct with the list of files, added, updated and
+// Indent permit to display several command indented within a section tag.
+func Indent(begin, indent, end string) {
+	colorCyan, colorReset := utils.DefColor(36)
+	log.Printf("%s%s%s\n", colorCyan, begin, colorReset)
+	context.end = end
+	context.indent = indent
+}
+
+// UnIndent revert Indent.
+func UnIndent() {
+	colorCyan, colorReset := utils.DefColor(36)
+	log.Printf("%s%s%s\n", colorCyan, context.end, colorReset)
+}
+
+// ShowGitPath display the current GI path
+func ShowGitPath() (msg string) {
+	msg = " - Unable to determine the current directory."
+	if p, err := os.Getwd(); err == nil {
+		msg = " - " + p
+	} else {
+		msg += err.Error()
+	}
+	return
+}
+
+// GetStatus return an GitStatus struct with the list of files, added, updated and
 func GetStatus() (gs *Status) {
 	gs = new(Status)
 
@@ -62,7 +94,7 @@ func Get(opts ...string) (string, error) {
 // GetWithStatusCode Call a git command and get the output as string output.
 func GetWithStatusCode(opts ...string) (string, int) {
 	colorCyan, colorReset := utils.DefColor(36)
-	log.Printf("%sgit %s%s\n", colorCyan, strings.Join(opts, " "), colorReset)
+	log.Printf("%s%sgit %s%s\n", colorCyan, context.indent, strings.Join(opts, " "), colorReset)
 	return utils.RunCmdOutput("git", opts...)
 }
 
@@ -84,11 +116,12 @@ func Commit(msg string, errorIfEmpty bool) (err error) {
 // Push Push latest commits
 func Push() error {
 	if Do("push") > 0 {
-		return fmt.Errorf("Unable to push commits.")
+		return fmt.Errorf("Unable to push commits")
 	}
 	return nil
 }
 
+// Add call git add
 func Add(files []string) int {
 	cmd := make([]string, 1, len(files)+1)
 	cmd[0] = "add"
@@ -96,6 +129,7 @@ func Add(files []string) int {
 	return Do(cmd...)
 }
 
+// Branches retrieved the list of branch from git branch
 func Branches() ([]string, error) {
 	v, err := Get("branch")
 	if err != nil || v == "" {
@@ -118,56 +152,59 @@ func RemoteBranches() ([]string, error) {
 //
 // Remote: Formated as <remote>/<branchName>
 func RemoteBranchExist(remote string) (bool, error) {
-	if branches, err := RemoteBranches(); err != nil {
+	branches, err := RemoteBranches()
+	if err != nil {
 		return false, err
-	} else {
-		for _, branch := range branches {
-			if branch == remote {
-				return true, nil
-			}
+	}
+
+	for _, branch := range branches {
+		if branch == remote {
+			return true, nil
 		}
 	}
 	return false, nil
 }
 
+// BranchExist return true if the branch exist
 func BranchExist(remote string) (bool, error) {
-	if branches, err := Branches(); err != nil {
+	branches, err := Branches()
+	if err != nil {
 		return false, err
-	} else {
-		for _, branch := range branches {
-			if branch == remote {
-				return true, nil
-			}
+	}
+
+	for _, branch := range branches {
+		if branch == remote {
+			return true, nil
 		}
 	}
 	return false, nil
 }
 
-func RemoteStatus(remote string) (string, error) {
-	var local_rev, remote_rev, base_rev string
-	if v, err := Get("rev-parse", "@{0}"); err != nil {
-		return "", err
-	} else {
-		local_rev = v
-	}
-	if v, err := Get("rev-parse", remote); err != nil {
-		return "", err
-	} else {
-		remote_rev = v
-	}
-	if v, err := Get("merge-base", "@{0}", remote); err != nil {
-		return "", err
-	} else {
-		base_rev = v
+// RemoteStatus provide a sync status information
+func RemoteStatus(remote string) (_ string, err error) {
+	var localRev, remoteRev, baseRev string
+	localRev, err = Get("rev-parse", "@{0}")
+	if err != nil {
+		return
 	}
 
-	if local_rev == remote_rev {
+	remoteRev, err = Get("rev-parse", remote)
+	if err != nil {
+		return
+	}
+
+	baseRev, err = Get("merge-base", "@{0}", remote)
+	if err != nil {
+		return
+	}
+
+	if localRev == remoteRev {
 		return "=", nil
 	}
-	if local_rev == base_rev {
+	if localRev == baseRev {
 		return "-1", nil
 	}
-	if remote_rev == base_rev {
+	if remoteRev == baseRev {
 		return "+1", nil
 	}
 	return "-1+1", nil
@@ -176,11 +213,12 @@ func RemoteStatus(remote string) (string, error) {
 // RemoteExist return true if remote is defined.
 func RemoteExist(remote string) (found bool) {
 	var remotes []string
-	if v, err := Get("remote"); err != nil {
+	v, err := Get("remote")
+	if err != nil {
 		return
-	} else {
-		remotes = strings.Split(v, "\n")
 	}
+
+	remotes = strings.Split(v, "\n")
 
 	for _, aRemote := range remotes {
 		if aRemote == remote {
@@ -193,14 +231,15 @@ func RemoteExist(remote string) (found bool) {
 // RemoteURL returns the url of the remote requested.
 func RemoteURL(remote string) (string, bool, error) {
 	var remotes []string
-	if v, err := Get("remote", "-v"); err != nil {
+	v, err := Get("remote", "-v")
+	if err != nil {
 		return "", false, err
+	}
+
+	if v == "" {
+		remotes = []string{}
 	} else {
-		if v == "" {
-			remotes = []string{}
-		} else {
-			remotes = strings.Split(v, "\n")
-		}
+		remotes = strings.Split(v, "\n")
 	}
 
 	remMatch, _ := regexp.Compile(`^ *(\w+)[ \t]*(.*) \((fetch)\)$`)
@@ -229,11 +268,12 @@ func EnsureRemoteIs(name, url string) error {
 // GetCurrentBranch return the current branch name.
 // If no branch is detected, it returns "master"
 func GetCurrentBranch() (branch string) {
-	if b, status := GetWithStatusCode("rev-parse", "--abbrev-ref", "HEAD"); status == 128 {
+	b, status := GetWithStatusCode("rev-parse", "--abbrev-ref", "HEAD")
+	if status == 128 {
 		return "master"
-	} else {
-		branch = b
 	}
+
+	branch = b
 	return
 }
 
@@ -249,4 +289,36 @@ func EnsureRepoExist(aPath string) error {
 		return fmt.Errorf("'%s' is not a valid GIT repo (.git is not a directory)", aPath)
 	}
 	return nil
+}
+
+// RunInPath run a function in a specificDirectory and restore the current Path.
+func RunInPath(gitRepoPath string, runIn func() error) error {
+
+	restore, err := moveTo(gitRepoPath)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		UnIndent()
+		os.Chdir(restore)
+	}()
+
+	Indent("---- GIT"+ShowGitPath(), " - ", "--------")
+
+	if err = runIn(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func moveTo(gitPath string) (curDir string, err error) {
+	if v, err := os.Getwd(); err != nil {
+		return "", fmt.Errorf("Unable to get the current directory. %s", err)
+	} else {
+		curDir = v
+	}
+	gotrace.Trace("Moving to %s repo", gitPath)
+	err = os.Chdir(gitPath)
+	return
 }

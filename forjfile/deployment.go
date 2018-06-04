@@ -18,3 +18,8 @@ func (d DeploymentStruct) MarshalYAML() (interface{}, error) {
 func (d *DeploymentStruct)UpdateDeploymentCoreData(data DeploymentCoreStruct) {
 	d.DeploymentCoreStruct = data
 }
+
+// RunInContext run GIT commands in the GIT repo context.
+func (d *DeploymentStruct) RunInContext(doRun func() error) (err error) {
+	return d.DeploymentCoreStruct.runInContext(doRun)
+}

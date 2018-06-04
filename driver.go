@@ -280,10 +280,27 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 				ffd.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
 			}
 
-			if deployName, found := repo_obj.Get(forjfile.FieldRepoDeployName); found {
+			// New repo code which could be created with repo-templates
+			if !Repo.Exist && !repo_obj.IsCurrentDeploy() && !repo_obj.IsInfra() {
+				codeRepoPath := path.Join(a.w.Path(), "git", Name)
+				git.EnsureRepoExist(codeRepoPath)
+				git.RunInPath(codeRepoPath, func() (_ error) {
+					git.EnsureRemoteIs("origin", Repo.Remotes["origin"].Ssh)
+					syncRemoteBranch := "origin" + "/" + "master"
+					git.Do("branch", "--set-upstream-to="+syncRemoteBranch)
+					return
+				})
+			}
+
+			// Current deploy only
+			if deployName, found := repo_obj.Get(forjfile.FieldRepoDeployName); found && repo_obj.IsCurrentDeploy() {
 				deployObj, _ := a.f.GetADeployment(deployName.GetString())
-				deployObj.GitDefineRemote("origin", Repo.Remotes["origin"].Ssh)
-				deployObj.GitSyncFrom("origin", "master")
+
+				deployObj.RunInContext(func() (_ error) {
+					deployObj.GitDefineRemote("origin", Repo.Remotes["origin"].Ssh)
+					deployObj.GitSyncFrom("origin", "master")
+					return
+				})
 			}
 		}
 		if err := a.FlowApply(); err != nil {

@@ -47,15 +47,20 @@ func RunInPath(where string, moveTo func(string) (string, error), runIn func() e
 		return fmt.Errorf("Plugin error: Invalid repository type '%s'. Valid one are: %s and %s. Check with the plugin maintainer", where, goforjj.FilesDeploy, goforjj.FilesSource)
 	}
 
-	if restore, err := moveTo(where); err != nil {
+	restore, err := moveTo(where)
+	if err != nil {
 		return err
-	} else {
-		if err = runIn(); err != nil {
-			return err
-		}
-		if err = os.Chdir(restore); err != nil {
-			return err
-		}
+	} 
+
+	defer func () {
+		git.UnIndent()
+		os.Chdir(restore)
+	}()
+
+	git.Indent("---- GIT" + git.ShowGitPath(), " - ", "--------")
+
+	if err = runIn(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -65,6 +70,9 @@ func (d *Driver) gitAddPluginFiles(where string, files []string) error {
 		return nil
 	}
 	fileToAdd := make([]string, len(files))
+	if len(files) > 0 {
+		git.ShowGitPath()
+	}
 	for iCount, file := range files {
 		if where == goforjj.FilesSource {
 			fileToAdd[iCount] = path.Join("apps", d.DriverType, file)
