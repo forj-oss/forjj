@@ -40,6 +40,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 		object1   = "object1"
 		object2   = "object2"
 		instance1 = "instance1"
+		instance2 = "instance2"
 		key1      = "key1"
 		value1    = "value1"
 		value2    = "value2"
@@ -104,6 +105,35 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 		t.Errorf("Expected s.Objects to have 1 element. Got %d.", l1)
 	} else if _, found := s.Objects[object2]; !found {
 		t.Errorf("Expected s.Objects[%s] to exist. Not found", object1)
+	}
+
+	// Change value context
+	value.Set(value2)
+	// ------------- call the function
+	// Set a new instance, key and value
+	result = s.setObjectValue(object2, instance2, key1, value)
+
+	// -------------- testing
+	if s.Objects == nil {
+		t.Error("Expected s.Objects to be set. Got nil")
+	} else if l1 := len(s.Objects); l1 != 2 {
+		t.Errorf("Expected s.Objects to have 1 element. Got %d.", l1)
+	} else if v1, found := s.Objects[object2]; !found {
+		t.Errorf("Expected s.Objects[%s] to exist. Not found", object1)
+	} else if v2, found := v1[instance2]; !found {
+		t.Errorf("Expected s.Objects[%s][%s] to exist. Not found", object1, instance1)
+	} else if v2 == nil {
+		t.Errorf("Expected s.Objects[%s][%s] to be set. Got nil", object1, instance1)
+	} else if l3 := len(v2); l3 != 1 {
+		t.Errorf("Expected s.Objects to have 1 element. Got %d.", l3)
+	} else if v3, found := v2[key1]; !found {
+		t.Errorf("Expected s.Objects[%s][%s][%s] to exist. Not found", object1, instance1, key1)
+	} else if v3 == nil {
+		t.Errorf("Expected s.Objects[%s][%s][%s] to be set. Got nil", object1, instance1, key1)
+	} else if v4 := v3.GetString(); v4 != value2 {
+		t.Errorf("Expected s.Objects[%s][%s][%s] to be '%s'. Got '%s'", object1, instance1, key1, v4, value2)
+	} else if !result {
+		t.Error("Expected setObjectValue to return true. got false.")
 	}
 }
 
