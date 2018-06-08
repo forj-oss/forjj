@@ -19,9 +19,12 @@ const RepoTag = "<repo>"
 // It supports file or url stored in url.URL structure
 // each urls can be defined with a plugin tag "<plugin>" which will be replaced by the document name(document)
 // the file name and the extension is added at the end of the string.
-func ReadDocumentFrom(urls []*url.URL, repos, subPaths []string, document string) ([]byte, error) {
+func ReadDocumentFrom(urls []*url.URL, repos, subPaths []string, document, contentType string) ([]byte, error) {
 	if urls == nil {
 		return nil, fmt.Errorf("url parameter is nil")
+	}
+	if contentType == "" {
+		contentType = "text/plain"
 	}
 	for _, s := range urls {
 		for i, repo := range repos {
@@ -48,7 +51,7 @@ func ReadDocumentFrom(urls []*url.URL, repos, subPaths []string, document string
 			}
 			fileName = BuildURLPath(urlData, repo, subPaths[i], document)
 			gotrace.Trace("Searching file document from url '%s'", fileName)
-			if found, data, err := readDocumentFromURL(fileName); found {
+			if found, data, err := readDocumentFromURL(fileName, contentType); found {
 				return data, err
 			}
 		}
@@ -65,6 +68,10 @@ func BuildURLPath(aPath, repo, subpath, document string) (fullFileName string) {
 	}
 	// path.Join is not usable on a url as it replaces // by /
 	fullFileName = aPath + "/" + path.Join(subpath, document)
+	if document[len(document)-1] == '/' {
+		fullFileName += "/"
+	}
+
 	return
 }
 
@@ -84,7 +91,7 @@ func readDocumentFromFS(source string) (found bool, data []byte, err error) {
 }
 
 // readDocumentFromUrl Read from the URL string. Data is returned is content type is of text/plain
-func readDocumentFromURL(source string) (found bool, yamlData []byte, err error) {
+func readDocumentFromURL(source, contentType string) (found bool, yamlData []byte, err error) {
 	var resp *http.Response
 	if resp, err = http.Get(source); err != nil {
 		err = fmt.Errorf("Unable to read '%s'. %s", source, err)
@@ -97,7 +104,7 @@ func readDocumentFromURL(source string) (found bool, yamlData []byte, err error)
 	if d, err = ioutil.ReadAll(resp.Body); err != nil {
 		return
 	}
-	if strings.Contains(http.DetectContentType(d), "text/plain") {
+	if strings.Contains(http.DetectContentType(d), contentType) {
 		yamlData = d
 		gotrace.Trace("Loaded file definition at '%s'", source)
 	}

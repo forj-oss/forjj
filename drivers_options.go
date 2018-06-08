@@ -81,7 +81,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 			"master": func(_ *goforjj.YamlPlugin) (yaml_data []byte, err error) {
 				repos := []string{"forjj-" + driver.Name, driver.Name, "forjj-contribs"}
 				reposSubPaths := []string{"", "", path.Join(driver.DriverType, driver.Name)}
-				yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, repos, reposSubPaths, driver.Name+".yaml")
+				yaml_data, err = utils.ReadDocumentFrom(a.ContribRepoURIs, repos, reposSubPaths, driver.Name+".yaml", "")
 
 				return
 			},
@@ -99,7 +99,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 					srcUri.Path = path.Join(srcUri.Path, relPath)
 				}
 
-				yaml_data, _ = utils.ReadDocumentFrom([]*url.URL{srcUri}, []string{""}, []string{""}, "plugin-extent.yaml")
+				yaml_data, _ = utils.ReadDocumentFrom([]*url.URL{srcUri}, []string{""}, []string{""}, "plugin-extent.yaml", "")
 
 				return
 			},
