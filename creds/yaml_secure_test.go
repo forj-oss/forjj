@@ -1,6 +1,7 @@
 package creds
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/forj-oss/goforjj"
@@ -145,8 +146,10 @@ func Test_YamlSecure_get(t *testing.T) {
 	const (
 		object1   = "object1"
 		object2   = "object2"
+		object3   = "object3"
 		instance1 = "instance1"
 		key1      = "key1"
+		key2      = "key2"
 		value1    = "value1"
 		value2    = "value2"
 	)
@@ -197,6 +200,101 @@ func Test_YamlSecure_get(t *testing.T) {
 	// -------------- testing
 	if result.Equal(value) {
 		t.Error("Expected result to NOT be equal to original value. got true.")
+	}
+
+	yamlData := `---
+`
+
+	const (
+		appObj = "app"
+		appIns = "jenkins"
+		appKey = "aws-iam-arn-slave"
+	)
+
+	yamlData = `---
+objects:
+`
+	// update context
+	r := strings.NewReader(yamlData)
+	err := s.iLoad(r)
+
+	if err != nil {
+		t.Errorf("Context error: %s", err)
+		return
+	}
+	// ------------- call the function
+	result, found = s.get(appObj, appIns, appKey)
+
+	if found {
+		t.Errorf("Expect to not found any values. Got one.")
+	} else if result != nil {
+		t.Errorf("Expect to not return any values. Got one.")
+	}
+
+	yamlData = `---
+objects:
+  app:
+`
+	// update context
+	r = strings.NewReader(yamlData)
+	err = s.iLoad(r)
+
+	if err != nil {
+		t.Errorf("Context error: %s", err)
+		return
+	}
+	// ------------- call the function
+	result, found = s.get(appObj, appIns, appKey)
+
+	if found {
+		t.Errorf("Expect to not found any values. Got one.")
+	} else if result != nil {
+		t.Errorf("Expect to not return any values. Got one.")
+	}
+
+	yamlData = `---
+objects:
+  app:
+    jenkins:
+`
+	// update context
+	r = strings.NewReader(yamlData)
+	err = s.iLoad(r)
+
+	if err != nil {
+		t.Errorf("Context error: %s", err)
+		return
+	}
+	// ------------- call the function
+	result, found = s.get(appObj, appIns, appKey)
+
+	if found {
+		t.Errorf("Expect to not found any values. Got one.")
+	} else if result != nil {
+		t.Errorf("Expect to not return any values. Got one.")
+	}
+
+	yamlData = `---
+objects:
+  app:
+    jenkins:
+      aws-iam-arn-slave:
+`
+	// update context
+	r = strings.NewReader(yamlData)
+	err = s.iLoad(r)
+
+	if err != nil {
+		t.Errorf("Context error: %s", err)
+		return
+	}
+	// ------------- call the function
+	result, found = s.get(appObj, appIns, appKey)
+
+	if found {
+		t.Errorf("Expect to not found any values. Got one.")
+	} else if result != nil {
+		t.Errorf("Expect to not return any values. Got one.")
 	}
 
 }

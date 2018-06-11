@@ -1,8 +1,10 @@
 package creds
 
 import (
-	"fmt"
+	"bufio"
+	"io"
 	"io/ioutil"
+	"os"
 
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
@@ -26,16 +28,22 @@ func (d *yamlSecure) isLoaded() bool {
 }
 
 func (d *yamlSecure) load() error {
-	yamlData, err := ioutil.ReadFile(d.file)
+	fd, err := os.Open(d.file)
 	if err != nil {
-		return fmt.Errorf("Unable to read '%s'. %s", d.file, err)
+		return err
 	}
 
-	if err := yaml.Unmarshal(yamlData, d); err != nil {
-		return fmt.Errorf("Unable to load credentials. %s", err)
-	}
+	defer fd.Close()
+
+	d.iLoad(bufio.NewReader(fd))
+
 	gotrace.Trace("Credential file '%s' has been loaded.", d.file)
 	return nil
+}
+
+func (d *yamlSecure) iLoad(r io.Reader) error {
+	decoder := yaml.NewDecoder(r)
+	return decoder.Decode(d)
 }
 
 func (d *yamlSecure) save() error {
@@ -113,7 +121,7 @@ func (d *yamlSecure) getString(obj_name, instance_name, key_name string) (string
 func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *goforjj.ValueStruct, found bool) {
 	if i, isFound := d.Objects[obj_name]; isFound {
 		if k, isFound := i[instance_name]; isFound {
-			if v, isFound := k[key_name]; isFound {
+			if v, isFound := k[key_name]; isFound && v != nil {
 				ret = new(goforjj.ValueStruct)
 				*ret = *v
 				found = true
