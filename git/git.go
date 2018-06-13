@@ -19,18 +19,32 @@ type gitContext struct {
 }
 
 var context gitContext
+var logFunc func(string)
+
+func init() {
+	logFunc = logOut
+}
+
+func logOut(text string) {
+	log.Print(text)
+}
+
+// Define the internal Log system. By default it uses log.Print
+func SetLogFunc(aLogFunc func(string)) {
+	logFunc = aLogFunc
+}
 
 // Do Call git command with arguments. All print out displayed. It returns git Return code.
 func Do(opts ...string) int {
 	colorCyan, colorReset := utils.DefColor(36)
-	log.Printf("%s%sgit %s%s\n", colorCyan, context.indent, strings.Join(opts, " "), colorReset)
+	logFunc(fmt.Sprintf("%s%sgit %s%s\n", colorCyan, context.indent, strings.Join(opts, " "), colorReset))
 	return utils.RunCmd("git", opts...)
 }
 
 // Indent permit to display several command indented within a section tag.
 func Indent(begin, indent, end string) {
 	colorCyan, colorReset := utils.DefColor(36)
-	log.Printf("%s%s%s\n", colorCyan, begin, colorReset)
+	logFunc(fmt.Sprintf("%s%s%s\n", colorCyan, begin, colorReset))
 	context.end = end
 	context.indent = indent
 }
@@ -38,7 +52,7 @@ func Indent(begin, indent, end string) {
 // UnIndent revert Indent.
 func UnIndent() {
 	colorCyan, colorReset := utils.DefColor(36)
-	log.Printf("%s%s%s\n", colorCyan, context.end, colorReset)
+	logFunc(fmt.Sprintf("%s%s%s\n", colorCyan, context.end, colorReset))
 }
 
 // ShowGitPath display the current GI path
@@ -94,7 +108,7 @@ func Get(opts ...string) (string, error) {
 // GetWithStatusCode Call a git command and get the output as string output.
 func GetWithStatusCode(opts ...string) (string, int) {
 	colorCyan, colorReset := utils.DefColor(36)
-	log.Printf("%s%sgit %s%s\n", colorCyan, context.indent, strings.Join(opts, " "), colorReset)
+	logFunc(fmt.Sprintf("%s%sgit %s%s\n", colorCyan, context.indent, strings.Join(opts, " "), colorReset))
 	return utils.RunCmdOutput("git", opts...)
 }
 
