@@ -68,6 +68,9 @@ func (r RepoModel) IsCurrentDeploy() bool {
 
 // IsDeployable return true if the repository identified is deployable in the current deployment context
 func (r RepoModel) IsDeployable() bool {
+	if r.repo.forge == nil {
+		return false
+	}
 	if r.repo.forge.ForjCore.deployTo == "" {
 		return false // We are not in a deployable context (no merge done between master and deployment Forjfiles)
 	}
