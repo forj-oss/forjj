@@ -187,6 +187,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 
 	d.Plugin.PluginSetSource(path.Join(a.i.Path(), "apps", d.DriverType))
 	d.Plugin.PluginSetDeployment(a.d.GetReposPath())
+	d.Plugin.PluginSetDeploymentName(a.d.Name())
 	d.Plugin.PluginSetVersion(d.DriverVersion)
 	d.Plugin.PluginSetWorkspace(a.w.Path())
 	d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
