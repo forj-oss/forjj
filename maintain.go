@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"forjj/creds"
 	"forjj/git"
+	"os"
 
 	"github.com/forj-oss/forjj-modules/trace"
 )
@@ -130,14 +131,45 @@ func (a *Forj) doInstanceMaintain(instance string) error {
 
 		// after the first upstream maintain call remote repo should exist
 		// So, we can sync it up if the sync was not done successfully before.
-		if !a.d.InSync() {
-			if err := a.d.GitSyncUp(); err != nil {
-				return err
+
+		if err := a.d.RunInContext(func() error {
+			if !a.d.InSync() {
+				if err := a.d.GitSyncUp(); err != nil {
+					return err
+				}
+
+				// Create basic README.md file on deploy repos if no commit found
+				if _, err := git.Get("log", "-1", "--pretty=%H"); err != nil {
+					a.createInitialCommit()
+					git.Add([]string{"README.md"})
+					if err := git.Commit("Initial Source Deploy commit.", true); err != nil {
+						return err
+					}
+				}
+
+				return a.d.GitPush(false)
 			}
-			return a.d.GitPush(false)
+			return nil
+		}); err != nil {
+			return err
 		}
 	}
 
+	return nil
+}
+
+// Must be in the current repo dir
+func (a *Forj) createInitialCommit() error {
+	fd, err := os.Create("README.md")
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+
+	_, err = fd.WriteString("# Information\n\nThis repository (source Deployment repository) has been created by forjj. \n\nUse forjj update to update it from your infra source repository.\n\nForj team.\n")
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
