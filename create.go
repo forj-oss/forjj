@@ -100,6 +100,11 @@ func (a *Forj) Create() error {
 		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
 	}
 
+	// Set plugin defaults for objects defined by plugins loaded.
+	if err := a.scanAndSetDefaults(a.f.DeployForjfile(), creds.Global); err != nil {
+		return fmt.Errorf("Unable to update. Global dispatch issue. %s", err)
+	}
+
 	// Identify deployment repositories from main Forjfile
 	if err := a.DefineDeployRepositories(a.f.DeployForjfile(), false); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
