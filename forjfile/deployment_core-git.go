@@ -34,7 +34,7 @@ func (d *DeploymentCoreStruct) GitSetRepo(aPath, origin string) (err error) {
 
 // GitDefineRemote helps to configure a deployment repository with a remote
 func (d *DeploymentCoreStruct) GitDefineRemote(name, uri string) (err error) {
-	return d.runInContext(func() (err error) {
+	return d.RunInContext(func() (err error) {
 		if err = git.EnsureRemoteIs(name, uri); err != nil {
 			return
 		}
@@ -44,7 +44,7 @@ func (d *DeploymentCoreStruct) GitDefineRemote(name, uri string) (err error) {
 
 // GitSyncFrom refresh the remote, and synchronize.
 func (d *DeploymentCoreStruct) GitSyncFrom(remote, branch string) error {
-	return d.runInContext(func() (_ error) {
+	return d.RunInContext(func() (_ error) {
 		if !git.RemoteExist(remote) {
 			return
 		}
@@ -57,7 +57,7 @@ func (d *DeploymentCoreStruct) GitSyncFrom(remote, branch string) error {
 
 // GitSyncUp set and report sync status
 func (d *DeploymentCoreStruct) GitSyncUp() error {
-	return d.runInContext(func() (_ error) {
+	return d.RunInContext(func() (_ error) {
 		if d.syncStatus == 0 {
 			return fmt.Errorf("Internal error! Unable to sync up. The synchronization was not initiliazed. You must call GitSyncFrom, Once")
 		}
@@ -81,7 +81,7 @@ func (d *DeploymentCoreStruct) GitSyncUp() error {
 // !!! Conflict can happen !!!
 //
 func (d *DeploymentCoreStruct) SwitchTo(branch string) error {
-	return d.runInContext(func() (err error) {
+	return d.RunInContext(func() (err error) {
 		if git.GetCurrentBranch() != branch {
 
 			trackedFiles := git.GetStatus().CountTracked()
@@ -106,7 +106,7 @@ func (d *DeploymentCoreStruct) SwitchTo(branch string) error {
 
 // GitCommit do the commit in the Deployment repository.
 func (d *DeploymentCoreStruct) GitCommit(message string) (_ error) {
-	return d.runInContext(func() (err error) {
+	return d.RunInContext(func() (err error) {
 		status := git.GetStatus()
 		if status.Ready.CountFiles() > 0 {
 			git.Commit(message, true)
@@ -118,7 +118,7 @@ func (d *DeploymentCoreStruct) GitCommit(message string) (_ error) {
 // GitPush do a git push
 // depending on the previous Git SyncFrom, a push can take place
 func (d *DeploymentCoreStruct) GitPush(force bool) (_ error) {
-	return d.runInContext(func() (err error) {
+	return d.RunInContext(func() (err error) {
 		if d.syncStatus == -2 {
 			return fmt.Errorf("Unable to push to an inexistent remote")
 		}
@@ -146,7 +146,7 @@ func (d *DeploymentCoreStruct) GitPush(force bool) (_ error) {
 // GitResetBranchFromRemote clean current branch, check out to the requested branch and reset against remote branch.
 // The reset is not made if the fetch return an error.
 func (d *DeploymentCoreStruct) GitResetBranchFromRemote(branch, remote string) {
-	d.runInContext(func() (_ error) {
+	d.RunInContext(func() (_ error) {
 		git.Do("reset", "--hard", "HEAD")
 		git.Do("checkout", branch)
 		if git.Do("fetch", remote) == 0 {
@@ -159,7 +159,7 @@ func (d *DeploymentCoreStruct) GitResetBranchFromRemote(branch, remote string) {
 // ------------------ Internal functions
 
 // runInContext ensure GIT commands are executed in the right GIT repo context.
-func (d *DeploymentCoreStruct) runInContext(doRun func() error) (err error) {
+func (d *DeploymentCoreStruct) RunInContext(doRun func() error) (err error) {
 	if d.savedPath != "" {
 		return doRun()
 	}
