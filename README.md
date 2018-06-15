@@ -35,6 +35,7 @@ Really? I can create a DevOps organization on my workstation??? Yes.
 ## Requirement:
 
 - A linux 64 bits system with docker 1.9 or higher. It can be a VM.
+- docker configure with docker.sock (tcp is not supported). It support socket accessible via group or sudo (DOCKER_SUDO=sudo).
 - A static docker binary. You can get it from https://get.docker.com
 - wget & git 1.9 or higher installed
 - Internet access (through proxy or not)
