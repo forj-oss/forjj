@@ -32,6 +32,11 @@ func (a *Forj) Update() error {
 		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry", err)
 	}
 
+	// Set plugin defaults for objects defined by plugins loaded.
+	if err := a.scanAndSetDefaults(a.f.DeployForjfile(), creds.Global); err != nil {
+		return fmt.Errorf("Unable to update. Global dispatch issue. %s", err)
+	}
+
 	// Build in memory representation from source files loaded.
 	if err := a.f.BuildForjfileInMem(); err != nil {
 		return err
@@ -59,6 +64,7 @@ func (a *Forj) Update() error {
 
 	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
 
+	
 	// Apply the flow to the inMemForjfile
 	if err := a.FlowApply(); err != nil {
 		return fmt.Errorf("Unable to apply flows. %s", err)
