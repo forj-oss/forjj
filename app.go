@@ -432,7 +432,7 @@ func (a *Forj) init() {
 // LoadInternalData()
 func (a *Forj) LoadInternalData() {
 	a.InternalForjData = make(map[string]string)
-	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount", "deploy-mount", "username"}
+	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount", "deploy-mount", "username", "secrets"}
 	for _, param := range ldata {
 		a.InternalForjData[param] = a.getInternalData(param)
 	}
@@ -485,6 +485,9 @@ func (a *Forj) getInternalData(param string) (result string) {
 		}
 	case "username": // username running forjj command.
 		result = os.Getenv("LOGNAME")
+	case "secrets": // all secrets that forjj has global and for current deployment. The text is encrypted.
+		// TODO: get encrypted data
+		result = "" 
 	}
 	gotrace.Trace("'%s' requested. Value returned '%s'", param, result)
 	return

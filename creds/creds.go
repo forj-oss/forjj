@@ -18,7 +18,7 @@ type Secure struct {
 	defaultPath string
 	curEnv      string
 	updated     bool
-	envs        map[string]yamlSecure
+	secrets     Secrets
 }
 
 // DefaultCredsFile is the default credential file name, without environment information.
@@ -30,7 +30,7 @@ const (
 // Upgrade detects a need to upgrade current credentials data to new version
 func (d *Secure) Upgrade(v0Func func(*Secure, string) error) (_ error) {
 	if d == nil {
-		return fmt.Errorf("Unable to upgrade. nil object.")
+		return fmt.Errorf("Unable to upgrade. nil object")
 	}
 	if d.defaultPath == "" {
 		return fmt.Errorf("Internal error! creds.InitEnvDefaults not called with correct filename")
@@ -48,7 +48,7 @@ func (d *Secure) IsLoaded(env string) (_ bool) {
 		return
 	}
 
-	if v, found := d.envs[env]; found {
+	if v, found := d.secrets.Envs[env]; found {
 		return v.isLoaded()
 	}
 	return
@@ -62,7 +62,7 @@ func (d *Secure) Version(env string) (_ string) {
 		return
 	}
 
-	if v, found := d.envs[env]; found && v.isLoaded() {
+	if v, found := d.secrets.Envs[env]; found && v.isLoaded() {
 		if v.Version == "" {
 			return "V0"
 		}
@@ -73,7 +73,10 @@ func (d *Secure) Version(env string) (_ string) {
 
 // DirName Return the directory name owning the security file
 func (d *Secure) DirName(env string) (_ string) {
-	if v, found := d.envs[env]; found {
+	if d == nil {
+		return
+	}
+	if v, found := d.secrets.Envs[env]; found {
 		return v.file_path
 	}
 	return
@@ -81,8 +84,11 @@ func (d *Secure) DirName(env string) (_ string) {
 
 // Load security files (global + deployment one)
 func (d *Secure) Load() error {
+	if d == nil {
+		return fmt.Errorf("Secure object is nil")
+	}
 	inError := false
-	for key, env := range d.envs {
+	for key, env := range d.secrets.Envs {
 		if _, err := os.Stat(env.file); err != nil {
 			gotrace.Trace(" '%s'. %s. Ignored", env.file, err)
 			continue
@@ -91,7 +97,7 @@ func (d *Secure) Load() error {
 			gotrace.Error("%s", err)
 			inError = true
 		}
-		d.envs[key] = env
+		d.secrets.Envs[key] = env
 	}
 	if inError {
 		return fmt.Errorf("Issues detected while loading credential files")
@@ -101,8 +107,11 @@ func (d *Secure) Load() error {
 
 // Save security files (global + deployment one)
 func (d *Secure) Save() error {
+	if d == nil {
+		return fmt.Errorf("Secure object is nil.")
+	}
 	inError := false
-	for _, env := range d.envs {
+	for _, env := range d.secrets.Envs {
 		if err := env.save(); err != nil {
 			gotrace.Error("%s", err)
 			inError = true
@@ -117,8 +126,11 @@ func (d *Secure) Save() error {
 // InitEnvDefaults initialize the internal cred module with file path.
 // the file is prefixed by the deployment environment name.
 func (d *Secure) InitEnvDefaults(aPath, env string) {
+	if d == nil {
+		return
+	}
 	d.defaultPath = aPath
-	d.envs = make(map[string]yamlSecure)
+	d.secrets.Envs = make(map[string]yamlSecure)
 	for _, curEnv := range []string{Global, env} {
 		d.SetDefaultFile(curEnv)
 	}
@@ -127,6 +139,9 @@ func (d *Secure) InitEnvDefaults(aPath, env string) {
 
 // DefineDefaultCredFileName define the internal credential path file for a specific environment.
 func (d *Secure) DefineDefaultCredFileName(aPath, env string) string {
+	if d == nil {
+		return ""
+	}
 	if env == Global {
 		return path.Join(aPath, DefaultCredsFile)
 	}
@@ -135,7 +150,7 @@ func (d *Secure) DefineDefaultCredFileName(aPath, env string) string {
 
 // SetDefaultFile
 func (d *Secure) SetDefaultFile(env string) {
-	if d == nil || d.envs == nil {
+	if d == nil || d.secrets.Envs == nil {
 		return
 	}
 	data := yamlSecure{
@@ -143,14 +158,14 @@ func (d *Secure) SetDefaultFile(env string) {
 		file:      path.Clean(d.DefineDefaultCredFileName(d.defaultPath, env)),
 		file_path: d.defaultPath,
 	}
-	d.envs[env] = data
+	d.secrets.Envs[env] = data
 	return
 }
 
 // SetFile load a single file for the env given.
 // if env is 'global', so data is considered as valid for all environment.
 func (d *Secure) SetFile(filePath, env string) {
-	if d == nil || d.envs == nil {
+	if d == nil || d.secrets.Envs == nil {
 		return
 	}
 	data := yamlSecure{
@@ -158,14 +173,17 @@ func (d *Secure) SetFile(filePath, env string) {
 		file:      path.Clean(filePath),
 		file_path: path.Dir(filePath),
 	}
-	d.envs[env] = data
+	d.secrets.Envs[env] = data
 }
 
 // SetForjValue set a value in Forj section.
 func (d *Secure) SetForjValue(env, key, value string) (_ bool, _ error) {
-	if v, found := d.envs[env]; found {
+	if d == nil {
+		return
+	}
+	if v, found := d.secrets.Envs[env]; found {
 		if v.SetForjValue(key, value) {
-			d.envs[env] = v
+			d.secrets.Envs[env] = v
 			d.updated = true
 		}
 		return d.updated, nil
@@ -175,7 +193,10 @@ func (d *Secure) SetForjValue(env, key, value string) (_ bool, _ error) {
 
 // SetForjValue set a value in Forj section.
 func (d *Secure) GetForjValue(env, key string) (_ string, _ bool) {
-	if v, found := d.envs[env]; found {
+	if d == nil {
+		return
+	}
+	if v, found := d.secrets.Envs[env]; found {
 		return v.GetForjValue(key)
 	}
 	return
@@ -183,10 +204,13 @@ func (d *Secure) GetForjValue(env, key string) (_ string, _ bool) {
 
 // SetObjectValue set object value
 func (d *Secure) SetObjectValue(env, obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (_ bool) {
-	if v, found := d.envs[env]; found {
+	if d == nil {
+		return
+	}
+	if v, found := d.secrets.Envs[env]; found {
 		if v.setObjectValue(obj_name, instance_name, key_name, value) {
 			d.updated = true
-			d.envs[env] = v
+			d.secrets.Envs[env] = v
 			return true
 		}
 	}
@@ -195,8 +219,11 @@ func (d *Secure) SetObjectValue(env, obj_name, instance_name, key_name string, v
 
 // GetString return a string representation of the value.
 func (d *Secure) GetString(objName, instanceName, keyName string) (value string, found bool) {
+	if d == nil {
+		return
+	}
 	for _, env := range []string{d.curEnv, Global} {
-		if v, isFound := d.envs[env]; isFound {
+		if v, isFound := d.secrets.Envs[env]; isFound {
 			if value, found = v.getString(objName, instanceName, keyName); found {
 				return
 			}
@@ -207,8 +234,11 @@ func (d *Secure) GetString(objName, instanceName, keyName string) (value string,
 
 // Get value of the object instance key...
 func (d *Secure) Get(objName, instanceName, keyName string) (value *goforjj.ValueStruct, found bool) {
+	if d == nil {
+		return
+	}
 	for _, env := range []string{d.curEnv, Global} {
-		if v, isFound := d.envs[env]; isFound {
+		if v, isFound := d.secrets.Envs[env]; isFound {
 			if value, found = v.get(objName, instanceName, keyName); found {
 				return
 			}
@@ -219,9 +249,12 @@ func (d *Secure) Get(objName, instanceName, keyName string) (value *goforjj.Valu
 
 // GetObjectInstance return the instance data
 func (d *Secure) GetObjectInstance(objName, instanceName string) (values map[string]*goforjj.ValueStruct) {
-	if v, found := d.envs[Global]; found {
+	if d == nil {
+		return
+	}
+	if v, found := d.secrets.Envs[Global]; found {
 		values = v.getObjectInstance(objName, instanceName)
-		if v, found = d.envs[d.curEnv]; found {
+		if v, found = d.secrets.Envs[d.curEnv]; found {
 			if values == nil {
 				return v.getObjectInstance(objName, instanceName)
 			}
@@ -230,5 +263,15 @@ func (d *Secure) GetObjectInstance(objName, instanceName string) (values map[str
 			}
 		}
 	}
+	return
+}
+
+func (d *Secure) GetSecrets(env string) (result *Secrets) {
+	if d == nil {
+		return
+	}
+	result = NewSecrets()
+	result.Envs[Global] = d.secrets.Envs[Global]
+	result.Envs[env] = d.secrets.Envs[env]
 	return
 }
