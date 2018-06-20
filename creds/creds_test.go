@@ -17,21 +17,21 @@ func TestInitEnvDefaults(t *testing.T) {
 	)
 
 	// Run the function
-	t.Log("Running d.InitEnvDefault('%s', '%s')", myPath, prod)
+	t.Logf("Running d.InitEnvDefault('%s', '%s')", myPath, prod)
 	d.InitEnvDefaults(myPath, prod)
 
 	// Test the result
 	if v := d.defaultPath; v != myPath {
 		t.Errorf("Expected %s to have '%s'. Got '%s'", "defaultPath", prod, v)
 	}
-	if d.envs == nil {
-		t.Errorf("Expected %s to be set. Got nil", "envs")
-	} else if n := len(d.envs); n != 2 {
-		t.Errorf("Expected %s to have '%d' elements. Got '%d'", "envs", 2, n)
-	} else if _, found := d.envs[Global]; !found {
-		t.Errorf("Expected %s to have '%s' elements. Not found.", "envs", Global)
-	} else if _, found := d.envs[prod]; !found {
-		t.Errorf("Expected %s to have '%s' elements. Not found.", "envs", prod)
+	if d.secrets.Envs == nil {
+		t.Errorf("Expected %s to be set. Got nil", "secrets.Envs")
+	} else if n := len(d.secrets.Envs); n != 2 {
+		t.Errorf("Expected %s to have '%d' elements. Got '%d'", "secrets.Envs", 2, n)
+	} else if _, found := d.secrets.Envs[Global]; !found {
+		t.Errorf("Expected %s to have '%s' elements. Not found.", "secrets.Envs", Global)
+	} else if _, found := d.secrets.Envs[prod]; !found {
+		t.Errorf("Expected %s to have '%s' elements. Not found.", "secrets.Envs", prod)
 	}
 }
 
@@ -49,8 +49,8 @@ func TestSetDefaultFile(t *testing.T) {
 	d.SetDefaultFile(prod)
 
 	// Test the result
-	if d.envs != nil {
-		t.Errorf("Expected %s to be unset. Got it set.", "envs")
+	if d.secrets.Envs != nil {
+		t.Errorf("Expected %s to be unset. Got it set.", "secrets.Envs")
 	}
 
 	// Define the environment
@@ -60,15 +60,15 @@ func TestSetDefaultFile(t *testing.T) {
 	d.SetDefaultFile(prod)
 
 	// Test the result
-	if d.envs != nil {
-		if v, found := d.envs[Global]; found {
+	if d.secrets.Envs != nil {
+		if v, found := d.secrets.Envs[Global]; found {
 			if ref := d.DefineDefaultCredFileName(myPath, Global); v.file != ref {
-				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "envs[global]", ref, v.file)
+				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "secrets.Envs[global]", ref, v.file)
 			}
 		}
-		if v, found := d.envs[prod]; found {
+		if v, found := d.secrets.Envs[prod]; found {
 			if ref := d.DefineDefaultCredFileName(myPath, prod); v.file != ref {
-				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "envs[prod]", ref, v.file)
+				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "secrets.Envs[prod]", ref, v.file)
 			}
 		}
 	}
@@ -88,8 +88,8 @@ func TestSetFile(t *testing.T) {
 	d.SetFile(path.Join(myPath, myFile), prod)
 
 	// Test the result
-	if d.envs != nil {
-		t.Errorf("Expected %s to be unset. Got it set.", "envs")
+	if d.secrets.Envs != nil {
+		t.Errorf("Expected %s to be unset. Got it set.", "secrets.Envs")
 	}
 
 	// Define the environment
@@ -99,15 +99,15 @@ func TestSetFile(t *testing.T) {
 	d.SetFile(path.Join(myPath, myFile), prod)
 
 	// Test the result
-	if d.envs != nil {
-		if v, found := d.envs[Global]; found {
+	if d.secrets.Envs != nil {
+		if v, found := d.secrets.Envs[Global]; found {
 			if ref := d.DefineDefaultCredFileName(myPath, Global); v.file != ref {
-				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "envs[global]", ref, v.file)
+				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "secrets.Envs[global]", ref, v.file)
 			}
 		}
-		if v, found := d.envs[prod]; found {
+		if v, found := d.secrets.Envs[prod]; found {
 			if ref := path.Join(myPath, myFile); v.file != ref {
-				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "envs[prod]", ref, v.file)
+				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "secrets.Envs[prod]", ref, v.file)
 			}
 		}
 	}
