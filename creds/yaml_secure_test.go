@@ -24,7 +24,7 @@ func Test_YamlSecure_SetForjValue(t *testing.T) {
 	if s.Forj == nil {
 		t.Error("Expected s.Forj to be set. Got nil")
 	} else if l := len(s.Forj); l != 1 {
-		t.Error("Expected s.Forj to have 1 element. Got %d.", l)
+		t.Errorf("Expected s.Forj to have 1 element. Got %d.", l)
 	} else if v, found := s.Forj[key1]; !found {
 		t.Errorf("Expected s.Forj[%s] to exist. Not found", key1)
 	} else if v != value1 {

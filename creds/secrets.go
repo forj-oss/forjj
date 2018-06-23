@@ -1,23 +1,24 @@
 package creds
 
 import (
-	"errors"
-	"gopkg.in/yaml.v2"
-	"io"
-	"crypto/cipher"
 	"crypto/aes"
-	"io/ioutil"
-	"fmt"
-	"os"
-	"encoding/base64"
+	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+
+	"gopkg.in/yaml.v2"
 )
 
 // Secrets is internal secret structured shared with ci to run forjj jobs
-type Secrets struct{
-	key         []byte
-	key64       string
-	Envs        map[string]yamlSecure `yaml:";inline"`
+type Secrets struct {
+	key   []byte
+	key64 string
+	Envs  map[string]yamlSecure `yaml:";inline"`
 }
 
 const KeySize = 32
@@ -30,12 +31,12 @@ func NewSecrets() (ret *Secrets) {
 }
 
 // GenerateKey help to create a random key for the encryption
-func (s *Secrets)GenerateKey() error {
+func (s *Secrets) GenerateKey() error {
 	if s == nil {
 		return fmt.Errorf("Secret object is nil")
 	}
 	key := make([]byte, KeySize)
-	if _, err := rand.Read(key) ; err != nil {
+	if _, err := rand.Read(key); err != nil {
 		return err
 	}
 	s.key = key
@@ -44,8 +45,20 @@ func (s *Secrets)GenerateKey() error {
 	return nil
 }
 
+func (s *Secrets) SetKey64(key64 string) (err error) {
+	s.key64 = string(key64)
+	s.key, err = base64.StdEncoding.DecodeString(s.key64)
+	if err != nil {
+		return err
+	}
+	if v := len(s.key); v != KeySize {
+		return fmt.Errorf("Invalid key. Size incorrect. must be %d. Got %d", KeySize, v)
+	}
+	return nil
+}
+
 // SaveKey save the key in a file
-func (s *Secrets)SaveKey(file string) (error) {
+func (s *Secrets) SaveKey(file string) error {
 	if s == nil {
 		return fmt.Errorf("Secret object is nil")
 	}
@@ -64,7 +77,7 @@ func (s *Secrets)SaveKey(file string) (error) {
 }
 
 // ReadKey read a file containing the key
-func (s *Secrets)ReadKey(file string) (error) {
+func (s *Secrets) ReadKey(file string) error {
 	if s == nil {
 		return fmt.Errorf("Secret object is nil")
 	}
@@ -79,19 +92,11 @@ func (s *Secrets)ReadKey(file string) (error) {
 	if err != nil {
 		return err
 	}
-	s.key64 = string(key64)
-	s.key, err = base64.StdEncoding.DecodeString(s.key64)
-	if err != nil {
-		return err
-	}
-	if v := len(s.key) ; v != KeySize {
-		return fmt.Errorf("Invalid key. Size incorrect. must be %d. Got %d", KeySize, v)
-	}
-	return nil
+	return s.SetKey64(string(key64))
 }
 
 // Key64 return the base64 of the internal key
-func (s *Secrets)Key64() string {
+func (s *Secrets) Key64() string {
 	if s == nil {
 		return ""
 	}
@@ -108,24 +113,24 @@ func (s *Secrets) Export() ([]byte, error) {
 	}
 
 	c, err := aes.NewCipher(s.key)
-    if err != nil {
-        return nil, err
-    }
-
-    gcm, err := cipher.NewGCM(c)
-    if err != nil {
-        return nil, err
-    }
-
-    nonce := make([]byte, gcm.NonceSize())
-    if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-        return nil, err
+	if err != nil {
+		return nil, err
 	}
-	
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+
 	var secretData []byte
 	secretData, err = yaml.Marshal(s)
 
-    return gcm.Seal(nonce, nonce, secretData, nil), nil
+	return gcm.Seal(nonce, nonce, secretData, nil), nil
 }
 
 // Import read an encrypted data, decrypt it and save it in Secrets
@@ -138,27 +143,27 @@ func (s *Secrets) Import(ciphertext []byte) error {
 	}
 
 	c, err := aes.NewCipher(s.key)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    gcm, err := cipher.NewGCM(c)
-    if err != nil {
-        return err
-    }
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return err
+	}
 
-    nonceSize := gcm.NonceSize()
-    if len(ciphertext) < nonceSize {
-        return errors.New("ciphertext too short")
-    }
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return errors.New("ciphertext too short")
+	}
 
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 
 	var secretData []byte
 	secretData, err = gcm.Open(nil, nonce, ciphertext, nil)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
 	return yaml.Unmarshal(secretData, s)
 }
