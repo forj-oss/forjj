@@ -53,6 +53,9 @@ type Forj struct {
 
 	secrets secrets
 
+	contextAction string // Context action defined in ParseContext.
+	// Can be create/update or maintain. But it can be any others, like secrets...
+
 	CurrentPluginDriver *drivers.Driver // Driver executing
 	InfraPluginDriver   *drivers.Driver // Driver used by upstream
 
@@ -427,6 +430,13 @@ func (a *Forj) init() {
 	a.AddMap(infra_name_f, infra, "", infra_name_f, infra, "", "name")
 	a.AddMap(infra_upstream_f, infra, "", infra_upstream_f, infra, "", "apps:upstream")
 	a.AddMap(infra_path_f, workspace, "", infra_path_f, workspace, "", infra_path_f)
+	a.AddMapFunc("secrets", infra_path_f, a.secrets.GetStringValue)
+	a.AddMap("contribs-repo", workspace, "", "contribs-repo", "", "", "contrib-repo-path")
+	a.AddMapFunc("secrets", "contribs-repo", a.secrets.GetStringValue)
+	a.AddMap("flows-repo", workspace, "", "flows-repo", "", "", "flow-repo-path")
+	a.AddMapFunc("secrets", "flows-repo", a.secrets.GetStringValue)
+	a.AddMap("repotemplates-repo", workspace, "", "repotemplates-repo", "", "", "repotemplate-repo-path")
+	a.AddMapFunc("secrets", "repotemplates-repo", a.secrets.GetStringValue)
 	// TODO: Add git-remote cli mapping
 }
 
