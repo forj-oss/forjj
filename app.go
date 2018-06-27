@@ -51,8 +51,7 @@ type Forj struct {
 	cli *cli.ForjCli // ForjCli data
 	app *kingpin.Application
 
-	//	CurrentCommand clier.CmdClauser // Current Command
-	//	CurrentObject  clier.CmdClauser // Current Object
+	secrets secrets
 
 	CurrentPluginDriver *drivers.Driver // Driver executing
 	InfraPluginDriver   *drivers.Driver // Driver used by upstream
@@ -139,10 +138,10 @@ const (
 
 // ForjModel is used by template mechanism
 type ForjModel struct {
-	Forjfile *forjfile.DeployForgeModel
+	Forjfile    *forjfile.DeployForgeModel
 	Deployments *forjfile.DeploymentsModel
-	Current  ForjCurrentModel
-	Secret   string
+	Current     ForjCurrentModel
+	Secret      string
 }
 
 // ForjCurrentModel is a sub struct of ForjModel
@@ -159,14 +158,14 @@ type ForjCurrentModel struct {
 func (a *Forj) Model(object_name, instance_name, key string) *ForjModel {
 	ffd := a.f.InMemForjfile()
 	data := ForjModel{
-		Forjfile: forjfile.NewDeployForgeModel(ffd),
+		Forjfile:    forjfile.NewDeployForgeModel(ffd),
 		Deployments: forjfile.NewDeploymentsModel(a.f.GetDeployments()),
 		Current: ForjCurrentModel{
-			Type:  object_name,
-			Name:  instance_name,
+			Type:       object_name,
+			Name:       instance_name,
 			Deployment: a.f.GetDeployment(),
-			Data:  ffd.GetObjectInstance(object_name, instance_name),
-			Creds: a.s.GetObjectInstance(object_name, instance_name),
+			Data:       ffd.GetObjectInstance(object_name, instance_name),
+			Creds:      a.s.GetObjectInstance(object_name, instance_name),
 		},
 	}
 	data.Secret = ""
@@ -197,6 +196,8 @@ func (a *Forj) init() {
 	opts_message := cli.Opts().Short('m')
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
+
+	a.secrets.init(a.app)
 
 	var version string
 	if PRERELEASE {
@@ -403,7 +404,7 @@ func (a *Forj) init() {
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj update --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, chg_act).
-		AddArg(cli.String, deployToArg, updateDeployToHelp,nil).
+		AddArg(cli.String, deployToArg, updateDeployToHelp, nil).
 		AddFlag(cli.Bool, "deploy-publish", updateDeployPublishHelp, nil).
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil) == nil {
 		log.Printf("action update: %s", a.cli.Error())
@@ -487,7 +488,7 @@ func (a *Forj) getInternalData(param string) (result string) {
 		result = os.Getenv("LOGNAME")
 	case "secrets": // all secrets that forjj has global and for current deployment. The text is encrypted.
 		// TODO: get encrypted data
-		result = "" 
+		result = ""
 	}
 	gotrace.Trace("'%s' requested. Value returned '%s'", param, result)
 	return

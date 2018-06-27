@@ -89,15 +89,31 @@
             "program": "${workspaceFolder}",
             "env": {
                 "GOTRACE": "true",
-                "DOCKER_SUDO": "sudo"
+                "DOCKER_SUDO": "sudo -S"
             },
             "args": [
                 "update",
-                "--run-plugin-debugger",
-                "jenkins",
+                //"--run-plugin-debugger",
+                //"jenkins",
                 "--infra-path",
                 "/home/larsonsh/src/forj/src/forj-oss-infra/",
                 "--flows-repo=/home/larsonsh/src/forj/src/forjj-flows"
+            ]
+        },
+        {
+            "name": "forjj: show secrets from forj-oss-infra on default dev env",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "env": {
+                "GOTRACE": "true",
+                "DOCKER_SUDO": "sudo -S"
+            },
+            "args": [
+                "secrets",
+                "--infra-path",
+                "/home/larsonsh/src/forj/src/forj-oss-infra/",
             ]
         },
         {
