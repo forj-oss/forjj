@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"fmt"
 	"forjj/creds"
 	"forjj/git"
@@ -8,6 +9,14 @@ import (
 
 	"github.com/forj-oss/forjj-modules/trace"
 )
+
+func (a *Forj) maintainAction(string) {
+	if err := a.Maintain(); err != nil {
+		log.Fatalf("Forjj maintain issue. %s", err)
+	}
+	println("FORJJ - maintain ", a.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
+
+}
 
 // Maintain call docker to create the Solution source code from scratch with validated parameters.
 // This container do the real stuff (git/call drivers)

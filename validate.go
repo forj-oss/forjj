@@ -1,10 +1,17 @@
 package main
 
 import (
+	"log"
 	"fmt"
 
 	"github.com/forj-oss/goforjj"
 )
+
+func (a *Forj) validateAction(string) {
+	if err := a.Validate(); err != nil {
+		log.Fatalf("Forjj validate issue. %s", err)
+	}
+}
 
 // Validate check forjfile rules and return an error is the Forjfile loaded is respecting those rules.
 func (a *Forj) Validate() error {

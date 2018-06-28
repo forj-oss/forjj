@@ -9,6 +9,14 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
+func (a *Forj) updateAction(string) {
+	if err := a.Update(); err != nil {
+		log.Fatalf("Forjj update issue. %s", err)
+	}
+	println("FORJJ - update ", a.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
+
+}
+
 // Execute an update on the workspace given.
 //
 // Workspace data has been initialized or loaded.

@@ -130,3 +130,7 @@ func (s *secrets) GetStringValue(field string) (value string, found, isDefault b
 	}
 	return
 }
+
+func (s *secrets) action(action string) {
+
+}

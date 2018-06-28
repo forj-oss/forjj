@@ -14,6 +14,24 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
+func (a *Forj) createAction(string) {
+	if err := a.Create(); err != nil {
+		log.Fatalf("Forjj create issue. %s", err)
+	}
+	log.Print("===========================================")
+	if !*a.no_maintain {
+		log.Print("Source codes are in place. Now, starting instantiating your DevOps Environment services...")
+		// This will implement the flow for the infra-repo as well.
+		a.from_create = true
+		if err := a.do_maintain(); err != nil {
+			log.Fatalf("Forjj create instance (maintain) issue. %s", err)
+		}
+	} else {
+		log.Print("Source codes are in place. Now, Please review commits, push and start instantiating your DevOps Environment services with 'forjj maintain' ...")
+	}
+	println("FORJJ - create ", a.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
+}
+
 //  initial_commit is called by infra.Create to create the initial commit with any needed files.
 func (a *Forj) initial_commit() (files []string, err error) {
 	files = []string{}

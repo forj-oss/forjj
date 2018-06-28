@@ -1,5 +1,5 @@
 hash: 0bd1ddd8decf20ee37a025811a3600c07f2f5058eb89335da6aefe2d3428a2da
-updated: 2018-06-28T19:21:07.026179817Z
+updated: 2018-06-28T22:29:51.856343537Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -13,7 +13,7 @@ imports:
 - name: github.com/fatih/color
   version: 2d684516a8861da43017284349b7e303e809ac21
 - name: github.com/forj-oss/forjj-modules
-  version: 58e70676bc9283b7624b1c342f8d352b9c108ced
+  version: 1fe84da5bc9ea9c8e809282fb17949656989e27d
   subpackages:
   - cli
   - cli/interface
@@ -37,7 +37,7 @@ imports:
 - name: github.com/pkg/errors
   version: 816c9085562cd7ee03e7f8188a1cfd942858cded
 - name: golang.org/x/net
-  version: e514e69ffb8bc3c76a71ae40de0118d794855992
+  version: 97aa3a539ec716117a9d15a4659a911f50d13c3c
   subpackages:
   - internal/socks
   - proxy

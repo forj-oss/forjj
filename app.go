@@ -56,6 +56,8 @@ type Forj struct {
 	contextAction string // Context action defined in ParseContext.
 	// Can be create/update or maintain. But it can be any others, like secrets...
 
+	actionDispatch map[string]func(string)
+
 	CurrentPluginDriver *drivers.Driver // Driver executing
 	InfraPluginDriver   *drivers.Driver // Driver used by upstream
 
@@ -232,6 +234,13 @@ func (a *Forj) init() {
 	a.cli.AddAppFlag(cli.String, cred_f, forjj_creds_help, opts_creds_file)
 	a.cli.AddAppFlag(cli.String, debug_instance_f, "List of plugin instances in debug mode, comma separeted.",
 		nil)
+
+	a.actionDispatch = make(map[string]func(string))
+	a.actionDispatch[cr_act] = a.createAction
+	a.actionDispatch[upd_act] = a.updateAction
+	a.actionDispatch[maint_act] = a.maintainAction
+	a.actionDispatch[val_act] = a.validateAction
+	a.actionDispatch["secrets"] = a.secrets.action
 
 	a.drivers = make(map[string]*drivers.Driver)
 	a.plugins = goforjj.NewPlugins()
@@ -431,10 +440,13 @@ func (a *Forj) init() {
 	a.AddMap(infra_upstream_f, infra, "", infra_upstream_f, infra, "", "apps:upstream")
 	a.AddMap(infra_path_f, workspace, "", infra_path_f, workspace, "", infra_path_f)
 	a.AddMapFunc("secrets", infra_path_f, a.secrets.GetStringValue)
+
 	a.AddMap("contribs-repo", workspace, "", "contribs-repo", "", "", "contrib-repo-path")
 	a.AddMapFunc("secrets", "contribs-repo", a.secrets.GetStringValue)
+
 	a.AddMap("flows-repo", workspace, "", "flows-repo", "", "", "flow-repo-path")
 	a.AddMapFunc("secrets", "flows-repo", a.secrets.GetStringValue)
+
 	a.AddMap("repotemplates-repo", workspace, "", "repotemplates-repo", "", "", "repotemplate-repo-path")
 	a.AddMapFunc("secrets", "repotemplates-repo", a.secrets.GetStringValue)
 	// TODO: Add git-remote cli mapping
