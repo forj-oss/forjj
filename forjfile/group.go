@@ -1,15 +1,17 @@
 package forjfile
 
 import (
+	"forjj/sources_info"
+
 	"github.com/forj-oss/goforjj"
 )
 
 type GroupsStruct map[string]*GroupStruct
 
-func (g GroupsStruct) mergeFrom(from GroupsStruct) {
+func (g GroupsStruct) mergeFrom(source string, from GroupsStruct) {
 	for k, groupFrom := range from {
 		if group, found := g[k]; found {
-			group.mergeFrom(groupFrom)
+			group.mergeFrom(source, groupFrom)
 		} else {
 			g[k] = groupFrom
 		}
@@ -22,6 +24,7 @@ type GroupStruct struct {
 	Role    string            `yaml:",omitempty"`
 	Members []string          `yaml:",omitempty"`
 	More    map[string]string `yaml:",inline"`
+	sources *sourcesinfo.Sources
 }
 
 const (
@@ -122,15 +125,15 @@ func (g *GroupStruct) set_forge(f *ForgeYaml) {
 	g.forge = f
 }
 
-func (r *GroupStruct) SetHandler(from func(field string) (string, bool), keys ...string) {
+func (r *GroupStruct) SetHandler(source string, from func(field string) (string, bool), keys ...string) {
 	for _, key := range keys {
 		if v, found := from(key); found {
-			r.Set(key, v)
+			r.Set(source, key, v)
 		}
 	}
 }
 
-func (g *GroupStruct) Set(field, value string) {
+func (g *GroupStruct) Set(source, field, value string) {
 	switch field {
 	case "role":
 		if value != g.Role {
@@ -153,13 +156,14 @@ func (g *GroupStruct) Set(field, value string) {
 			}
 		}
 	}
+	g.sources = g.sources.Set(source, field, value)
 	return
 }
 
-func (g *GroupStruct) mergeFrom(from *GroupStruct) {
+func (g *GroupStruct) mergeFrom(source string, from *GroupStruct) {
 	for _, flag := range from.Flags() {
 		if v, found := from.Get(flag); found {
-			g.Set(flag, v.GetString())
+			g.Set(source, flag, v.GetString())
 		}
 	}
 }

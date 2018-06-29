@@ -1,10 +1,14 @@
 package main
 
 import (
+	"forjj/scandrivers"
+	"strings"
+
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/cli"
 	"github.com/forj-oss/forjj-modules/cli/interface"
 	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
+	"github.com/forj-oss/goforjj"
 )
 
 type secrets struct {
@@ -16,8 +20,9 @@ type secrets struct {
 	cli_context clier.ParseContexter
 
 	list struct {
-		cmd  *kingpin.CmdClause
-		show *bool
+		cmd      *kingpin.CmdClause
+		show     *bool
+		elements map[string]secretInfo
 	}
 
 	get struct {
@@ -132,5 +137,39 @@ func (s *secrets) GetStringValue(field string) (value string, found, isDefault b
 }
 
 func (s *secrets) action(action string) {
+	actions := strings.Split(action, " ")
+	switch actions[1] {
+	case "list":
+		s.showList()
+	case "set":
+	case "unset":
+	case "show":
+	}
+}
 
+// Display the list of secrets
+func (s *secrets) showList() {
+	ffd := forj_app.f.InMemForjfile()
+
+	scan := scandrivers.NewScanDrivers(ffd, forj_app.drivers)
+	s.list.elements = make(map[string]secretInfo)
+
+	scan.SetScanObjFlag(func(objectName, instanceName, flagPrefix, name string, flag goforjj.YamlFlag) error {
+		if flag.Options.Secure {
+			info := secretInfo{}
+			info.keyPath = objectName + "/" + instanceName + "/"
+			keyName := name
+			if flagPrefix != "" {
+				keyName = flagPrefix + "-" + name
+			}
+			info.keyPath += keyName
+
+			info.value, info.found, info.source = forj_app.s.GetString(objectName, instanceName, keyName)
+
+			s.list.elements[info.keyPath] = info
+		}
+		return nil
+	})
+
+	scan.DoScanDriversObject()
 }

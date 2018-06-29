@@ -8,6 +8,7 @@ type ForjValues map[string]ForjValue
 type ForjValue struct {
 	value string
 	default_value string
+	source string
 }
 
 func (v *ForjValue) Set(aValue string) (updated bool) {

@@ -1,6 +1,7 @@
 package forjfile
 
 import (
+	"forjj/sources_info"
 	"fmt"
 
 	"github.com/forj-oss/goforjj"
@@ -15,6 +16,7 @@ const (
 type AppStruct struct {
 	forge         *ForgeYaml
 	name          string
+	sources       *sourcesinfo.Sources
 	AppYamlStruct `yaml:",inline"`
 }
 
@@ -33,6 +35,11 @@ type AppFlowYaml struct {
 	name    string
 	Service string `yaml:"used-as,omitempty"`
 	Options map[string]string
+}
+
+func NewAppStruct() (ret *AppStruct) {
+	ret = new(AppStruct)
+	return
 }
 
 func (a *AppStruct) Flags() (flags []string) {
@@ -85,7 +92,7 @@ func (a *AppStruct) Name() string {
 	return a.name
 }
 
-// Get return the flag value. 
+// Get return the flag value.
 // found is true if value exist in more or if the value is not empty
 func (a *AppStruct) Get(flag string) (value *goforjj.ValueStruct, _ bool) {
 	switch flag {
@@ -102,15 +109,15 @@ func (a *AppStruct) Get(flag string) (value *goforjj.ValueStruct, _ bool) {
 	return
 }
 
-func (r *AppStruct) SetHandler(from func(field string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
+func (r *AppStruct) SetHandler(source string, from func(field string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
 	for _, key := range keys {
 		if v, found := from(key); found {
-			r.Set(key, v, set)
+			r.Set(key, v, source, set)
 		}
 	}
 }
 
-func (a *AppStruct) Set(flag, value string, set func(*ForjValue, string) bool) {
+func (a *AppStruct) Set(source, flag, value string, set func(*ForjValue, string) bool) {
 	switch flag {
 	case "name":
 		if a.name != value {
@@ -141,6 +148,7 @@ func (a *AppStruct) Set(flag, value string, set func(*ForjValue, string) bool) {
 			}
 		}
 	}
+	a.sources = a.sources.Set(source, flag, value)
 	return
 }
 
@@ -148,10 +156,10 @@ func (g *AppStruct) set_forge(f *ForgeYaml) {
 	g.forge = f
 }
 
-func (a *AppStruct) mergeFrom(from *AppStruct) {
+func (a *AppStruct) mergeFrom(source string, from *AppStruct) {
 	for _, flag := range from.Flags() {
 		if v, found := from.Get(flag); found {
-			a.Set(flag, v.GetString(), (*ForjValue).Set)
+			a.Set(source, flag, v.GetString(), (*ForjValue).Set)
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package forjfile
 
 import (
+	"forjj/sources_info"
 	"strings"
 
 	"github.com/forj-oss/goforjj"
@@ -10,6 +11,7 @@ import (
 type ForjSettingsStruct struct {
 	is_template            bool
 	forge                  *ForgeYaml
+	sources                *sourcesinfo.Sources
 	Organization           string
 	ForjSettingsStructTmpl `yaml:",inline"`
 }
@@ -31,11 +33,11 @@ func (s *ForjSettingsStruct) Flags() (flags []string) {
 	return
 }
 
-func (s *ForjSettingsStruct) mergeFrom(from *ForjSettingsStruct) {
+func (s *ForjSettingsStruct) mergeFrom(source string, from *ForjSettingsStruct) {
 	for _, instance := range []string{"default", "default-repo-apps", "noinstance"} {
 		for _, flag := range from.Flags() {
 			if v, found := from.Get(instance, flag); found {
-				s.Set(instance, flag, v.GetString())
+				s.Set(source, instance, flag, v.GetString())
 			}
 		}
 	}
@@ -81,18 +83,18 @@ func (s *ForjSettingsStruct) GetInstance(instance string) interface{} {
 	return s
 }
 
-func (r *ForjSettingsStruct) SetHandler(instance string, from func(field string) (string, bool), keys ...string) {
+func (r *ForjSettingsStruct) SetHandler(source, instance string, from func(field string) (string, bool), keys ...string) {
 	for _, key := range keys {
 		if v, found := from(key); found {
-			r.Set(instance, key, v)
+			r.Set(source, instance, key, v)
 		}
 	}
 }
 
-func (s *ForjSettingsStruct) Set(instance, key string, value string) {
+func (s *ForjSettingsStruct) Set(source, instance, key, value string) {
 	switch instance {
 	case "default":
-		s.Default.Set(key, value)
+		s.Default.Set(source, key, value)
 		s.forge.dirty()
 		return
 	case "default-repo-apps":
@@ -125,6 +127,7 @@ func (s *ForjSettingsStruct) Set(instance, key string, value string) {
 			s.More[key] = value
 		}
 	}
+	s.sources = s.sources.Set(source, key, value)
 }
 
 func (g *ForjSettingsStruct) set_forge(f *ForgeYaml) {

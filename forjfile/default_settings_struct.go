@@ -1,6 +1,9 @@
 package forjfile
 
-import "github.com/forj-oss/goforjj"
+import (
+	"forjj/sources_info"
+	"github.com/forj-oss/goforjj"
+)
 
 type DefaultSettingsStruct struct {
 	forge            *ForgeYaml
@@ -8,6 +11,7 @@ type DefaultSettingsStruct struct {
 	Flow             string            `yaml:",omitempty"`
 	DevDeploy        string            `yaml:",omitempty"`
 	More             map[string]string `yaml:",inline"`
+	sources          *sourcesinfo.Sources
 }
 
 // Get return the value of the default setting.
@@ -27,7 +31,7 @@ func (s *DefaultSettingsStruct) Get(key string) (value *goforjj.ValueStruct, _ b
 }
 
 // Set udpate the value of the default setting key.
-func (s *DefaultSettingsStruct) Set(key string, value string) {
+func (s *DefaultSettingsStruct) Set(source, key, value string) {
 	switch key {
 	case "upstream-instance":
 		if s.UpstreamInstance != value {
@@ -57,6 +61,7 @@ func (s *DefaultSettingsStruct) Set(key string, value string) {
 			}
 		}
 	}
+	s.sources = s.sources.Set(source, key, value)
 }
 
 // set_forge set the forge reference.

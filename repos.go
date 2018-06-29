@@ -25,7 +25,7 @@ func (a *Forj) DefineDefaultUpstream() error {
 			"Found '%s'. You must define one in Forjfile:/settings/default/upstream-instance.",
 			strings.Join(instances, "', '"))
 	default:
-		a.f.Set("settings", "default-repo-apps", "upstream", instances[0])
+		a.f.Set("forjj", "settings", "default-repo-apps", "upstream", instances[0])
 		log.Printf("Set default upstream application to '%s'", instances[0])
 	}
 	return nil

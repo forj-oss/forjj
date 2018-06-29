@@ -208,7 +208,7 @@ func (d *Secure) SetObjectValue(env, obj_name, instance_name, key_name string, v
 		return
 	}
 	if v, found := d.secrets.Envs[env]; found {
-		if v.setObjectValue(obj_name, instance_name, key_name, value) {
+		if v.setObjectValue(env, obj_name, instance_name, key_name, value) {
 			d.updated = true
 			d.secrets.Envs[env] = v
 			return true
@@ -218,13 +218,13 @@ func (d *Secure) SetObjectValue(env, obj_name, instance_name, key_name string, v
 }
 
 // GetString return a string representation of the value.
-func (d *Secure) GetString(objName, instanceName, keyName string) (value string, found bool) {
+func (d *Secure) GetString(objName, instanceName, keyName string) (value string, found bool, source string) {
 	if d == nil {
 		return
 	}
 	for _, env := range []string{d.curEnv, Global} {
 		if v, isFound := d.secrets.Envs[env]; isFound {
-			if value, found = v.getString(objName, instanceName, keyName); found {
+			if value, found, source = v.getString(objName, instanceName, keyName); found {
 				return
 			}
 		}
@@ -233,18 +233,18 @@ func (d *Secure) GetString(objName, instanceName, keyName string) (value string,
 }
 
 // Get value of the object instance key...
-func (d *Secure) Get(objName, instanceName, keyName string) (value *goforjj.ValueStruct, found bool) {
+func (d *Secure) Get(objName, instanceName, keyName string) (value *goforjj.ValueStruct, found bool, source string) {
 	if d == nil {
 		return
 	}
 	for _, env := range []string{d.curEnv, Global} {
 		if v, isFound := d.secrets.Envs[env]; isFound {
-			if value, found = v.get(objName, instanceName, keyName); found {
+			if value, found, source = v.get(objName, instanceName, keyName); found {
 				return
 			}
 		}
 	}
-	return nil, false
+	return nil, false, ""
 }
 
 // GetObjectInstance return the instance data

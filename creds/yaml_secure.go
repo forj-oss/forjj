@@ -2,6 +2,7 @@ package creds
 
 import (
 	"bufio"
+	"forjj/sources_info"
 	"io"
 	"io/ioutil"
 	"os"
@@ -18,6 +19,7 @@ type yamlSecure struct {
 	Version   string
 	Forj      map[string]string
 	Objects   map[string]map[string]map[string]*goforjj.ValueStruct
+	sources   *sourcesinfo.Sources
 }
 
 func (d *yamlSecure) isLoaded() bool {
@@ -76,7 +78,7 @@ func (d *yamlSecure) GetForjValue(key string) (ret string, found bool) {
 	return
 }
 
-func (d *yamlSecure) setObjectValue(obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (updated bool) {
+func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (updated bool) {
 	if d.Objects == nil {
 		d.Objects = make(map[string]map[string]map[string]*goforjj.ValueStruct)
 	}
@@ -110,21 +112,23 @@ func (d *yamlSecure) setObjectValue(obj_name, instance_name, key_name string, va
 			}
 		}
 	}
+	d.sources = d.sources.Set(source, obj_name+"/"+instance_name+"/"+key_name, value.GetString())
 	return
 }
 
-func (d *yamlSecure) getString(obj_name, instance_name, key_name string) (string, bool) {
-	v, found := d.get(obj_name, instance_name, key_name)
-	return v.GetString(), found
+func (d *yamlSecure) getString(obj_name, instance_name, key_name string) (string, bool, string) {
+	v, found, source := d.get(obj_name, instance_name, key_name)
+	return v.GetString(), found, source
 }
 
-func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *goforjj.ValueStruct, found bool) {
+func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *goforjj.ValueStruct, found bool, source string) {
 	if i, isFound := d.Objects[obj_name]; isFound {
 		if k, isFound := i[instance_name]; isFound {
 			if v, isFound := k[key_name]; isFound && v != nil {
 				ret = new(goforjj.ValueStruct)
 				*ret = *v
 				found = true
+				source = d.sources.Get(obj_name + "/" + instance_name + "/" + key_name)
 				return
 			}
 		}

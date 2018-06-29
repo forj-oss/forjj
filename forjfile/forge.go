@@ -308,10 +308,10 @@ func (f *Forge) MergeFromDeployment(deployTo string) (result *DeployForgeYaml, e
 	}
 
 	result = &forge.ForjCore
-	if err = result.mergeFrom(&f.yaml.ForjCore); err != nil {
+	if err = result.mergeFrom(&f.yaml.ForjCore, "global"); err != nil {
 		return nil, fmt.Errorf("Unable to load the master forjfile. %s", err)
 	}
-	if err = result.mergeFrom(deploy.Details); err != nil {
+	if err = result.mergeFrom(deploy.Details, deploy.name); err != nil {
 		return nil, fmt.Errorf("Unable to merge the Deployment forjfile to master one. %s", err)
 	}
 	result.deployTo = deployTo
@@ -714,20 +714,20 @@ func (f *Forge) Remove(object, name, key string) {
 	forge.Remove(object, name, key)
 }
 
-func (f *Forge) Set(object, name, key, value string) {
+func (f *Forge) Set(source, object, name, key, value string) {
 	forge := f.selectCore()
 	if forge == nil {
 		return
 	}
-	forge.Set(object, name, key, value)
+	forge.Set(source, object, name, key, value)
 }
 
-func (f *Forge) SetDefault(object, name, key, value string) {
+func (f *Forge) SetDefault(source, object, name, key, value string) {
 	forge := f.selectCore()
 	if forge == nil {
 		return
 	}
-	forge.SetDefault(object, name, key, value)
+	forge.SetDefault(source, object, name, key, value)
 }
 
 func (f *Forge) IsDirty() bool {

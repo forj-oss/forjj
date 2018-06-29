@@ -340,14 +340,14 @@ func (a *Forj) define_infra_upstream() (err error) {
 	if instance_requested == "none" && a.w.Instance == "none" {
 		gotrace.Trace("No upstream instance configured as requested by '--infra-upstream none' " +
 			"or Forjfile (infra/upstream-app:none)")
-		err = a.SetPrefs(infra_upstream_f, a.w.Instance) // Forjfile updated
+		err = a.SetPrefs("forjj", infra_upstream_f, a.w.Instance) // Forjfile updated
 		return
 	}
 
 	// Instance name is identified. Exiting.
 	if a.w.Instance != "" {
 		gotrace.Trace("Infra repository instance used: %s", a.w.Instance)
-		err = a.SetPrefs(infra_upstream_f, a.w.Instance) // Forjfile updated
+		err = a.SetPrefs("forjj", infra_upstream_f, a.w.Instance) // Forjfile updated
 		return
 	}
 
@@ -374,7 +374,7 @@ func (a *Forj) define_infra_upstream() (err error) {
 	if len(upstreams) == 1 {
 		a.w.Instance = upstreams[0].InstanceName
 		gotrace.Trace("Selected by default '%s' as upstream instance to connect '%s' repo", a.w.Instance, a.w.Infra.Name)
-		return a.SetPrefs(infra_upstream_f, a.w.Instance) // Forjfile updated
+		return a.SetPrefs("forjj", infra_upstream_f, a.w.Instance) // Forjfile updated
 	}
 
 	return fmt.Errorf("No 'upstream' application defined. At least one upstream application is required, " +

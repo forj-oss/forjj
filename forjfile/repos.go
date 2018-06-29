@@ -4,10 +4,10 @@ import "github.com/forj-oss/forjj-modules/trace"
 
 type ReposStruct map[string]*RepoStruct
 
-func (r ReposStruct) mergeFrom(from ReposStruct) {
+func (r ReposStruct) mergeFrom(source string, from ReposStruct) {
 	for key, repoFrom := range from {
 		if repo, found := r[key]; found {
-			repo.mergeFrom(repoFrom)
+			repo.mergeFrom(source, repoFrom)
 			continue
 		}
 		r[key] = repoFrom

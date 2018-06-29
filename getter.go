@@ -142,7 +142,7 @@ func (a *Forj) GetForgePrefs(field string) (v string, found bool, _ error) {
 	return
 }
 
-func (a *Forj) SetPrefs(field, value string) error {
+func (a *Forj) SetPrefs(source, field, value string) error {
 	var entry AppMapEntry
 
 	if e, found := a.appMapEntries[field]; !found {
@@ -151,6 +151,6 @@ func (a *Forj) SetPrefs(field, value string) error {
 		entry = e
 	}
 
-	a.f.Set(entry.forj_section, entry.forj_instance, entry.forj_field, value)
+	a.f.Set(source, entry.forj_section, entry.forj_instance, entry.forj_field, value)
 	return nil
 }

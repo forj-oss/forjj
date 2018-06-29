@@ -280,18 +280,18 @@ func (a *Forj) set_infra_name(action string) (err error) {
 		if a.w.Infra.Name == "" {
 			// Get infra name from the flag
 			a.w.Infra.Name = infra_name
-			return a.SetPrefs(infra_name_f, a.w.Infra.Name) // Forjfile update
+			return a.SetPrefs("forjj", infra_name_f, a.w.Infra.Name) // Forjfile update
 		}
 		if infra_name != a.w.Infra.Name && a.w.Organization != "" {
 			gotrace.Warning("You cannot update the Infra repository name from '%s' to '%s'.", a.w.Infra.Name, infra_name)
 		}
-		return a.SetPrefs(infra_name_f, a.w.Infra.Name)
+		return a.SetPrefs("forjj", infra_name_f, a.w.Infra.Name)
 	}
 	// Default infra-name
 	if a.w.Organization != "" {
 		// Use the default setting.
 		a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
-		err = a.SetPrefs(infra_name_f, a.w.Infra.Name) // Forjfile update
+		err = a.SetPrefs("forjj", infra_name_f, a.w.Infra.Name) // Forjfile update
 	}
 	return err
 }
@@ -314,7 +314,7 @@ func (a *Forj) set_organization_name() error {
 		}
 	}
 	if a.w.Organization != "" {
-		if err := a.SetPrefs(orga_f, a.w.Organization); err != nil {
+		if err := a.SetPrefs("forjj", orga_f, a.w.Organization); err != nil {
 			return err
 		}
 		log.Printf("Organization : '%s'", a.w.Organization)

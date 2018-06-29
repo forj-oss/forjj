@@ -24,7 +24,7 @@ func (fts FlowTaskSet) apply(tmpl_data *FlowTaskModel, Forjfile *forjfile.Deploy
 				instance_name = v
 			}
 			if len(instance_data) == 0 {
-				Forjfile.Set(object_name, instance_name, "", "")
+				Forjfile.Set("", object_name, instance_name, "", "")
 				gotrace.Trace("'%s/%s: {}' added.", object_name, instance_name)
 				continue
 			}
@@ -40,7 +40,7 @@ func (fts FlowTaskSet) apply(tmpl_data *FlowTaskModel, Forjfile *forjfile.Deploy
 					if ev := value.Get(); ev != v {
 						gotrace.Trace("'%s' has be interpreted as '%s'.", ev, v)
 					}
-					Forjfile.Set(object_name, instance_name, key, v)
+					Forjfile.Set("flow", object_name, instance_name, key, v)
 					if v == "" {
 						gotrace.Trace("'%s/%s: {}' added. '%s/%s/%s' deleted.",
 							object_name, instance_name, object_name, instance_name, key)

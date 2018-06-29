@@ -12,10 +12,10 @@ func (a AppsStruct) Found(appName string) (*AppStruct, error) {
 	}
 }
 
-func (a AppsStruct) mergeFrom(from AppsStruct) {
+func (a AppsStruct) mergeFrom(source string, from AppsStruct) {
 	for k, appFrom := range from {
 		if app, found := a[k]; found {
-			app.mergeFrom(appFrom)
+			app.mergeFrom(source, appFrom)
 		} else {
 			
 			a[k] = appFrom

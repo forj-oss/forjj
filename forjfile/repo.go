@@ -1,6 +1,7 @@
 package forjfile
 
 import (
+	"forjj/sources_info"
 	"fmt"
 	"forjj/drivers"
 	"strings"
@@ -28,6 +29,7 @@ type RepoStruct struct {
 	More            map[string]string           `yaml:",inline"`
 	apps            map[string]*AppStruct       // List of applications connected to this repo. Defaults are added automatically.
 	Apps            map[string]string           `yaml:"in-relation-with"` // key: <AppRelName>, value: <appName>
+	sources         *sourcesinfo.Sources
 }
 
 const (
@@ -87,13 +89,13 @@ func (r *RepoStruct) Flags() (flags []string) {
 
 }
 
-func (r *RepoStruct) mergeFrom(from *RepoStruct) {
+func (r *RepoStruct) mergeFrom(source string, from *RepoStruct) {
 	if r == nil {
 		return
 	}
 	for _, flag := range from.Flags() {
 		if v, found := from.Get(flag); found {
-			r.Set(flag, v.GetString())
+			r.Set(source, flag, v.GetString())
 		}
 	}
 }
@@ -230,14 +232,14 @@ func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
 }
 
 // SetHandler is the generic setter function.
-func (r *RepoStruct) SetHandler(from func(field string) (string, bool), keys ...string) {
+func (r *RepoStruct) SetHandler(source string, from func(field string) (string, bool), keys ...string) {
 	if r == nil {
 		return
 	}
 
 	for _, key := range keys {
 		if v, found := from(key); found {
-			r.Set(key, v)
+			r.Set(source, key, v)
 		}
 	}
 }
@@ -306,7 +308,7 @@ func (r *RepoStruct) initApp() (_ error) {
 	return
 }
 
-func (r *RepoStruct) Set(field, value string) {
+func (r *RepoStruct) Set(source, field, value string) {
 	if r == nil {
 		return
 	}
@@ -388,6 +390,7 @@ func (r *RepoStruct) Set(field, value string) {
 
 		}
 	}
+	r.sources = r.sources.Set(source, field, value)
 }
 
 func (r *RepoStruct) SetInstanceOwner(owner string) {

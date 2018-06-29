@@ -179,10 +179,12 @@ func TestSetObjectValue(t *testing.T) {
 	// -------------- testing
 	if !updated {
 		t.Error("Expected s.SetObjectValue to return updated = true. Got false")
-	} else if v, found := s.Get(object1, instance1, key1); !found {
+	} else if v, found, src := s.Get(object1, instance1, key1); !found {
 		t.Error("Expected value to be found. Got false")
 	} else if v1 := v.GetString(); v1 != value1 {
 		t.Errorf("Expected value to be '%s'. Got '%s'", v1, value1)
+	} else if src != prod {
+		t.Errorf("Expected value to be found from source '%s'. Got '%s'", prod, src)
 	}
 }
 
