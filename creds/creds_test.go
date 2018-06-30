@@ -135,11 +135,12 @@ func TestSetForjValue(t *testing.T) {
 		myPath = "myPath"
 		myFile = "myFile"
 		prod   = "prod"
+		source = "source"
 	)
 	s.InitEnvDefaults(myPath, prod)
 
 	// ------------- call the function
-	updated, err := s.SetForjValue(prod, key1, value1)
+	updated, err := s.SetForjValue(prod, source, key1, value1)
 
 	// -------------- testing
 	if !updated {
@@ -168,23 +169,26 @@ func TestSetObjectValue(t *testing.T) {
 		myPath    = "myPath"
 		myFile    = "myFile"
 		prod      = "prod"
+		source    = "source"
 	)
 	s.InitEnvDefaults(myPath, prod)
 
 	// ------------- call the function
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	updated := s.SetObjectValue(prod, object1, instance1, key1, value)
+	updated := s.SetObjectValue(prod, source, object1, instance1, key1, value)
 
 	// -------------- testing
 	if !updated {
 		t.Error("Expected s.SetObjectValue to return updated = true. Got false")
-	} else if v, found, src := s.Get(object1, instance1, key1); !found {
+	} else if v, found, src, env := s.Get(object1, instance1, key1); !found {
 		t.Error("Expected value to be found. Got false")
 	} else if v1 := v.GetString(); v1 != value1 {
 		t.Errorf("Expected value to be '%s'. Got '%s'", v1, value1)
-	} else if src != prod {
-		t.Errorf("Expected value to be found from source '%s'. Got '%s'", prod, src)
+	} else if src != source {
+		t.Errorf("Expected value to be found from source '%s'. Got '%s'", source, src)
+	} else if env != prod {
+		t.Errorf("Expected value to be found from env '%s'. Got '%s'", prod, env)
 	}
 }
 
@@ -202,11 +206,12 @@ func TestGetObjectInstance(t *testing.T) {
 		myPath    = "myPath"
 		myFile    = "myFile"
 		prod      = "prod"
+		source    = "source"
 	)
 	s.InitEnvDefaults(myPath, prod)
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	s.SetObjectValue(prod, object1, instance1, key1, value)
+	s.SetObjectValue(prod, source, object1, instance1, key1, value)
 
 	// ------------- call the function
 	result := s.GetObjectInstance(object1, instance1)
@@ -231,7 +236,7 @@ func TestGetObjectInstance(t *testing.T) {
 
 	// --------------- Change context
 	value.Set(value2)
-	s.SetObjectValue(Global, object1, instance1, key1, value)
+	s.SetObjectValue(Global, source, object1, instance1, key1, value)
 
 	// ------------- call the function
 	result = s.GetObjectInstance(object1, instance1)
@@ -249,7 +254,7 @@ func TestGetObjectInstance(t *testing.T) {
 
 	// --------------- Change context
 	value.Set(value1)
-	s.SetObjectValue(Global, object2, instance1, key1, value)
+	s.SetObjectValue(Global, source, object2, instance1, key1, value)
 
 	// ------------- call the function
 	result1 := s.GetObjectInstance(object1, instance1)

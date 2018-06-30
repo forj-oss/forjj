@@ -29,21 +29,22 @@ func (u *UserStruct) Flags() (flags []string) {
 
 }
 
-func (u *UserStruct) mergeFrom(source string, from *UserStruct) {
+func (u *UserStruct) mergeFrom(from *UserStruct) {
 	for _, flag := range from.Flags() {
-		if v, found := from.Get(flag); found {
+		if v, found, source := from.Get(flag); found {
 			u.Set(source, flag, v.GetString())
 		}
 	}
 }
 
-func (u *UserStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
+func (u *UserStruct) Get(field string) (value *goforjj.ValueStruct, found bool, source string) {
+	source = u.sources.Get(field)
 	switch field {
 	case userRole:
-		return value.SetIfFound(u.Role, (u.Role != ""))
+		value, found = value.SetIfFound(u.Role, (u.Role != ""))
 	default:
 		v, f := u.More[field]
-		return value.SetIfFound(v, f)
+		value, found = value.SetIfFound(v, f)
 	}
 	return
 }

@@ -12,7 +12,7 @@ func(f ForgeModel)Get(object, instance, key string) (ret string) {
 	if f.forge == nil {
 		return
 	}
-	ret , _ = f.forge.GetString(object, instance, key)
+	ret , _, _ = f.forge.GetString(object, instance, key)
 	return
 }
 

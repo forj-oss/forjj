@@ -15,19 +15,21 @@ type DefaultSettingsStruct struct {
 }
 
 // Get return the value of the default setting.
-func (s *DefaultSettingsStruct) Get(key string) (value *goforjj.ValueStruct, _ bool) {
+func (s *DefaultSettingsStruct) Get(key string) (value *goforjj.ValueStruct, found bool, source string) {
+	source = s.sources.Get(key)
 	switch key {
 	// TODO: Remove obsolete reference to "upstream-instance"
 	case "upstream-instance":
-		return value.SetIfFound(s.UpstreamInstance, (s.UpstreamInstance != ""))
+		value, found = value.SetIfFound(s.UpstreamInstance, (s.UpstreamInstance != ""))
 	case "flow":
-		return value.SetIfFound(s.Flow, (s.Flow != ""))
+		value, found = value.SetIfFound(s.Flow, (s.Flow != ""))
 	case "dev-deploy":
-		return value.SetIfFound(s.DevDeploy, (s.DevDeploy != ""))
+		value, found = value.SetIfFound(s.DevDeploy, (s.DevDeploy != ""))
 	default:
 		v, f := s.More[key]
-		return value.SetIfFound(v, f)
+		value, found = value.SetIfFound(v, f)
 	}
+	return
 }
 
 // Set udpate the value of the default setting key.

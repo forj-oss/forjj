@@ -29,7 +29,8 @@ func (fd *FlowDefine) apply(repo *forjfile.RepoStruct, Forjfile *forjfile.Deploy
 	for _, flowTask := range tasks {
 		onWhat := "Forjfile"
 		if repo != nil {
-			onWhat = fmt.Sprintf("repository '%s'", repo.GetString("name"))
+			name, _ := repo.GetString("name")
+			onWhat = fmt.Sprintf("repository '%s'", name)
 		} else {
 
 		}

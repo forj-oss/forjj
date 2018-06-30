@@ -15,10 +15,11 @@ func Test_YamlSecure_SetForjValue(t *testing.T) {
 	const (
 		key1   = "key1"
 		value1 = "value1"
+		source = "source"
 	)
 
 	// ------------- call the function
-	s.SetForjValue(key1, value1)
+	s.SetForjValue(source, key1, value1)
 
 	// -------------- testing
 	if s.Forj == nil {
