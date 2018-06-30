@@ -64,7 +64,7 @@ func (a *Forj) GetPrefs(field string) (string, bool, error) {
 		gotrace.Trace("Found Forjfile setting '%s' from cli : %s", entry.cli_field, v)
 		return v, found, err
 	}
-	if v2, found2 := a.f.GetString(entry.forj_section, entry.forj_instance, entry.forj_field); found2 {
+	if v2, found2, _ := a.f.GetString(entry.forj_section, entry.forj_instance, entry.forj_field); found2 {
 		gotrace.Trace("Found Forjfile setting '%s' from Forjfile : %s", entry.forj_field, v2)
 		return v2, found2, nil
 	}
@@ -133,7 +133,7 @@ func (a *Forj) GetForgePrefs(field string) (v string, found bool, _ error) {
 		entry = e
 	}
 
-	v, found = a.f.GetString(entry.forj_section, entry.forj_instance, entry.forj_field)
+	v, found, _ = a.f.GetString(entry.forj_section, entry.forj_instance, entry.forj_field)
 	if found {
 		gotrace.Trace("Found Forjfile setting '%s' from Forjfile : %s", entry.forj_field, v)
 	} else {

@@ -1,8 +1,8 @@
 package forjfile
 
 import (
-	"forjj/sources_info"
 	"fmt"
+	"forjj/sources_info"
 
 	"github.com/forj-oss/goforjj"
 )
@@ -94,17 +94,18 @@ func (a *AppStruct) Name() string {
 
 // Get return the flag value.
 // found is true if value exist in more or if the value is not empty
-func (a *AppStruct) Get(flag string) (value *goforjj.ValueStruct, _ bool) {
+func (a *AppStruct) Get(flag string) (value *goforjj.ValueStruct, found bool, source string) {
+	source = a.sources.Get(flag)
 	switch flag {
 	case appName:
-		return value.Set(a.name), (a.name != "")
+		value, found = value.Set(a.name), (a.name != "")
 	case appType:
-		return value.Set(a.Type), (a.Type != "")
+		value, found = value.Set(a.Type), (a.Type != "")
 	case appDriver:
-		return value.Set(a.Driver), (a.Driver != "")
+		value, found = value.Set(a.Driver), (a.Driver != "")
 	default:
 		v, f := a.more[flag]
-		return value.SetIfFound(v.Get(), f)
+		value, found = value.SetIfFound(v.Get(), f)
 	}
 	return
 }
@@ -156,9 +157,9 @@ func (g *AppStruct) set_forge(f *ForgeYaml) {
 	g.forge = f
 }
 
-func (a *AppStruct) mergeFrom(source string, from *AppStruct) {
+func (a *AppStruct) mergeFrom(from *AppStruct) {
 	for _, flag := range from.Flags() {
-		if v, found := from.Get(flag); found {
+		if v, found, source := from.Get(flag); found {
 			a.Set(source, flag, v.GetString(), (*ForjValue).Set)
 		}
 	}

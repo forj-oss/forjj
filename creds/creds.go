@@ -177,12 +177,12 @@ func (d *Secure) SetFile(filePath, env string) {
 }
 
 // SetForjValue set a value in Forj section.
-func (d *Secure) SetForjValue(env, key, value string) (_ bool, _ error) {
+func (d *Secure) SetForjValue(env, source, key, value string) (_ bool, _ error) {
 	if d == nil {
 		return
 	}
 	if v, found := d.secrets.Envs[env]; found {
-		if v.SetForjValue(key, value) {
+		if v.SetForjValue(source, key, value) {
 			d.secrets.Envs[env] = v
 			d.updated = true
 		}
@@ -203,12 +203,12 @@ func (d *Secure) GetForjValue(env, key string) (_ string, _ bool) {
 }
 
 // SetObjectValue set object value
-func (d *Secure) SetObjectValue(env, obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (_ bool) {
+func (d *Secure) SetObjectValue(env, source, obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (_ bool) {
 	if d == nil {
 		return
 	}
 	if v, found := d.secrets.Envs[env]; found {
-		if v.setObjectValue(env, obj_name, instance_name, key_name, value) {
+		if v.setObjectValue(source, obj_name, instance_name, key_name, value) {
 			d.updated = true
 			d.secrets.Envs[env] = v
 			return true

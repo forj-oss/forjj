@@ -294,7 +294,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 			}
 
 			// Current deploy only
-			if deployName, found := repo_obj.Get(forjfile.FieldRepoDeployName); found && repo_obj.IsCurrentDeploy() {
+			if deployName, found, _ := repo_obj.Get(forjfile.FieldRepoDeployName); found && repo_obj.IsCurrentDeploy() {
 				deployObj, _ := a.f.GetADeployment(deployName.GetString())
 
 				deployObj.RunInContext(func() (_ error) {

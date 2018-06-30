@@ -82,7 +82,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	// if deployTo was not set, use the default one
 	if deployTo == "" {
-		if v, found := a.f.Get("settings", "default", "dev-deploy"); found {
+		if v, found, _ := a.f.Get("settings", "default", "dev-deploy"); found {
 			deployTo = v.GetString()
 		} else {
 			a.w.SetError(fmt.Errorf("No development environment found in your Forjfile. " +

@@ -25,7 +25,7 @@ func (dm *DeploymentsModel) GetFromType(deployType, object, instance, key string
 	}
 
 	for _, deploy := range deploys {
-		if v, keyFound := deploy.Details.GetString(object, instance, key); keyFound {
+		if v, keyFound, _ := deploy.Details.GetString(object, instance, key); keyFound {
 			ret[deploy.name] = v
 		}
 	}
@@ -36,7 +36,7 @@ func (dm *DeploymentsModel) GetFromType(deployType, object, instance, key string
 // GetFromPRO get attribute of a PRO deploy type
 func (dm *DeploymentsModel) GetFromPRO(object, instance, key string) string {
 	deploy, _ := dm.list.GetDeploymentPROType()
-	if v, keyFound := deploy.Details.GetString(object, instance, key); keyFound {
+	if v, keyFound, _ := deploy.Details.GetString(object, instance, key); keyFound {
 		return v
 	}
 	return ""
@@ -46,7 +46,7 @@ func (dm *DeploymentsModel) GetFromPRO(object, instance, key string) string {
 func (dm *DeploymentsModel) GetFromName(deployName, object, instance, key string) (ret string) {
 	if deploy, found := dm.list.GetADeployment(deployName); !found {
 		return
-	} else if v, keyFound := deploy.Details.GetString(object, instance, key); keyFound {
+	} else if v, keyFound, _ := deploy.Details.GetString(object, instance, key); keyFound {
 		return v
 	}
 	return

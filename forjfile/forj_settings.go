@@ -33,10 +33,10 @@ func (s *ForjSettingsStruct) Flags() (flags []string) {
 	return
 }
 
-func (s *ForjSettingsStruct) mergeFrom(source string, from *ForjSettingsStruct) {
+func (s *ForjSettingsStruct) mergeFrom(from *ForjSettingsStruct) {
 	for _, instance := range []string{"default", "default-repo-apps", "noinstance"} {
 		for _, flag := range from.Flags() {
-			if v, found := from.Get(instance, flag); found {
+			if v, found, source := from.Get(instance, flag); found {
 				s.Set(source, instance, flag, v.GetString())
 			}
 		}
@@ -54,13 +54,16 @@ func (f *ForjSettingsStruct) MarshalYAML() (interface{}, error) {
 	return f.ForjSettingsStructTmpl, nil
 }
 
-func (s *ForjSettingsStruct) Get(instance, key string) (value *goforjj.ValueStruct, _ bool) {
+func (s *ForjSettingsStruct) Get(instance, key string) (value *goforjj.ValueStruct, found bool, source string) {
+	source = s.sources.Get(key)
 	switch instance {
 	case "default":
 		return s.Default.Get(key)
 	case "default-repo-apps":
-		if v, found := s.RepoApps.Get(key); found {
-			return value.SetIfFound(v, (v != ""))
+		if v, found2 := s.RepoApps.Get(key); found2 {
+			value, found = value.SetIfFound(v, (v != ""))
+			source = "forjj"
+			return
 		}
 		if key != "upstream" {
 			return
@@ -69,11 +72,12 @@ func (s *ForjSettingsStruct) Get(instance, key string) (value *goforjj.ValueStru
 	}
 	switch key {
 	case "organization":
-		return value.SetIfFound(s.Organization, (s.Organization != ""))
+		value, found = value.SetIfFound(s.Organization, (s.Organization != ""))
 	default:
 		v, f := s.More[key]
-		return value.SetIfFound(v, f)
+		value, found = value.SetIfFound(v, f)
 	}
+	return
 }
 
 func (s *ForjSettingsStruct) GetInstance(instance string) interface{} {

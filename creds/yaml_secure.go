@@ -61,8 +61,9 @@ func (d *yamlSecure) save() error {
 	return nil
 }
 
-func (d *yamlSecure) SetForjValue(key, value string) (updated bool) {
+func (d *yamlSecure) SetForjValue(source, key, value string) (updated bool) {
 
+	d.sources = d.sources.Set(source, key, value)
 	if d.Forj == nil {
 		d.Forj = make(map[string]string)
 	}

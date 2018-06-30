@@ -8,10 +8,10 @@ import (
 
 type GroupsStruct map[string]*GroupStruct
 
-func (g GroupsStruct) mergeFrom(source string, from GroupsStruct) {
+func (g GroupsStruct) mergeFrom(from GroupsStruct) {
 	for k, groupFrom := range from {
 		if group, found := g[k]; found {
-			group.mergeFrom(source, groupFrom)
+			group.mergeFrom(groupFrom)
 		} else {
 			g[k] = groupFrom
 		}
@@ -45,16 +45,18 @@ func (a *GroupStruct) Flags() (flags []string) {
 	return
 }
 
-func (g *GroupStruct) Get(field string) (value *goforjj.ValueStruct, found bool) {
+func (g *GroupStruct) Get(field string) (value *goforjj.ValueStruct, found bool, source string) {
+	source = g.sources.Get(field)
 	switch field {
 	case "role":
-		return value.SetIfFound(g.Role, (g.Role != ""))
+		value, found = value.SetIfFound(g.Role, (g.Role != ""))
 	case "members":
-		return value.SetIfFound(g.Members, (g.Members != nil && len(g.Members) > 0))
+		value, found = value.SetIfFound(g.Members, (g.Members != nil && len(g.Members) > 0))
 	default:
 		v, f := g.More[field]
-		return value.SetIfFound(v, f)
+		value, found = value.SetIfFound(v, f)
 	}
+	return
 }
 
 func (g *GroupStruct) GetMembers() []string {
@@ -160,9 +162,9 @@ func (g *GroupStruct) Set(source, field, value string) {
 	return
 }
 
-func (g *GroupStruct) mergeFrom(source string, from *GroupStruct) {
+func (g *GroupStruct) mergeFrom(from *GroupStruct) {
 	for _, flag := range from.Flags() {
-		if v, found := from.Get(flag); found {
+		if v, found, source := from.Get(flag); found {
 			g.Set(source, flag, v.GetString())
 		}
 	}
