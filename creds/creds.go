@@ -218,33 +218,33 @@ func (d *Secure) SetObjectValue(env, obj_name, instance_name, key_name string, v
 }
 
 // GetString return a string representation of the value.
-func (d *Secure) GetString(objName, instanceName, keyName string) (value string, found bool, source string) {
+func (d *Secure) GetString(objName, instanceName, keyName string) (value string, found bool, source, env string) {
 	if d == nil {
 		return
 	}
-	for _, env := range []string{d.curEnv, Global} {
+	for _, env = range []string{d.curEnv, Global} {
 		if v, isFound := d.secrets.Envs[env]; isFound {
 			if value, found, source = v.getString(objName, instanceName, keyName); found {
 				return
 			}
 		}
 	}
-	return
+	return "", false, "", ""
 }
 
 // Get value of the object instance key...
-func (d *Secure) Get(objName, instanceName, keyName string) (value *goforjj.ValueStruct, found bool, source string) {
+func (d *Secure) Get(objName, instanceName, keyName string) (value *goforjj.ValueStruct, found bool, source, env string) {
 	if d == nil {
 		return
 	}
-	for _, env := range []string{d.curEnv, Global} {
+	for _, env = range []string{d.curEnv, Global} {
 		if v, isFound := d.secrets.Envs[env]; isFound {
 			if value, found, source = v.get(objName, instanceName, keyName); found {
 				return
 			}
 		}
 	}
-	return nil, false, ""
+	return nil, false, "", ""
 }
 
 // GetObjectInstance return the instance data

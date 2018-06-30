@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"forjj/scandrivers"
 	"forjj/utils"
-	"os"
-	"sort"
 	"strings"
 
 	"github.com/forj-oss/forjj-modules/trace"
@@ -15,7 +13,6 @@ import (
 	"github.com/forj-oss/forjj-modules/cli/interface"
 	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 	"github.com/forj-oss/goforjj"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 type secrets struct {
@@ -161,6 +158,7 @@ func (s *secrets) showList() {
 	scan := scandrivers.NewScanDrivers(ffd, forj_app.drivers)
 	s.list.elements = make(map[string]secretInfo)
 
+	// Retrieve secrets
 	scan.SetScanObjFlag(func(objectName, instanceName, flagPrefix, name string, flag goforjj.YamlFlag) error {
 		if flag.Options.Secure {
 			info := secretInfo{}
@@ -171,85 +169,67 @@ func (s *secrets) showList() {
 			}
 			info.keyPath += keyName
 
-			info.value, info.found, info.source = forj_app.s.GetString(objectName, instanceName, keyName)
+			info.value, info.found, info.source, info.env = forj_app.s.GetString(objectName, instanceName, keyName)
 
 			s.list.elements[info.keyPath] = info
 		}
 		return nil
 	})
-
 	scan.DoScanDriversObject()
 
-	gotrace.Trace("secrets elements found: %d", len(s.list.elements))
+	// Create terminal array
+	array := utils.NewTerminalArray(len(s.list.elements), 4)
 
-	stdin := int(os.Stdin.Fd())
-	var terminalMax int
-	if terminal.IsTerminal(stdin) {
-		terminalMax, _, _ = terminal.GetSize(stdin)
-	}
-	if terminalMax < 80 {
-		terminalMax = 80
-	}
+	// Define Columns
+	array.SetCol(0, "Path")
+	array.SetCol(1, "Environment")
+	array.SetCol(2, "Source")
+	array.SetCol(3, "Secret")
 
-	sortedList := make([]string, len(s.list.elements))
-	max := utils.NewEvalValues(5)
-	max.Eval(0, len("path"))
-	max.Eval(1, len("Source"))
-	max.Eval(2, len("secret"))
+	// Evaluate Array size
+	value := "***"
 	for secretPath, secretValue := range s.list.elements {
-		sortedList[max.CountOf(0)-1] = secretPath
-		max.Eval(0, len(secretPath))
-		max.Eval(1, len(secretValue.source))
-
 		if *s.list.show {
-			max.Eval(2, len(strings.Replace(secretValue.value, "\n", "", -1)))
+			value = strings.Replace(secretValue.value, "\n", "", -1)
 		}
-		if secretValue.found {
-			max.Eval(4, 1)
-		}
+		array.EvalLine(secretPath,
+			len(secretPath),
+			len(secretValue.source),
+			len(secretValue.env),
+			len(value))
 	}
-
-	colSize := 3
-	if max.ValueOf(0)+max.ValueOf(1)+max.ValueOf(2)+colSize*2 > terminalMax {
-		max.Eval(3, terminalMax-(max.ValueOf(0)+max.ValueOf(1)+colSize*2))
-		max.Eval(3, utils.StringCompressMin)
-	} else {
-		max.Eval(3, max.ValueOf(2))
-	}
-
-	printFormat := max.PrintfFormat("%%-%ds | %%-%ds | %%-%ds\n", 0, 1, 3)
-	tableFormat := max.PrintfFormat("%%%ds-+-%%%ds-+-%%%ds\n", 0, 1, 3)
-
-	sort.Strings(sortedList)
 
 	fmt.Print("List of secrets in forjj:\n\n")
 
-	fmt.Printf(printFormat, "Path", "Source", "Secret")
-	fmt.Printf(tableFormat,
-		strings.Repeat("-", max.ValueOf(0)),
-		strings.Repeat("-", max.ValueOf(1)),
-		strings.Repeat("-", max.ValueOf(3)),
-	)
-	for _, secretPath := range sortedList {
-		value := ""
-		secretValue := s.list.elements[secretPath]
-		if secretValue.found {
-			if *s.list.show {
-				value = utils.StringCompress(strings.Replace(secretValue.value, "\n", "", -1), 0, max.ValueOf(3))
-			} else {
-				value = "***"
+	// Print the array
+	iFound := 0
+	iTotal := 0
+	array.Print(
+		func(key string, compressedMax int) []interface{} {
+			secretValue, found := s.list.elements[key]
+			if !found {
+				return nil
 			}
 
-		}
+			iTotal++
+			value := ""
+			if secretValue.found {
+				value = "***"
+				if *s.list.show {
+					value = strings.Replace(secretValue.value, "\n", "", -1)
+				}
 
-		fmt.Printf(printFormat, secretPath, secretValue.source, value)
-	}
-	fmt.Printf(tableFormat,
-		strings.Repeat("-", max.ValueOf(0)),
-		strings.Repeat("-", max.ValueOf(1)),
-		strings.Repeat("-", max.ValueOf(3)),
+				iFound++
+			}
+			return []interface{}{
+				key,
+				secretValue.env,
+				secretValue.source,
+				utils.StringCompress(value, 0, compressedMax),
+			}
+		},
 	)
 
-	gotrace.Info("%d/%d secrets found", max.CountOf(4), len(s.list.elements))
+	gotrace.Info("%d/%d secrets found", iFound, iTotal)
 
 }
