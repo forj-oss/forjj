@@ -114,6 +114,7 @@
                 "secrets",
                 "--infra-path",
                 "/home/larsonsh/src/forj/src/forj-oss-infra/",
+                "--show",
             ]
         },
         {
