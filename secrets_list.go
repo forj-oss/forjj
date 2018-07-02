@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/forj-oss/forjj-modules/trace"
 	"fmt"
-	"strings"
-	"forjj/utils"
-	"github.com/forj-oss/goforjj"
 	"forjj/scandrivers"
+	"forjj/utils"
+	"strings"
+
 	"github.com/alecthomas/kingpin"
+	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 )
 
 type secretsList struct {
@@ -69,7 +70,7 @@ func (l *secretsList) showList() {
 			len(value))
 	}
 
-	fmt.Print("List of secrets in forjj:\n\n")
+	fmt.Printf("List of secrets in forjj: (Deployment environment = '%s')\n\n", forj_app.f.GetDeployment())
 
 	// Print the array
 	iFound := 0
@@ -101,6 +102,5 @@ func (l *secretsList) showList() {
 	)
 
 	gotrace.Info("%d/%d secrets found", iFound, iTotal)
-
 
 }

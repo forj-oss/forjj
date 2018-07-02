@@ -13,7 +13,7 @@ type secretsCommon struct {
 func (c *secretsCommon) init(context *secretsContext, cmd *kingpin.CmdClause) {
 	c.secretKey = cmd.Flag("secrets-key", "Base64 secrets symetric key. Note that the key is not stored.").Envar("FORJJ_SECRETS_KEY").String()
 	c.env = context.flag(deployToArg,
-		cmd.Flag("env", "Environ used to query/manage secrets. Use 'common' for all common secrets.")).String()
+		cmd.Flag("deploy-env", "forjj deployment environment used to query/manage secrets. Use 'common' for all common secrets. You can set 'FORJJ_DEPLOY_ENV' as environment variable.").Envar("FORJJ_DEPLOY_ENV")).String()
 	c.infraPath = context.flag(infra_path_f,
 		cmd.Flag(infra_path_f, infra_path_help)).Envar("FORJJ_INFRA").Short('W').String()
 	context.flag("contribs-repo",
