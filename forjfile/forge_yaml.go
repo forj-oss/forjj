@@ -62,7 +62,7 @@ func (f *ForgeYaml) defineDefaults(warn bool) {
 	for name, deploy := range f.Deployments {
 		if deploy.Type == DevDeployType && f.ForjCore.ForjSettings.Default.getDevDeploy() == "" {
 			comm("Defining development deployment '%s' as Default (dev-deploy).", name)
-			f.ForjCore.ForjSettings.Default.Set("dev-deploy", name)
+			f.ForjCore.ForjSettings.Default.Set("forjj", "dev-deploy", name)
 		}
 	}
 }

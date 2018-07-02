@@ -14,6 +14,24 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
+func (a *Forj) createAction(string) {
+	if err := a.Create(); err != nil {
+		log.Fatalf("Forjj create issue. %s", err)
+	}
+	log.Print("===========================================")
+	if !*a.no_maintain {
+		log.Print("Source codes are in place. Now, starting instantiating your DevOps Environment services...")
+		// This will implement the flow for the infra-repo as well.
+		a.from_create = true
+		if err := a.do_maintain(); err != nil {
+			log.Fatalf("Forjj create instance (maintain) issue. %s", err)
+		}
+	} else {
+		log.Print("Source codes are in place. Now, Please review commits, push and start instantiating your DevOps Environment services with 'forjj maintain' ...")
+	}
+	println("FORJJ - create ", a.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
+}
+
 //  initial_commit is called by infra.Create to create the initial commit with any needed files.
 func (a *Forj) initial_commit() (files []string, err error) {
 	files = []string{}
@@ -322,14 +340,14 @@ func (a *Forj) define_infra_upstream() (err error) {
 	if instance_requested == "none" && a.w.Instance == "none" {
 		gotrace.Trace("No upstream instance configured as requested by '--infra-upstream none' " +
 			"or Forjfile (infra/upstream-app:none)")
-		err = a.SetPrefs(infra_upstream_f, a.w.Instance) // Forjfile updated
+		err = a.SetPrefs("forjj", infra_upstream_f, a.w.Instance) // Forjfile updated
 		return
 	}
 
 	// Instance name is identified. Exiting.
 	if a.w.Instance != "" {
 		gotrace.Trace("Infra repository instance used: %s", a.w.Instance)
-		err = a.SetPrefs(infra_upstream_f, a.w.Instance) // Forjfile updated
+		err = a.SetPrefs("forjj", infra_upstream_f, a.w.Instance) // Forjfile updated
 		return
 	}
 
@@ -356,7 +374,7 @@ func (a *Forj) define_infra_upstream() (err error) {
 	if len(upstreams) == 1 {
 		a.w.Instance = upstreams[0].InstanceName
 		gotrace.Trace("Selected by default '%s' as upstream instance to connect '%s' repo", a.w.Instance, a.w.Infra.Name)
-		return a.SetPrefs(infra_upstream_f, a.w.Instance) // Forjfile updated
+		return a.SetPrefs("forjj", infra_upstream_f, a.w.Instance) // Forjfile updated
 	}
 
 	return fmt.Errorf("No 'upstream' application defined. At least one upstream application is required, " +

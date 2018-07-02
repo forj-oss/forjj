@@ -3,6 +3,7 @@ package forjfile
 import (
 	"fmt"
 	"forjj/drivers"
+	"forjj/sources_info"
 	"strings"
 
 	"github.com/forj-oss/forjj-modules/trace"
@@ -28,6 +29,7 @@ type RepoStruct struct {
 	More            map[string]string           `yaml:",inline"`
 	apps            map[string]*AppStruct       // List of applications connected to this repo. Defaults are added automatically.
 	Apps            map[string]string           `yaml:"in-relation-with"` // key: <AppRelName>, value: <appName>
+	sources         *sourcesinfo.Sources
 }
 
 const (
@@ -92,8 +94,8 @@ func (r *RepoStruct) mergeFrom(from *RepoStruct) {
 		return
 	}
 	for _, flag := range from.Flags() {
-		if v, found := from.Get(flag); found {
-			r.Set(flag, v.GetString())
+		if v, found, source := from.Get(flag); found {
+			r.Set(source, flag, v.GetString())
 		}
 	}
 }
@@ -144,15 +146,15 @@ func (r *RepoStruct) setFromInfra(infra *RepoStruct) {
 	delete(r.More, "name")
 }
 
-func (r *RepoStruct) GetString(field string) string {
+func (r *RepoStruct) GetString(field string) (_ string, _ string) {
 	if r == nil {
-		return ""
+		return
 	}
 
-	if v, found := r.Get(field); found {
-		return v.GetString()
+	if v, found, source := r.Get(field); found {
+		return v.GetString(), source
 	}
-	return ""
+	return
 }
 
 func (r *RepoStruct) RemoteUrl() string {
@@ -172,72 +174,79 @@ func (r *RepoStruct) RemoteGit() string {
 }
 
 // Get return the value for a field.
-func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
+func (r *RepoStruct) Get(field string) (value *goforjj.ValueStruct, found bool, source string) {
 	if r == nil {
 		return
 	}
+	source = r.sources.Get(field)
 	switch fieldSel := strings.Split(field, ":"); fieldSel[0] {
 	case FieldRepoName:
-		return value.SetIfFound(r.name, (r.name != ""))
+		value, found = value.SetIfFound(r.name, (r.name != ""))
 	case FieldRepoApps, FieldRepoUpstream:
 		if field == "upstream" {
 			gotrace.Warning("*RepoStruct.Get(): Field '%s' is obsolete. Change the code to use 'apps:upstream'.", field)
 		} else if len(fieldSel) > 1 {
 			field = fieldSel[1]
 		}
-		if v, found := r.apps[field]; found {
-			return value.SetIfFound(v.name, v != nil && v.name != "")
+		if v, found2 := r.apps[field]; found2 {
+			value, found = value.SetIfFound(v.name, v != nil && v.name != "")
+			return
 		}
-		if v, found := r.Apps[field]; found {
-			return value.SetIfFound(v, found && (v != ""))
+		if v, found2 := r.Apps[field]; found2 {
+			value, found = value.SetIfFound(v, found2 && (v != ""))
+			return
 		}
 		if field == "upstream" && r.Upstream != "" {
 			gotrace.Warning("the '%s' in /repositories/%s is obsolete. Define it as /repositories/%s/apps/%s", field,
 				r.name, r.name, field)
-			return value.SetIfFound(r.Upstream, (r.Upstream != ""))
+			value, found = value.SetIfFound(r.Upstream, (r.Upstream != ""))
+			return
 		}
-		return value.SetIfFound("", false)
+		value, found = value.SetIfFound("", false)
 	case FieldRepoGitRemote:
-		return value.SetIfFound(r.GitRemote, (r.GitRemote != ""))
+		value, found = value.SetIfFound(r.GitRemote, (r.GitRemote != ""))
 	case FieldRepoRemote:
-		return value.SetIfFound(r.remote.Ssh, (r.remote.Ssh != ""))
+		value, found = value.SetIfFound(r.remote.Ssh, (r.remote.Ssh != ""))
 	case FieldRepoRemoteURL:
-		return value.SetIfFound(r.remote.Url, (r.remote.Url != ""))
+		value, found = value.SetIfFound(r.remote.Url, (r.remote.Url != ""))
 	case FieldRepoTitle:
-		return value.SetIfFound(r.Title, (r.Title != ""))
+		value, found = value.SetIfFound(r.Title, (r.Title != ""))
 	case FieldRepoFlow:
-		return value.SetIfFound(r.Flow.Name, (r.Flow.Name != ""))
+		value, found = value.SetIfFound(r.Flow.Name, (r.Flow.Name != ""))
 	case FieldRepoTemplate:
-		return value.SetIfFound(r.RepoTemplate, (r.RepoTemplate != ""))
+		value, found = value.SetIfFound(r.RepoTemplate, (r.RepoTemplate != ""))
 	case FieldRepoDeployName:
-		return value.SetIfFound(r.deployment, (r.deployment != ""))
+		value, found = value.SetIfFound(r.deployment, (r.deployment != ""))
 	case FieldRepoDeployType:
-		if v, found := r.forge.Deployments[r.deployment]; found {
-			return value.SetIfFound(v.Type, found)
+		if v, found2 := r.forge.Deployments[r.deployment]; found2 {
+			value, found = value.SetIfFound(v.Type, found2)
+			return
 		}
-		return value.SetIfFound("", false)
+		value, found = value.SetIfFound("", false)
 	case FieldRepoRole:
-		return value.SetIfFound(r.Role(), true)
+		value, found = value.SetIfFound(r.Role(), true)
 	case FieldCurrentDeployRepo:
 		if r.isCurrentDeploy {
-			return value.SetIfFound("true", true)
+			value, found = value.SetIfFound("true", true)
+			return
 		}
-		return value.SetIfFound("false", true)
+		value, found = value.SetIfFound("false", true)
 	default:
 		v, f := r.More[field]
-		return value.SetIfFound(v, f)
+		value, found = value.SetIfFound(v, f)
 	}
+	return
 }
 
 // SetHandler is the generic setter function.
-func (r *RepoStruct) SetHandler(from func(field string) (string, bool), keys ...string) {
+func (r *RepoStruct) SetHandler(source string, from func(field string) (string, bool), keys ...string) {
 	if r == nil {
 		return
 	}
 
 	for _, key := range keys {
 		if v, found := from(key); found {
-			r.Set(key, v)
+			r.Set(source, key, v)
 		}
 	}
 }
@@ -306,7 +315,7 @@ func (r *RepoStruct) initApp() (_ error) {
 	return
 }
 
-func (r *RepoStruct) Set(field, value string) {
+func (r *RepoStruct) Set(source, field, value string) {
 	if r == nil {
 		return
 	}
@@ -388,6 +397,7 @@ func (r *RepoStruct) Set(field, value string) {
 
 		}
 	}
+	r.sources = r.sources.Set(source, field, value)
 }
 
 func (r *RepoStruct) SetInstanceOwner(owner string) {
@@ -461,7 +471,7 @@ func (r *RepoStruct) HasApps(rules ...string) (found bool, err error) {
 				found = false
 				break
 			}
-			v, found2 := app.Get(ruleToCheck[0])
+			v, found2, _ := app.Get(ruleToCheck[0])
 			if ruleToCheck[1] == "*" {
 				if found2 {
 					continue
@@ -503,7 +513,7 @@ func (r *RepoStruct) GetApps(rules ...string) (apps map[string]*AppStruct, err e
 				found = false
 				break
 			}
-			v, found2 := app.Get(ruleToCheck[0])
+			v, found2, _ := app.Get(ruleToCheck[0])
 			if ruleToCheck[1] == "*" {
 				if found2 {
 					continue
@@ -530,7 +540,7 @@ func (r *RepoStruct) HasValues(rules ...string) (found bool, err error) {
 			err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
 			return
 		}
-		if v, found2 := r.Get(ruleToCheck[0]); found2 && v.GetString() != ruleToCheck[1] {
+		if v, found2, _ := r.Get(ruleToCheck[0]); found2 && v.GetString() != ruleToCheck[1] {
 			found = false
 			break
 		}

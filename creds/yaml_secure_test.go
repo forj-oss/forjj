@@ -15,16 +15,17 @@ func Test_YamlSecure_SetForjValue(t *testing.T) {
 	const (
 		key1   = "key1"
 		value1 = "value1"
+		source = "source"
 	)
 
 	// ------------- call the function
-	s.SetForjValue(key1, value1)
+	s.SetForjValue(source, key1, value1)
 
 	// -------------- testing
 	if s.Forj == nil {
 		t.Error("Expected s.Forj to be set. Got nil")
 	} else if l := len(s.Forj); l != 1 {
-		t.Error("Expected s.Forj to have 1 element. Got %d.", l)
+		t.Errorf("Expected s.Forj to have 1 element. Got %d.", l)
 	} else if v, found := s.Forj[key1]; !found {
 		t.Errorf("Expected s.Forj[%s] to exist. Not found", key1)
 	} else if v != value1 {
@@ -45,12 +46,13 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 		key1      = "key1"
 		value1    = "value1"
 		value2    = "value2"
+		src1      = "src1"
 	)
 
 	// ------------- call the function
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	result := s.setObjectValue(object1, instance1, key1, value)
+	result := s.setObjectValue(src1, object1, instance1, key1, value)
 
 	// -------------- testing
 	if s.Objects == nil {
@@ -77,10 +79,12 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to be '%s'. Got '%s'", object1, instance1, key1, v4, value1)
 	} else if !result {
 		t.Error("Expected setObjectValue to return true. got false.")
+	} else if v5 := s.sources.Get(object1 + "/" + instance1 + "/" + key1); v5 != src1 {
+		t.Errorf("Expected setObjectValue to return source '%s'. got '%s'.", src1, v5)
 	}
 
 	// ------------- call the function
-	result = s.setObjectValue(object1, instance1, key1, value)
+	result = s.setObjectValue(src1, object1, instance1, key1, value)
 
 	// -------------- testing
 	if result {
@@ -89,7 +93,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 
 	// ------------- call the function
 	value.Set(value2)
-	result = s.setObjectValue(object1, instance1, key1, value)
+	result = s.setObjectValue(src1, object1, instance1, key1, value)
 
 	// -------------- testing
 	if !result {
@@ -97,7 +101,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 	}
 
 	// ------------- call the function
-	result = s.setObjectValue(object2, instance1, key1, value)
+	result = s.setObjectValue(src1, object2, instance1, key1, value)
 
 	// -------------- testing
 	if s.Objects == nil {
@@ -112,7 +116,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 	value.Set(value2)
 	// ------------- call the function
 	// Set a new instance, key and value
-	result = s.setObjectValue(object2, instance2, key1, value)
+	result = s.setObjectValue(src1, object2, instance2, key1, value)
 
 	// -------------- testing
 	if s.Objects == nil {
@@ -152,14 +156,15 @@ func Test_YamlSecure_get(t *testing.T) {
 		key2      = "key2"
 		value1    = "value1"
 		value2    = "value2"
+		src1      = "src1"
 	)
 
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	s.setObjectValue(object1, instance1, key1, value)
+	s.setObjectValue(src1, object1, instance1, key1, value)
 	// ------------- call the function
 
-	result, found := s.get(object1, instance1, key1)
+	result, found, _ := s.get(object1, instance1, key1)
 	// -------------- testing
 	if result == nil {
 		t.Error("Expected result to be set. Got nil")
@@ -170,7 +175,7 @@ func Test_YamlSecure_get(t *testing.T) {
 	}
 
 	// ------------- call the function
-	result, found = s.get(object2, instance1, key1)
+	result, found, _ = s.get(object2, instance1, key1)
 
 	// -------------- testing
 	if result != nil {
@@ -183,7 +188,7 @@ func Test_YamlSecure_get(t *testing.T) {
 	value.Set(value2)
 
 	// ------------- call the function
-	result, found = s.get(object1, instance1, key1)
+	result, found, _ = s.get(object1, instance1, key1)
 
 	// -------------- testing
 	if result.Equal(value) {
@@ -195,7 +200,7 @@ func Test_YamlSecure_get(t *testing.T) {
 	result.Set(value2)
 
 	// ------------- call the function
-	result, found = s.get(object1, instance1, key1)
+	result, found, _ = s.get(object1, instance1, key1)
 
 	// -------------- testing
 	if result.Equal(value) {
@@ -223,7 +228,7 @@ objects:
 		return
 	}
 	// ------------- call the function
-	result, found = s.get(appObj, appIns, appKey)
+	result, found, _ = s.get(appObj, appIns, appKey)
 
 	if found {
 		t.Errorf("Expect to not found any values. Got one.")
@@ -244,7 +249,7 @@ objects:
 		return
 	}
 	// ------------- call the function
-	result, found = s.get(appObj, appIns, appKey)
+	result, found, _ = s.get(appObj, appIns, appKey)
 
 	if found {
 		t.Errorf("Expect to not found any values. Got one.")
@@ -266,7 +271,7 @@ objects:
 		return
 	}
 	// ------------- call the function
-	result, found = s.get(appObj, appIns, appKey)
+	result, found, _ = s.get(appObj, appIns, appKey)
 
 	if found {
 		t.Errorf("Expect to not found any values. Got one.")
@@ -289,7 +294,7 @@ objects:
 		return
 	}
 	// ------------- call the function
-	result, found = s.get(appObj, appIns, appKey)
+	result, found, _ = s.get(appObj, appIns, appKey)
 
 	if found {
 		t.Errorf("Expect to not found any values. Got one.")

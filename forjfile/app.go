@@ -2,6 +2,7 @@ package forjfile
 
 import (
 	"fmt"
+	"forjj/sources_info"
 
 	"github.com/forj-oss/goforjj"
 )
@@ -15,6 +16,7 @@ const (
 type AppStruct struct {
 	forge         *ForgeYaml
 	name          string
+	sources       *sourcesinfo.Sources
 	AppYamlStruct `yaml:",inline"`
 }
 
@@ -33,6 +35,11 @@ type AppFlowYaml struct {
 	name    string
 	Service string `yaml:"used-as,omitempty"`
 	Options map[string]string
+}
+
+func NewAppStruct() (ret *AppStruct) {
+	ret = new(AppStruct)
+	return
 }
 
 func (a *AppStruct) Flags() (flags []string) {
@@ -85,32 +92,33 @@ func (a *AppStruct) Name() string {
 	return a.name
 }
 
-// Get return the flag value. 
+// Get return the flag value.
 // found is true if value exist in more or if the value is not empty
-func (a *AppStruct) Get(flag string) (value *goforjj.ValueStruct, _ bool) {
+func (a *AppStruct) Get(flag string) (value *goforjj.ValueStruct, found bool, source string) {
+	source = a.sources.Get(flag)
 	switch flag {
 	case appName:
-		return value.Set(a.name), (a.name != "")
+		value, found = value.Set(a.name), (a.name != "")
 	case appType:
-		return value.Set(a.Type), (a.Type != "")
+		value, found = value.Set(a.Type), (a.Type != "")
 	case appDriver:
-		return value.Set(a.Driver), (a.Driver != "")
+		value, found = value.Set(a.Driver), (a.Driver != "")
 	default:
 		v, f := a.more[flag]
-		return value.SetIfFound(v.Get(), f)
+		value, found = value.SetIfFound(v.Get(), f)
 	}
 	return
 }
 
-func (r *AppStruct) SetHandler(from func(field string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
+func (r *AppStruct) SetHandler(source string, from func(field string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
 	for _, key := range keys {
 		if v, found := from(key); found {
-			r.Set(key, v, set)
+			r.Set(key, v, source, set)
 		}
 	}
 }
 
-func (a *AppStruct) Set(flag, value string, set func(*ForjValue, string) bool) {
+func (a *AppStruct) Set(source, flag, value string, set func(*ForjValue, string) bool) {
 	switch flag {
 	case "name":
 		if a.name != value {
@@ -141,6 +149,7 @@ func (a *AppStruct) Set(flag, value string, set func(*ForjValue, string) bool) {
 			}
 		}
 	}
+	a.sources = a.sources.Set(source, flag, value)
 	return
 }
 
@@ -150,8 +159,8 @@ func (g *AppStruct) set_forge(f *ForgeYaml) {
 
 func (a *AppStruct) mergeFrom(from *AppStruct) {
 	for _, flag := range from.Flags() {
-		if v, found := from.Get(flag); found {
-			a.Set(flag, v.GetString(), (*ForjValue).Set)
+		if v, found, source := from.Get(flag); found {
+			a.Set(source, flag, v.GetString(), (*ForjValue).Set)
 		}
 	}
 }

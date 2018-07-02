@@ -44,7 +44,7 @@
             ]
         },
         {
-            "name": "forjj: Do maintain to test",
+            "name": "forjj: Do maintain forj-oss-infra to dev",
             "type": "go",
             "request": "launch",
             "mode": "debug",
@@ -56,10 +56,10 @@
             "args": [
                 "maintain",
                 "--infra-path",
-                "/home/larsonsh/tmp/forjj-test",
-                "--run-plugin-debugger",
-                "github,jenkins",
-                "test"
+                "/home/larsonsh/src/forj/src/forj-oss-infra/",
+                //"--run-plugin-debugger",
+                //"github,jenkins",
+                "dev"
             ]
         },
         {
@@ -82,40 +82,57 @@
             ]
         },
         {
-            "name": "forjj: Do update forjj_test on test env",
+            "name": "forjj: Do update forj-oss-infra on dev env",
             "type": "go",
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceFolder}",
             "env": {
                 "GOTRACE": "true",
-                "DOCKER_SUDO": "sudo"
+                "DOCKER_SUDO": "sudo -S"
             },
             "args": [
                 "update",
+                //"--run-plugin-debugger",
+                //"jenkins",
                 "--infra-path",
-                "/home/larsonsh/tmp/forjj-test",
-                "--run-plugin-debugger",
-                "github,jenkins",
-                "test"
+                "/home/larsonsh/src/forj/src/forj-oss-infra/",
+                "--flows-repo=/home/larsonsh/src/forj/src/forjj-flows"
             ]
         },
         {
-            "name": "forjj: Do update forjj_test on production env",
+            "name": "forjj: show secrets from forj-oss-infra on default dev env",
             "type": "go",
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceFolder}",
             "env": {
                 "GOTRACE": "true",
+                "DOCKER_SUDO": "sudo -S"
+            },
+            "args": [
+                "secrets",
+                "--infra-path",
+                "/home/larsonsh/src/forj/src/forj-oss-infra/",
+                "--show",
+            ]
+        },
+        {
+            "name": "forjj: Do update forj-oss-infra on production env",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "env": {
+                "GOTRACE": "false",
                 "DOCKER_SUDO": "sudo"
             },
             "args": [
                 "update",
                 "--infra-path",
-                "/home/larsonsh/tmp/forjj-test",
-                "--run-plugin-debugger",
-                "github,jenkins",
+                "/home/larsonsh/src/forj/src/forj-oss-infra",
+                //"--run-plugin-debugger",
+                //"github,jenkins",
                 "production"
             ]
         },
@@ -139,6 +156,25 @@
             ]
         },
         {
+            "name": "forjj: Do maintain forjj_test on dev env",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}",
+            "env": {
+                "GOTRACE": "true",
+                "DOCKER_SUDO": "sudo"
+            },
+            "args": [
+                "maintain",
+                "--infra-path",
+                "/home/larsonsh/tmp/forjj-test",
+                "--run-plugin-debugger",
+                "github,jenkins",
+                "dev"
+            ]
+        },
+       {
             "name": "forjj: Help from update",
             "type": "go",
             "request": "launch",

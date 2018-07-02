@@ -18,7 +18,7 @@ func (a *Forj) FlowApply() error {
 	ffd := a.f.InMemForjfile()
 	bInError := false
 	defaultFlowToApply := "default"
-	if v, found := a.f.Get("settings", "default", "flow"); found {
+	if v, found, _ := a.f.Get("settings", "default", "flow"); found {
 		defaultFlowToApply = v.GetString()
 	}
 
@@ -34,7 +34,8 @@ func (a *Forj) FlowApply() error {
 		}
 
 		if err := a.flows.Apply(flowToApply, repo, ffd); err != nil { // Applying Flow to Forjfile repo
-			gotrace.Error("Repo '%s': %s", repo.GetString("name"), err)
+			name , _ := repo.GetString("name")
+			gotrace.Error("Repo '%s': %s", name, err)
 			bInError = true
 		}
 	}

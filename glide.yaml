@@ -1,8 +1,8 @@
 package: forjj
 import:
 - package: github.com/alecthomas/kingpin
-  repo: https://github.com/clarsonneur/kingpin
   version: get-commands-from-context
+  repo: https://github.com/clarsonneur/kingpin
 - package: github.com/kvz/logstreamer
 - package: github.com/forj-oss/goforjj
 - package: github.com/forj-oss/forjj-modules
@@ -10,3 +10,6 @@ import:
   subpackages:
   - proxy
 - package: gopkg.in/yaml.v2
+- package: golang.org/x/crypto
+  subpackages:
+  - ssh/terminal

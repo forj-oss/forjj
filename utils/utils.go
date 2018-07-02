@@ -54,3 +54,28 @@ func ArrayStringDelete(a []string, element string) []string {
 	}
 	return a
 }
+
+const StringCompressMin = 7
+
+// StringCompress compress a string to display to a maximum given
+// if the str is higher, it will be cut in the middle with "..."
+// min must be higher than 7 bytes. 
+// If max is lower than min, max will be set to min to ensure the size returned is never
+// under min or 7 bytes
+func StringCompress(str string, min, max int) (ret string) {
+	if min < StringCompressMin {
+		min = StringCompressMin
+	}
+	if max < min {
+		max = min
+	}
+
+	size := len(str)
+	if size <= max {
+		return str
+	}
+	midMin := max/2-2
+	midMax := max/2-1
+	ret = str[0:midMin] + "..." + str[size-midMax:]
+	return
+}

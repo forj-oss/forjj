@@ -312,15 +312,15 @@ func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action
 }
 
 func (a *Forj) moveSecureAppData(ffd *forjfile.DeployForgeYaml, deploy, flag_name string, missing_required bool) error {
-	if v, found := ffd.GetString("settings", "", flag_name); found {
-		a.s.SetForjValue(deploy, flag_name, v)
+	if v, found, source := ffd.GetString("settings", "", flag_name); found {
+		a.s.SetForjValue(deploy, source, flag_name, v)
 		ffd.Remove("settings", "", flag_name)
 		gotrace.Trace("Moving secure flag data '%s' from Forjfile to creds.yaml", flag_name)
 		return nil
 	}
 	if v, error := a.cli.GetAppStringValue(flag_name); error == nil {
 		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
-		a.s.SetForjValue(deploy, flag_name, v)
+		a.s.SetForjValue(deploy, "forjj", flag_name, v)
 		return nil
 	}
 	if missing_required {
@@ -332,27 +332,27 @@ func (a *Forj) moveSecureAppData(ffd *forjfile.DeployForgeYaml, deploy, flag_nam
 func (a *Forj) copyCliData(deploy, flag_name, def_value string) {
 	if v, error := a.cli.GetAppStringValue(flag_name); error == nil && v != "" {
 		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
-		a.s.SetForjValue(deploy, flag_name, v)
+		a.s.SetForjValue(deploy, "forjj", flag_name, v)
 	} else {
 		if def_value != "" {
 			gotrace.Trace("Setting Forjfile flag '%s' default value to '%s'", flag_name, def_value)
-			a.s.SetForjValue(deploy, flag_name, def_value)
+			a.s.SetForjValue(deploy, "forjj", flag_name, def_value)
 		}
 	}
 }
 
 func (a *Forj) moveSecureObjectData(ffd *forjfile.DeployForgeYaml, deploy, object_name, instance, flag_name string, missing_required bool) error {
-	if v, found := ffd.Get(object_name, instance, "secret_"+flag_name); found {
+	if v, found, source := ffd.Get(object_name, instance, "secret_"+flag_name); found {
 		// each key can have a secret_<key> value defined, stored in secret and can be refered in the Forjfile
 		// with {{ Current.Creds.<flag_name> }}
-		a.s.SetObjectValue(deploy, object_name, instance, flag_name, v)
+		a.s.SetObjectValue(deploy, source , object_name, instance, flag_name, v)
 		ffd.Remove(object_name, instance, flag_name)
 
 		gotrace.Trace("Removing and setting secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
 			object_name, instance, "secret_"+flag_name)
 	}
-	if v, found := ffd.Get(object_name, instance, flag_name); found {
-		a.s.SetObjectValue(deploy, object_name, instance, flag_name, v)
+	if v, found, source := ffd.Get(object_name, instance, flag_name); found {
+		a.s.SetObjectValue(deploy, source, object_name, instance, flag_name, v)
 		// When no template value is set in Forjfile flag value, (default case in next code line)
 		// forjj will consider this string '{{ .Current.Creds.<flag_name> }}' as way to extract it
 		// The Forjfile can define that flag value to a different template. A simple string is not
@@ -363,21 +363,21 @@ func (a *Forj) moveSecureObjectData(ffd *forjfile.DeployForgeYaml, deploy, objec
 		return nil
 	}
 	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name); found {
-		a.s.SetObjectValue(deploy, object_name, instance, flag_name, new(goforjj.ValueStruct).Set(v))
+		a.s.SetObjectValue(deploy, "forjj", object_name, instance, flag_name, new(goforjj.ValueStruct).Set(v))
 		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
 		return nil
 	}
-	if _, found3 := a.s.Get(object_name, instance, flag_name); !found3 && missing_required {
+	if _, found3, _, _ := a.s.Get(object_name, instance, flag_name); !found3 && missing_required {
 		return fmt.Errorf("Missing required %s %s flag '%s' value.", object_name, instance, flag_name)
 	}
 	return nil
 }
 
 func (a *Forj) setSecureObjectData(ffd *forjfile.DeployForgeYaml, deploy, object_name, instance, flag_name string, missing_required bool) error {
-	if v, found := ffd.Get(object_name, instance, "secret-"+flag_name); found {
+	if v, found, source := ffd.Get(object_name, instance, "secret-"+flag_name); found {
 		// each key can have a secret_<key> value defined, stored in secret and can be referred in the Forjfile
 		// with {{ Current.Creds.<flag_name> }}
-		a.s.SetObjectValue(deploy, object_name, instance, flag_name, v)
+		a.s.SetObjectValue(deploy, source, object_name, instance, flag_name, v)
 		ffd.Remove(object_name, instance, "secret-"+flag_name)
 		gotrace.Trace("Moving secret Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
 			object_name, instance, "secret-"+flag_name)
@@ -413,11 +413,11 @@ func (a *Forj) objectGetInstances(object_name string) (ret []string) {
 
 func (a *Forj) copyCliObjectData(ffd *forjfile.DeployForgeYaml, object_name, instance, flag_name, def_value string) {
 	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name); found && v != "" {
-		ffd.Set(object_name, instance, flag_name, v)
+		ffd.Set("forjj", object_name, instance, flag_name, v)
 		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
 	} else {
 		if def_value != "" {
-			ffd.SetDefault(object_name, instance, flag_name, def_value)
+			ffd.SetDefault("forjj", object_name, instance, flag_name, def_value)
 			gotrace.Trace("Setting Forjfile flag '%s/%s:%s' default value to '%s'",
 				object_name, instance, flag_name, def_value)
 		}
@@ -456,7 +456,7 @@ func (a *Forj) scanCreds(ffd *forjfile.DeployForgeYaml, deploy string, missing b
 			return nil
 		})
 
-	return s.DoScanDriversObject(deploy)
+	return s.DoScanDriversObject()
 }
 
 func (a *Forj) scanAndSetDefaults(ffd *forjfile.DeployForgeYaml, deploy string) error {
@@ -479,7 +479,7 @@ func (a *Forj) scanAndSetDefaults(ffd *forjfile.DeployForgeYaml, deploy string) 
 			return nil
 		})
 
-	return s.DoScanDriversObject(deploy)
+	return s.DoScanDriversObject()
 }
 
 // DispatchObjectFlags is dispatching Forjfile template data between Forjfile and creds
@@ -530,10 +530,10 @@ func (a *Forj) IsRepoManaged(d *drivers.Driver, object_name, instance_name strin
 // RepoManagedBy return the upstream instance name that is identified to have the ownership
 func (a *Forj) RepoManagedBy(object_name, instance_name string) (_ string) {
 	// Determine if the upstream instance is set to this instance.
-	if v, found := a.f.GetString(object_name, instance_name, "git-remote"); found && v != "" {
+	if v, found, _ := a.f.GetString(object_name, instance_name, "git-remote"); found && v != "" {
 		return
 	}
-	if v, found := a.f.GetString(object_name, instance_name, "apps:upstream"); found {
+	if v, found, _ := a.f.GetString(object_name, instance_name, "apps:upstream"); found {
 		return v
 	}
 	return
@@ -600,7 +600,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 				if flag.Options.Secure {
 					// From creds.yml
 					def_value := "{{ (index .Current.Creds \"" + key + "\").GetString }}"
-					if v, found := ffd.Get(object_name, instance_name, key); found {
+					if v, found, _ := ffd.Get(object_name, instance_name, key); found {
 						if s := v.GetString(); strings.HasPrefix("{{", s) {
 							def_value = s
 						}
@@ -608,7 +608,7 @@ func (a *Forj) GetObjectsData(r *goforjj.PluginReqData, d *drivers.Driver, actio
 					value.Set(def_value)
 				} else {
 					// From Forjfile
-					if v, found := ffd.Get(object_name, instance_name, key); !found {
+					if v, found, _ := ffd.Get(object_name, instance_name, key); !found {
 						gotrace.Trace("%s/%s: NOT ADDED: Key '%s' has not been found in Forjfile. ", object_name, instance_name, key)
 						continue
 					} else {
@@ -669,7 +669,8 @@ func (a *Forj) DefineDeployRepositories(ffd *forjfile.DeployForgeYaml, warning b
 				return fmt.Errorf("The infra '%s' repository can't be a deployment repository. Please, fix your Forjfile accordingly", repoName)
 			}
 			if r := deploy.AttachedRepo(); r != nil {
-				return fmt.Errorf("You can't define multiple deployment repository. Deployment '%s' is already attached to '%s'. Fix your Forjfile", deploy.Name(), r.GetString(forjfile.FieldRepoName))
+				name, _ := r.GetString(forjfile.FieldRepoName)
+				return fmt.Errorf("You can't define multiple deployment repository. Deployment '%s' is already attached to '%s'. Fix your Forjfile", deploy.Name(), name)
 			}
 			deploy.AttachRepo(repo, a.w.Organization)
 			gotrace.Trace("Declared repo '%s' is attached to '%s' deployment", repoName, deploy.Name())
@@ -685,7 +686,8 @@ func (a *Forj) DefineDeployRepositories(ffd *forjfile.DeployForgeYaml, warning b
 				return fmt.Errorf("Deployment repository can't be your Infra Source repository '%s'. Fix your Forjfile", stdRepoName)
 			}
 			if r := deploy.AttachedRepo(); r != nil {
-				gotrace.Warning("Found repository '%s'. It has not been attached to '%s' because you declared '%s' as deployment repository.", stdRepoName, deploy.Name(), r.GetString(forjfile.FieldRepoName))
+				name, _ := r.GetString(forjfile.FieldRepoName)
+				gotrace.Warning("Found repository '%s'. It has not been attached to '%s' because you declared '%s' as deployment repository.", stdRepoName, deploy.Name(), name)
 				continue
 			}
 			deploy.AttachRepo(repo, a.w.Organization)
@@ -694,14 +696,14 @@ func (a *Forj) DefineDeployRepositories(ffd *forjfile.DeployForgeYaml, warning b
 		}
 
 		repo := ffd.NewRepoStruct(stdRepoName)
-		repo.Set(forjfile.FieldRepoTitle, strings.Title(deployName)+" deployment code generated by Forjj from "+a.f.GetInfraName()+".")
-		repo.Set("issue_tracker", "false") // if the upstream detect this parameter disable the issue tracker.
-		repo.Set(forjfile.FieldRepoFlow, "default")
+		repo.Set("forjj", forjfile.FieldRepoTitle, strings.Title(deployName)+" deployment code generated by Forjj from "+a.f.GetInfraName()+".")
+		repo.Set("forjj", "issue_tracker", "false") // if the upstream detect this parameter disable the issue tracker.
+		repo.Set("forjj", forjfile.FieldRepoFlow, "default")
 		deploy.AttachRepo(repo, a.w.Organization)
 		// TODO: Set defaults and internals automatically.
 		repo.Register()
 		if v, found := a.f.GetUpstreamApps(); found && len(v) != 1 {
-			repo.Set(forjfile.FieldRepoUpstream, a.w.Instance)
+			repo.Set("forjj", forjfile.FieldRepoUpstream, a.w.Instance)
 		}
 		if warning {
 			gotrace.Warning("Deployment Repository '%s' added automatically. We suggest you to declare it in your main Forjfile.", stdRepoName)

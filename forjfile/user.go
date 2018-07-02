@@ -1,34 +1,26 @@
 package forjfile
 
-import "github.com/forj-oss/goforjj"
-
-type UsersStruct map[string]*UserStruct
-
-func (u UsersStruct) mergeFrom(from UsersStruct) {
-	for k, userFrom := range from {
-		if user, found := u[k]; found {
-			user.mergeFrom(userFrom)
-		} else {
-			u[k] = userFrom
-		}
-	}
-}
+import (
+	"forjj/sources_info"
+	"github.com/forj-oss/goforjj"
+)
 
 const (
 	userRole = "role"
 )
 
 type UserStruct struct {
-	forge *ForgeYaml
-	Role  string
-	More  map[string]string `yaml:",inline"`
+	forge   *ForgeYaml
+	Role    string
+	More    map[string]string `yaml:",inline"`
+	sources *sourcesinfo.Sources
 }
 
 // TODO: Add struct unit tests
 
 // Flags returns the list of keys found in this object.
-func (u *UserStruct) Flags() (flags []string){
-	flags = make([]string, 1, 1 + len(u.More))
+func (u *UserStruct) Flags() (flags []string) {
+	flags = make([]string, 1, 1+len(u.More))
 	flags[0] = userRole
 	for k := range u.More {
 		flags = append(flags, k)
@@ -39,32 +31,33 @@ func (u *UserStruct) Flags() (flags []string){
 
 func (u *UserStruct) mergeFrom(from *UserStruct) {
 	for _, flag := range from.Flags() {
-		if v, found := from.Get(flag); found {
-			u.Set(flag, v.GetString())
+		if v, found, source := from.Get(flag); found {
+			u.Set(source, flag, v.GetString())
 		}
 	}
 }
 
-func (u *UserStruct) Get(field string) (value *goforjj.ValueStruct, _ bool) {
+func (u *UserStruct) Get(field string) (value *goforjj.ValueStruct, found bool, source string) {
+	source = u.sources.Get(field)
 	switch field {
 	case userRole:
-		return value.SetIfFound(u.Role, (u.Role != ""))
+		value, found = value.SetIfFound(u.Role, (u.Role != ""))
 	default:
 		v, f := u.More[field]
-		return value.SetIfFound(v, f)
+		value, found = value.SetIfFound(v, f)
 	}
 	return
 }
 
-func (r *UserStruct) SetHandler(from func(field string) (string, bool), keys ...string) {
+func (r *UserStruct) SetHandler(source string, from func(field string) (string, bool), keys ...string) {
 	for _, key := range keys {
 		if v, found := from(key); found {
-			r.Set(key, v)
+			r.Set(source, key, v)
 		}
 	}
 }
 
-func (u *UserStruct) Set(field, value string) {
+func (u *UserStruct) Set(source, field, value string) {
 	switch field {
 	case userRole:
 		if u.Role != value {
@@ -85,6 +78,7 @@ func (u *UserStruct) Set(field, value string) {
 			}
 		}
 	}
+	u.sources = u.sources.Set(source, field, value)
 	return
 }
 

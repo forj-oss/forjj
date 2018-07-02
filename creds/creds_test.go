@@ -17,21 +17,21 @@ func TestInitEnvDefaults(t *testing.T) {
 	)
 
 	// Run the function
-	t.Log("Running d.InitEnvDefault('%s', '%s')", myPath, prod)
+	t.Logf("Running d.InitEnvDefault('%s', '%s')", myPath, prod)
 	d.InitEnvDefaults(myPath, prod)
 
 	// Test the result
 	if v := d.defaultPath; v != myPath {
 		t.Errorf("Expected %s to have '%s'. Got '%s'", "defaultPath", prod, v)
 	}
-	if d.envs == nil {
-		t.Errorf("Expected %s to be set. Got nil", "envs")
-	} else if n := len(d.envs); n != 2 {
-		t.Errorf("Expected %s to have '%d' elements. Got '%d'", "envs", 2, n)
-	} else if _, found := d.envs[Global]; !found {
-		t.Errorf("Expected %s to have '%s' elements. Not found.", "envs", Global)
-	} else if _, found := d.envs[prod]; !found {
-		t.Errorf("Expected %s to have '%s' elements. Not found.", "envs", prod)
+	if d.secrets.Envs == nil {
+		t.Errorf("Expected %s to be set. Got nil", "secrets.Envs")
+	} else if n := len(d.secrets.Envs); n != 2 {
+		t.Errorf("Expected %s to have '%d' elements. Got '%d'", "secrets.Envs", 2, n)
+	} else if _, found := d.secrets.Envs[Global]; !found {
+		t.Errorf("Expected %s to have '%s' elements. Not found.", "secrets.Envs", Global)
+	} else if _, found := d.secrets.Envs[prod]; !found {
+		t.Errorf("Expected %s to have '%s' elements. Not found.", "secrets.Envs", prod)
 	}
 }
 
@@ -49,8 +49,8 @@ func TestSetDefaultFile(t *testing.T) {
 	d.SetDefaultFile(prod)
 
 	// Test the result
-	if d.envs != nil {
-		t.Errorf("Expected %s to be unset. Got it set.", "envs")
+	if d.secrets.Envs != nil {
+		t.Errorf("Expected %s to be unset. Got it set.", "secrets.Envs")
 	}
 
 	// Define the environment
@@ -60,15 +60,15 @@ func TestSetDefaultFile(t *testing.T) {
 	d.SetDefaultFile(prod)
 
 	// Test the result
-	if d.envs != nil {
-		if v, found := d.envs[Global]; found {
+	if d.secrets.Envs != nil {
+		if v, found := d.secrets.Envs[Global]; found {
 			if ref := d.DefineDefaultCredFileName(myPath, Global); v.file != ref {
-				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "envs[global]", ref, v.file)
+				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "secrets.Envs[global]", ref, v.file)
 			}
 		}
-		if v, found := d.envs[prod]; found {
+		if v, found := d.secrets.Envs[prod]; found {
 			if ref := d.DefineDefaultCredFileName(myPath, prod); v.file != ref {
-				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "envs[prod]", ref, v.file)
+				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "secrets.Envs[prod]", ref, v.file)
 			}
 		}
 	}
@@ -88,8 +88,8 @@ func TestSetFile(t *testing.T) {
 	d.SetFile(path.Join(myPath, myFile), prod)
 
 	// Test the result
-	if d.envs != nil {
-		t.Errorf("Expected %s to be unset. Got it set.", "envs")
+	if d.secrets.Envs != nil {
+		t.Errorf("Expected %s to be unset. Got it set.", "secrets.Envs")
 	}
 
 	// Define the environment
@@ -99,15 +99,15 @@ func TestSetFile(t *testing.T) {
 	d.SetFile(path.Join(myPath, myFile), prod)
 
 	// Test the result
-	if d.envs != nil {
-		if v, found := d.envs[Global]; found {
+	if d.secrets.Envs != nil {
+		if v, found := d.secrets.Envs[Global]; found {
 			if ref := d.DefineDefaultCredFileName(myPath, Global); v.file != ref {
-				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "envs[global]", ref, v.file)
+				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "secrets.Envs[global]", ref, v.file)
 			}
 		}
-		if v, found := d.envs[prod]; found {
+		if v, found := d.secrets.Envs[prod]; found {
 			if ref := path.Join(myPath, myFile); v.file != ref {
-				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "envs[prod]", ref, v.file)
+				t.Errorf("Expected %s to have '%s' elements. Got '%s'.", "secrets.Envs[prod]", ref, v.file)
 			}
 		}
 	}
@@ -135,11 +135,12 @@ func TestSetForjValue(t *testing.T) {
 		myPath = "myPath"
 		myFile = "myFile"
 		prod   = "prod"
+		source = "source"
 	)
 	s.InitEnvDefaults(myPath, prod)
 
 	// ------------- call the function
-	updated, err := s.SetForjValue(prod, key1, value1)
+	updated, err := s.SetForjValue(prod, source, key1, value1)
 
 	// -------------- testing
 	if !updated {
@@ -168,21 +169,26 @@ func TestSetObjectValue(t *testing.T) {
 		myPath    = "myPath"
 		myFile    = "myFile"
 		prod      = "prod"
+		source    = "source"
 	)
 	s.InitEnvDefaults(myPath, prod)
 
 	// ------------- call the function
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	updated := s.SetObjectValue(prod, object1, instance1, key1, value)
+	updated := s.SetObjectValue(prod, source, object1, instance1, key1, value)
 
 	// -------------- testing
 	if !updated {
 		t.Error("Expected s.SetObjectValue to return updated = true. Got false")
-	} else if v, found := s.Get(object1, instance1, key1); !found {
+	} else if v, found, src, env := s.Get(object1, instance1, key1); !found {
 		t.Error("Expected value to be found. Got false")
 	} else if v1 := v.GetString(); v1 != value1 {
 		t.Errorf("Expected value to be '%s'. Got '%s'", v1, value1)
+	} else if src != source {
+		t.Errorf("Expected value to be found from source '%s'. Got '%s'", source, src)
+	} else if env != prod {
+		t.Errorf("Expected value to be found from env '%s'. Got '%s'", prod, env)
 	}
 }
 
@@ -200,11 +206,12 @@ func TestGetObjectInstance(t *testing.T) {
 		myPath    = "myPath"
 		myFile    = "myFile"
 		prod      = "prod"
+		source    = "source"
 	)
 	s.InitEnvDefaults(myPath, prod)
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	s.SetObjectValue(prod, object1, instance1, key1, value)
+	s.SetObjectValue(prod, source, object1, instance1, key1, value)
 
 	// ------------- call the function
 	result := s.GetObjectInstance(object1, instance1)
@@ -229,7 +236,7 @@ func TestGetObjectInstance(t *testing.T) {
 
 	// --------------- Change context
 	value.Set(value2)
-	s.SetObjectValue(Global, object1, instance1, key1, value)
+	s.SetObjectValue(Global, source, object1, instance1, key1, value)
 
 	// ------------- call the function
 	result = s.GetObjectInstance(object1, instance1)
@@ -247,7 +254,7 @@ func TestGetObjectInstance(t *testing.T) {
 
 	// --------------- Change context
 	value.Set(value1)
-	s.SetObjectValue(Global, object2, instance1, key1, value)
+	s.SetObjectValue(Global, source, object2, instance1, key1, value)
 
 	// ------------- call the function
 	result1 := s.GetObjectInstance(object1, instance1)

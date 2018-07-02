@@ -47,42 +47,9 @@ func main() {
 	//	TODO : Use cli : Re-apply following function
 	// forj_app.InitializeDriversAPI()
 	defer forj_app.driver_cleanup_all()
-	switch kingpin.MustParse(parse, err) {
-	case val_act:
-		if err := forj_app.Validate(); err != nil {
-			log.Fatalf("Forjj maintain issue. %s", err)
-		}
-	case cr_act:
-		if err := forj_app.Create(); err != nil {
-			log.Fatalf("Forjj create issue. %s", err)
-		}
-		log.Print("===========================================")
-		if !*forj_app.no_maintain {
-			log.Print("Source codes are in place. Now, starting instantiating your DevOps Environment services...")
-			// This will implement the flow for the infra-repo as well.
-			forj_app.from_create = true
-			if err := forj_app.do_maintain() ; err != nil {
-				log.Fatalf("Forjj create instance (maintain) issue. %s", err)
-			}
-		} else {
-			log.Print("Source codes are in place. Now, Please review commits, push and start instantiating your DevOps Environment services with 'forjj maintain' ...")
-		}
-		println("FORJJ - create ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
-
-	case "update":
-		if err := forj_app.Update(); err != nil {
-			log.Fatalf("Forjj update issue. %s", err)
-		}
-		println("FORJJ - update ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
-
-	case "maintain":
-		if err := forj_app.Maintain(); err != nil {
-			log.Fatalf("Forjj maintain issue. %s", err)
-		}
-		println("FORJJ - maintain ", forj_app.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
-	default:
-		// add/change/remove/rename => update
-		// list => special case.
+	action := kingpin.MustParse(parse, err)
+	if f, found := forj_app.actionDispatch[forj_app.contextAction] ; found {
+		f(action)
 	}
 }
 

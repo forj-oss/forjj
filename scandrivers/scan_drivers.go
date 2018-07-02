@@ -10,7 +10,6 @@ import (
 
 type ScanDrivers struct {
 	ffd                *forjfile.DeployForgeYaml
-	deploy             string
 	missing            bool
 	drivers            map[string]*drivers.Driver
 	taskFlag           func(name string, flag goforjj.YamlFlag) error
@@ -90,11 +89,11 @@ func (s *ScanDrivers) checkScanParameters() error {
 }
 
 // DoScanDriversObject start the loop on drivers tasks and objects.
-func (s *ScanDrivers) DoScanDriversObject(deploy string) (err error) {
+func (s *ScanDrivers) DoScanDriversObject() (err error) {
 	if err := s.checkScanParameters(); err != nil { // No Forjfile loaded.
 		return nil
 	}
-	s.deploy = deploy
+
 	for _, driver := range s.drivers {
 		// Tasks flags
 		for _, task := range driver.Plugin.Yaml.Tasks {

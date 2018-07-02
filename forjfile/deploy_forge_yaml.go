@@ -6,6 +6,7 @@ import (
 
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
+	"forjj/sources_info"
 )
 
 // DeployForgeYaml represents a dedicated deployed Forge.
@@ -21,6 +22,7 @@ type DeployForgeYaml struct {
 	Groups        GroupsStruct
 	// Collection of Object/Name/Keys=values
 	More map[string]map[string]ForjValues `yaml:",inline,omitempty"`
+	sources       *sourcesinfo.Sources
 }
 
 // NewDeployForgeYaml creates an empty pre-initialized object.
@@ -56,9 +58,9 @@ func (f *DeployForgeYaml) Init(forge *ForgeYaml) bool {
 }
 
 // GetString return the value in String. It ignore the origin of the data (default or not)
-func (f *DeployForgeYaml) GetString(object, instance, key string) (string, bool) {
-	v, found := f.Get(object, instance, key)
-	return v.GetString(), found
+func (f *DeployForgeYaml) GetString(object, instance, key string) (string, bool, string) {
+	v, found, source := f.Get(object, instance, key)
+	return v.GetString(), found, source
 }
 
 // GetInstances return a list of instances from an object type.
@@ -132,7 +134,7 @@ func (f *DeployForgeYaml) GetInstances(object string) (ret []string) {
 }
 
 // Get return the value of the object instance key as ValueStruct.
-func (f *DeployForgeYaml) Get(object, instance, key string) (value *goforjj.ValueStruct, _ bool) {
+func (f *DeployForgeYaml) Get(object, instance, key string) (value *goforjj.ValueStruct, _ bool, source string) {
 	if !f.init() {
 		return
 	}
@@ -146,10 +148,10 @@ func (f *DeployForgeYaml) Get(object, instance, key string) (value *goforjj.Valu
 				return
 			}
 			if v, found := f.Infra.More["name"]; found && v != "" {
-				return value.Set(v), true
+				return value.Set(v), true, "forjj"
 			}
 			if f.Infra.name != "" {
-				return value.Set(f.Infra.name), true
+				return value.Set(f.Infra.name), true, "forjj"
 			}
 		}
 		return f.Infra.Get(key)
@@ -182,7 +184,7 @@ func (f *DeployForgeYaml) Get(object, instance, key string) (value *goforjj.Valu
 			if key != "" {
 				return repo.Get(key)
 			}
-			return nil, found
+			return nil, found, ""
 		}
 	case "settings":
 		return f.ForjSettings.Get(instance, key)
@@ -193,11 +195,11 @@ func (f *DeployForgeYaml) Get(object, instance, key string) (value *goforjj.Valu
 }
 
 // Set a value to the object instance key.
-func (f *DeployForgeYaml) Set(object, name, key, value string) {
+func (f *DeployForgeYaml) Set(source, object, name, key, value string) {
 	from := func(string) (string, bool) {
 		return value, (value != "")
 	}
-	f.SetHandler(object, name, from, (*ForjValue).Set, key)
+	f.SetHandler(source, object, name, from, (*ForjValue).Set, key)
 }
 
 // Remove a key value found in the object instance
@@ -206,31 +208,31 @@ func (f *DeployForgeYaml) Remove(object, name, key string) {
 		return "", true
 	}
 
-	f.SetHandler(object, name, from, (*ForjValue).Clean, key)
+	f.SetHandler("", object, name, from, (*ForjValue).Clean, key)
 }
 
 // SetDefault a value as default value in the object instance key.
-func (f *DeployForgeYaml) SetDefault(object, name, key, value string) {
+func (f *DeployForgeYaml) SetDefault(source, object, name, key, value string) {
 	from := func(string) (string, bool) {
 		return value, (value != "")
 	}
-	f.SetHandler(object, name, from, (*ForjValue).SetDefault, key)
+	f.SetHandler(source, object, name, from, (*ForjValue).SetDefault, key)
 }
 
 // SetHandler define the core set function, and call `from` function to determine the source of the data. (set/default or not found)
-func (f *DeployForgeYaml) SetHandler(object, name string, from func(string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
+func (f *DeployForgeYaml) SetHandler(source, object, name string, from func(string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
 	if !f.init() {
 		return
 	}
 	switch object {
 	case "infra":
-		f.Infra.SetHandler(from, keys...)
+		f.Infra.SetHandler(source, from, keys...)
 	case "user":
 		if f.Users == nil {
 			f.Users = make(map[string]*UserStruct)
 		}
 		if user, found := f.Users[name]; found {
-			user.SetHandler(from, keys...)
+			user.SetHandler(source, from, keys...)
 		} else {
 			newuser := UserStruct{}
 			newuser.set_forge(f.forge)
@@ -241,7 +243,7 @@ func (f *DeployForgeYaml) SetHandler(object, name string, from func(string) (str
 			f.Groups = make(map[string]*GroupStruct)
 		}
 		if group, found := f.Groups[name]; found {
-			group.SetHandler(from, keys...)
+			group.SetHandler(source, from, keys...)
 		} else {
 			newgroup := GroupStruct{}
 			newgroup.set_forge(f.forge)
@@ -249,34 +251,39 @@ func (f *DeployForgeYaml) SetHandler(object, name string, from func(string) (str
 		}
 	case "app":
 		if f.Apps == nil {
-			f.Apps = make(map[string]*AppStruct)
+			f.Apps = make(AppsStruct)
 		}
-		if app, found := f.Apps[name]; found {
-			app.SetHandler(from, set, keys...)
-		} else {
-			newapp := AppStruct{}
-			newapp.set_forge(f.forge)
-			f.Apps[name] = &newapp
+		var (
+			app   *AppStruct
+			found bool
+		)
+		if app, found = f.Apps[name]; !found {
+			app = NewAppStruct()
+			app.set_forge(f.forge)
+		}
+		app.SetHandler(source, from, set, keys...)
+		if !found {
+			f.Apps[name] = app
 		}
 	case "repo":
 		if f.Repos == nil {
 			f.Repos = make(map[string]*RepoStruct)
 		}
 		if repo, found := f.Repos[name]; found {
-			repo.SetHandler(from, keys...)
+			repo.SetHandler(source, from, keys...)
 		} else {
 			newrepo := RepoStruct{}
 			newrepo.set_forge(f.forge)
 			f.Repos[name] = &newrepo
-			newrepo.SetHandler(func(string) (string, bool) {
+			newrepo.SetHandler(source, func(string) (string, bool) {
 				return name, true
 			}, FieldRepoName)
-			newrepo.SetHandler(from, keys...)
+			newrepo.SetHandler(source, from, keys...)
 		}
 	case "settings", "forj-settings":
-		f.ForjSettings.SetHandler(name, from, keys...)
+		f.ForjSettings.SetHandler(source, name, from, keys...)
 	default:
-		f.setHandler(object, name, from, set, keys...)
+		f.setHandler(source, object, name, from, set, keys...)
 	}
 }
 
@@ -340,7 +347,7 @@ func (f *DeployForgeYaml) HasApps(rules ...string) (found bool, err error) {
 				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'", rule)
 				return
 			}
-			if v, found2 := app.Get(ruleToCheck[0]); found2 && v.GetString() != ruleToCheck[1] {
+			if v, found2, _ := app.Get(ruleToCheck[0]); found2 && v.GetString() != ruleToCheck[1] {
 				found = false
 				break
 			}
@@ -373,7 +380,7 @@ func (f *DeployForgeYaml) NewRepoStruct(name string) (repo *RepoStruct) {
 
 // ---------------- private functions
 
-func (f *DeployForgeYaml) get(object, instance, key string) (value *goforjj.ValueStruct, found bool) {
+func (f *DeployForgeYaml) get(object, instance, key string) (value *goforjj.ValueStruct, found bool, source string) {
 	if obj, f1 := f.More[object]; f1 {
 		if instance, f2 := obj[instance]; f2 {
 			v, f3 := instance[key]
@@ -383,7 +390,7 @@ func (f *DeployForgeYaml) get(object, instance, key string) (value *goforjj.Valu
 	return
 }
 
-func (f *DeployForgeYaml) setHandler(object, instance string, from func(string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
+func (f *DeployForgeYaml) setHandler(source, object, instance string, from func(string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
 	var objectData map[string]ForjValues
 	var instanceData ForjValues
 
@@ -418,8 +425,8 @@ func (f *DeployForgeYaml) setHandler(object, instance string, from func(string) 
 				instanceData[key] = v
 				f.forge.updated = true
 			}
+			f.sources.Set(source, key, v.Get())
 		}
-
 	}
 }
 

@@ -16,8 +16,9 @@ func (r *RepoModel) From(repo *RepoStruct) {
 }
 
 // Get return value for any recognized fields of a repository object.
-func (r RepoModel) Get(field string) string {
-	return r.repo.GetString(field)
+func (r RepoModel) Get(field string) (val string) {
+	val, _ = r.repo.GetString(field)
+	return
 }
 
 // RemoteUrl return the remote URL field
@@ -36,8 +37,9 @@ func (r RepoModel) UpstreamAPIUrl() string {
 }
 
 // Role return the repository role
-func (r RepoModel) Role() string {
-	return r.repo.GetString("role")
+func (r RepoModel) Role() (val string) {
+	val, _ = r.repo.GetString("role")
+	return
 }
 
 // Owner return the repository owner field

@@ -272,13 +272,13 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 			} else {
 				repo_obj = r
 			}
-			repo_obj.Set("remote", Repo.Remotes["origin"].Ssh)
-			repo_obj.Set("remote-url", Repo.Remotes["origin"].Url)
+			repo_obj.Set("forjj", "remote", Repo.Remotes["origin"].Ssh)
+			repo_obj.Set("forjj", "remote-url", Repo.Remotes["origin"].Url)
 			repo_obj.SetInstanceOwner(Repo.Owner)
 			repo_obj.SetPluginOwner(d)
 			if a.f.GetInfraName() == Name { // 'infra' *Repostruct is a copy, not a ref to the repos["<infra>"] *RepoStruct
-				ffd.Set("infra", Name, "remote", Repo.Remotes["origin"].Ssh)
-				ffd.Set("infra", Name, "remote-url", Repo.Remotes["origin"].Url)
+				ffd.Set("forjj", "infra", Name, "remote", Repo.Remotes["origin"].Ssh)
+				ffd.Set("forjj", "infra", Name, "remote-url", Repo.Remotes["origin"].Url)
 			}
 
 			// New repo code which could be created with repo-templates
@@ -294,7 +294,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 			}
 
 			// Current deploy only
-			if deployName, found := repo_obj.Get(forjfile.FieldRepoDeployName); found && repo_obj.IsCurrentDeploy() {
+			if deployName, found, _ := repo_obj.Get(forjfile.FieldRepoDeployName); found && repo_obj.IsCurrentDeploy() {
 				deployObj, _ := a.f.GetADeployment(deployName.GetString())
 
 				deployObj.RunInContext(func() (_ error) {

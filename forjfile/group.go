@@ -1,6 +1,8 @@
 package forjfile
 
 import (
+	"forjj/sources_info"
+
 	"github.com/forj-oss/goforjj"
 )
 
@@ -22,6 +24,7 @@ type GroupStruct struct {
 	Role    string            `yaml:",omitempty"`
 	Members []string          `yaml:",omitempty"`
 	More    map[string]string `yaml:",inline"`
+	sources *sourcesinfo.Sources
 }
 
 const (
@@ -42,16 +45,18 @@ func (a *GroupStruct) Flags() (flags []string) {
 	return
 }
 
-func (g *GroupStruct) Get(field string) (value *goforjj.ValueStruct, found bool) {
+func (g *GroupStruct) Get(field string) (value *goforjj.ValueStruct, found bool, source string) {
+	source = g.sources.Get(field)
 	switch field {
 	case "role":
-		return value.SetIfFound(g.Role, (g.Role != ""))
+		value, found = value.SetIfFound(g.Role, (g.Role != ""))
 	case "members":
-		return value.SetIfFound(g.Members, (g.Members != nil && len(g.Members) > 0))
+		value, found = value.SetIfFound(g.Members, (g.Members != nil && len(g.Members) > 0))
 	default:
 		v, f := g.More[field]
-		return value.SetIfFound(v, f)
+		value, found = value.SetIfFound(v, f)
 	}
+	return
 }
 
 func (g *GroupStruct) GetMembers() []string {
@@ -122,15 +127,15 @@ func (g *GroupStruct) set_forge(f *ForgeYaml) {
 	g.forge = f
 }
 
-func (r *GroupStruct) SetHandler(from func(field string) (string, bool), keys ...string) {
+func (r *GroupStruct) SetHandler(source string, from func(field string) (string, bool), keys ...string) {
 	for _, key := range keys {
 		if v, found := from(key); found {
-			r.Set(key, v)
+			r.Set(source, key, v)
 		}
 	}
 }
 
-func (g *GroupStruct) Set(field, value string) {
+func (g *GroupStruct) Set(source, field, value string) {
 	switch field {
 	case "role":
 		if value != g.Role {
@@ -153,13 +158,14 @@ func (g *GroupStruct) Set(field, value string) {
 			}
 		}
 	}
+	g.sources = g.sources.Set(source, field, value)
 	return
 }
 
 func (g *GroupStruct) mergeFrom(from *GroupStruct) {
 	for _, flag := range from.Flags() {
-		if v, found := from.Get(flag); found {
-			g.Set(flag, v.GetString())
+		if v, found, source := from.Get(flag); found {
+			g.Set(source, flag, v.GetString())
 		}
 	}
 }

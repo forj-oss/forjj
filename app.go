@@ -51,8 +51,12 @@ type Forj struct {
 	cli *cli.ForjCli // ForjCli data
 	app *kingpin.Application
 
-	//	CurrentCommand clier.CmdClauser // Current Command
-	//	CurrentObject  clier.CmdClauser // Current Object
+	secrets secrets
+
+	contextAction string // Context action defined in ParseContext.
+	// Can be create/update or maintain. But it can be any others, like secrets...
+
+	actionDispatch map[string]func(string)
 
 	CurrentPluginDriver *drivers.Driver // Driver executing
 	InfraPluginDriver   *drivers.Driver // Driver used by upstream
@@ -139,10 +143,10 @@ const (
 
 // ForjModel is used by template mechanism
 type ForjModel struct {
-	Forjfile *forjfile.DeployForgeModel
+	Forjfile    *forjfile.DeployForgeModel
 	Deployments *forjfile.DeploymentsModel
-	Current  ForjCurrentModel
-	Secret   string
+	Current     ForjCurrentModel
+	Secret      string
 }
 
 // ForjCurrentModel is a sub struct of ForjModel
@@ -159,14 +163,14 @@ type ForjCurrentModel struct {
 func (a *Forj) Model(object_name, instance_name, key string) *ForjModel {
 	ffd := a.f.InMemForjfile()
 	data := ForjModel{
-		Forjfile: forjfile.NewDeployForgeModel(ffd),
+		Forjfile:    forjfile.NewDeployForgeModel(ffd),
 		Deployments: forjfile.NewDeploymentsModel(a.f.GetDeployments()),
 		Current: ForjCurrentModel{
-			Type:  object_name,
-			Name:  instance_name,
+			Type:       object_name,
+			Name:       instance_name,
 			Deployment: a.f.GetDeployment(),
-			Data:  ffd.GetObjectInstance(object_name, instance_name),
-			Creds: a.s.GetObjectInstance(object_name, instance_name),
+			Data:       ffd.GetObjectInstance(object_name, instance_name),
+			Creds:      a.s.GetObjectInstance(object_name, instance_name),
 		},
 	}
 	data.Secret = ""
@@ -198,6 +202,8 @@ func (a *Forj) init() {
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 
+	a.secrets.init(a.app)
+
 	var version string
 	if PRERELEASE {
 		version = "forjj pre-release V" + VERSION
@@ -228,6 +234,13 @@ func (a *Forj) init() {
 	a.cli.AddAppFlag(cli.String, cred_f, forjj_creds_help, opts_creds_file)
 	a.cli.AddAppFlag(cli.String, debug_instance_f, "List of plugin instances in debug mode, comma separeted.",
 		nil)
+
+	a.actionDispatch = make(map[string]func(string))
+	a.actionDispatch[cr_act] = a.createAction
+	a.actionDispatch[upd_act] = a.updateAction
+	a.actionDispatch[maint_act] = a.maintainAction
+	a.actionDispatch[val_act] = a.validateAction
+	a.actionDispatch["secrets"] = a.secrets.action
 
 	a.drivers = make(map[string]*drivers.Driver)
 	a.plugins = goforjj.NewPlugins()
@@ -403,7 +416,7 @@ func (a *Forj) init() {
 		// Add Update workspace flags to Create action, not prefixed.
 		// ex: forjj update --docker-exe-path ...
 		AddActionFlagsFromObjectAction(workspace, chg_act).
-		AddArg(cli.String, deployToArg, updateDeployToHelp,nil).
+		AddArg(cli.String, deployToArg, updateDeployToHelp, nil).
 		AddFlag(cli.Bool, "deploy-publish", updateDeployPublishHelp, nil).
 		AddFlag(cli.String, "ssh-dir", create_ssh_dir_help, nil) == nil {
 		log.Printf("action update: %s", a.cli.Error())
@@ -426,13 +439,23 @@ func (a *Forj) init() {
 	a.AddMap(infra_name_f, infra, "", infra_name_f, infra, "", "name")
 	a.AddMap(infra_upstream_f, infra, "", infra_upstream_f, infra, "", "apps:upstream")
 	a.AddMap(infra_path_f, workspace, "", infra_path_f, workspace, "", infra_path_f)
+	a.AddMapFunc("secrets", infra_path_f, a.secrets.GetStringValue)
+
+	a.AddMap("contribs-repo", workspace, "", "contribs-repo", "", "", "contrib-repo-path")
+	a.AddMapFunc("secrets", "contribs-repo", a.secrets.GetStringValue)
+
+	a.AddMap("flows-repo", workspace, "", "flows-repo", "", "", "flow-repo-path")
+	a.AddMapFunc("secrets", "flows-repo", a.secrets.GetStringValue)
+
+	a.AddMap("repotemplates-repo", workspace, "", "repotemplates-repo", "", "", "repotemplate-repo-path")
+	a.AddMapFunc("secrets", "repotemplates-repo", a.secrets.GetStringValue)
 	// TODO: Add git-remote cli mapping
 }
 
 // LoadInternalData()
 func (a *Forj) LoadInternalData() {
 	a.InternalForjData = make(map[string]string)
-	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount", "deploy-mount", "username"}
+	ldata := []string{"organization", "infra", "infra-upstream", "instance-name", "source-mount", "workspace-mount", "deploy-mount", "username", "secrets"}
 	for _, param := range ldata {
 		a.InternalForjData[param] = a.getInternalData(param)
 	}
@@ -485,6 +508,9 @@ func (a *Forj) getInternalData(param string) (result string) {
 		}
 	case "username": // username running forjj command.
 		result = os.Getenv("LOGNAME")
+	case "secrets": // all secrets that forjj has global and for current deployment. The text is encrypted.
+		// TODO: get encrypted data
+		result = ""
 	}
 	gotrace.Trace("'%s' requested. Value returned '%s'", param, result)
 	return

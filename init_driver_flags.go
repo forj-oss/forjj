@@ -1,14 +1,15 @@
 package main
 
 import (
-	"github.com/forj-oss/forjj-modules/cli"
-	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
+	"forjj/drivers"
+	"forjj/utils"
 	"log"
 	"regexp"
 	"sort"
-	"forjj/drivers"
-	"forjj/utils"
+
+	"github.com/forj-oss/forjj-modules/cli"
+	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 )
 
 // initDriverObjectFlags internally used by init_driver_flags()
@@ -76,7 +77,7 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 			id.a.init_driver_flags_for(id.d, option_name, "", forjj_option_name, flag_options.Help, flag_opts)
 		} else {
 			id.a.init_driver_flags_for(id.d, option_name, command, forjj_option_name, flag_options.Help, flag_opts)
-			if  command == maint_act && !no_maintain {
+			if command == maint_act && !no_maintain {
 				gotrace.Trace("Adding `maintain` flag '%s' to `create` action.", option_name)
 				id.a.init_driver_flags_for(id.d, option_name, cr_act, forjj_option_name, flag_options.Help, flag_opts)
 			} else {
@@ -92,11 +93,12 @@ func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string
 //
 // If a value is found in both creds and Forjfile, creds is chosen.
 func (id *initDriverObjectFlags) task_has_value(flag string) (value string, found bool) {
-	value, found = id.a.s.GetString(id.object_name, id.object_instance_name, flag)
+	value, found, _, _ = id.a.s.GetString(id.object_name, id.object_instance_name, flag)
 	if found { // Any credential data are simply ignored
 		return
 	}
-	return id.a.f.GetString("settings", "", flag)
+	value, found, _ = id.a.f.GetString("settings", "", flag)
+	return
 }
 
 // determine_object identify an existing object or create a new one with a key if not single.
@@ -158,11 +160,11 @@ func (id *initDriverObjectFlags) prepare_actions_list() {
 // - at yaml flag level (/objects/<object_name>/flags/<flag_name>)
 // - at yaml object level (/objects/<object_name>)
 // - from object role
-func (id *initDriverObjectFlags) is_field_object_scope(flag_det *goforjj.YamlFlag) (bool) {
-	if v := flag_det.FieldScope ; v != "" {
+func (id *initDriverObjectFlags) is_field_object_scope(flag_det *goforjj.YamlFlag) bool {
+	if v := flag_det.FieldScope; v != "" {
 		return (v == "object")
 	}
-	if v := id.object_det.FieldsScope ; v != "" {
+	if v := id.object_det.FieldsScope; v != "" {
 		return (v == "object")
 	}
 	return (id.obj.HasRole() == "object-scope")
@@ -172,12 +174,12 @@ func (id *initDriverObjectFlags) is_field_object_scope(flag_det *goforjj.YamlFla
 func (id *initDriverObjectFlags) add_object_field_to_cmds(flag_name string, flag_det *goforjj.YamlFlag) {
 
 	// We can add only APP object fields. A warning is displayed if set to some other objects.
-	if o := id.object_name ; o != app {
-		 if len(flag_det.CliCmdActions) > 0 {
-			 gotrace.Warning("FORJJ Driver '%s-%s': The object '%s' flag '%s' cli-exported-for-actions ignored. This parameter is " +
-				 "only supported on '%s' object type",
-				 id.d.DriverType, id.d.Name, o, flag_name, app)
-		 }
+	if o := id.object_name; o != app {
+		if len(flag_det.CliCmdActions) > 0 {
+			gotrace.Warning("FORJJ Driver '%s-%s': The object '%s' flag '%s' cli-exported-for-actions ignored. This parameter is "+
+				"only supported on '%s' object type",
+				id.d.DriverType, id.d.Name, o, flag_name, app)
+		}
 		return
 	}
 
@@ -306,10 +308,10 @@ func (id *initDriverObjectFlags) add_object_actions_flags(
 // - at yaml flag level (/objects/<object_name>/flags/<flag_name>)
 // - at yaml object level (/objects/<object_name>)
 // - from object role
-func (id *initDriverObjectFlags) is_flag_object_scope(flag_name string, flag_det *goforjj.YamlFlag) (bool) {
+func (id *initDriverObjectFlags) is_flag_object_scope(flag_name string, flag_det *goforjj.YamlFlag) bool {
 	if v := flag_det.FlagScope; v != "" {
 		// if the flag exist as a global field, so we can't create an instance flag. No instance.
-		if found, asObjectField := id.obj.IsObjectField(flag_name) ; v == "instance" && found && asObjectField{
+		if found, asObjectField := id.obj.IsObjectField(flag_name); v == "instance" && found && asObjectField {
 			return true
 		}
 		return (v == "object")
@@ -358,5 +360,6 @@ func (id *initDriverObjectFlags) object_instance_has_value(flag string) (value s
 	if found {
 		return
 	}
-	return id.a.f.GetString(id.object_name, id.object_instance_name ,flag)
+	value, found, _ = id.a.f.GetString(id.object_name, id.object_instance_name, flag)
+	return
 }

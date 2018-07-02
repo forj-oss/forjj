@@ -230,7 +230,7 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 	}
 
 	if deployTo == "" { // if deploy was not requested, it will use the default dev-deploy if set by defineDefaults or Forjfile.
-		if v, found := f.Get("settings", "default", "dev-deploy"); found {
+		if v, found, _ := f.Get("settings", "default", "dev-deploy"); found {
 			deployTo = v.GetString()
 			gotrace.Info("Default DEV deployment environment selected: %s", deployTo)
 		}
@@ -636,13 +636,13 @@ func (f *Forge) GetInfraInstance() (_ string) {
 	return forge.Infra.Upstream
 }
 
-func (f *Forge) GetString(object, instance, key string) (string, bool) {
-	v, found := f.Get(object, instance, key)
-	return v.GetString(), found
+func (f *Forge) GetString(object, instance, key string) (string, bool, string) {
+	v, found, source := f.Get(object, instance, key)
+	return v.GetString(), found, source
 }
 
 // Get return the value and status of the object instance key
-func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _ bool) {
+func (f *Forge) Get(object, instance, key string) (value *goforjj.ValueStruct, _ bool, source string) {
 	if !f.Init() {
 		return
 	}
@@ -714,20 +714,20 @@ func (f *Forge) Remove(object, name, key string) {
 	forge.Remove(object, name, key)
 }
 
-func (f *Forge) Set(object, name, key, value string) {
+func (f *Forge) Set(source, object, name, key, value string) {
 	forge := f.selectCore()
 	if forge == nil {
 		return
 	}
-	forge.Set(object, name, key, value)
+	forge.Set(source, object, name, key, value)
 }
 
-func (f *Forge) SetDefault(object, name, key, value string) {
+func (f *Forge) SetDefault(source, object, name, key, value string) {
 	forge := f.selectCore()
 	if forge == nil {
 		return
 	}
-	forge.SetDefault(object, name, key, value)
+	forge.SetDefault(source, object, name, key, value)
 }
 
 func (f *Forge) IsDirty() bool {
@@ -853,7 +853,8 @@ func (f *Forge) Validate() error {
 
 		for relAppName, appName := range repo.Apps {
 			if _, err := repo.SetInternalRelApp(relAppName, appName); err != nil {
-				return fmt.Errorf("Repo '%s' has an invalid Application reference '%s: %s'. %s", repo.GetString("name"), relAppName, appName, err)
+				name, _ := repo.GetString("name")
+				return fmt.Errorf("Repo '%s' has an invalid Application reference '%s: %s'. %s", name, relAppName, appName, err)
 			}
 		}
 	}
