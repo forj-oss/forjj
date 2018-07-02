@@ -16,6 +16,11 @@ type secretsList struct {
 	elements map[string]secretInfo
 }
 
+func (l *secretsList) init(parentCmd *kingpin.CmdClause) {
+	l.cmd = parentCmd.Command("list", "Show all credentials of the factory").Default()
+	l.show = l.cmd.Flag("show", "Show password unencrypted.").Bool()
+}
+
 // Display the list of secrets
 func (l *secretsList) showList() {
 	ffd := forj_app.f.InMemForjfile()
