@@ -57,10 +57,10 @@ func (t *TerminalArray) Print(getLineData func(key string, compressedMax int) []
 	colSize := 3
 
 	// Evaluate terminal width
-	stdin := int(os.Stdin.Fd())
+	stdout := int(os.Stdout.Fd())
 	var terminalMax int
-	if terminal.IsTerminal(stdin) {
-		terminalMax, _, _ = terminal.GetSize(stdin)
+	if terminal.IsTerminal(stdout) {
+		terminalMax, _, _ = terminal.GetSize(stdout)
 	}
 	if terminalMax < 80 {
 		terminalMax = 80

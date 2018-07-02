@@ -108,7 +108,7 @@ func (d *Secure) Load() error {
 // Save security files (global + deployment one)
 func (d *Secure) Save() error {
 	if d == nil {
-		return fmt.Errorf("Secure object is nil.")
+		return fmt.Errorf("Secure object is nil")
 	}
 	inError := false
 	for _, env := range d.secrets.Envs {
@@ -118,7 +118,24 @@ func (d *Secure) Save() error {
 		}
 	}
 	if inError {
-		return fmt.Errorf("Issues detected while loading credential files")
+		return fmt.Errorf("Issues detected while saving credential files")
+	}
+	return nil
+}
+
+// SaveEnv security file.
+//
+// If env == global, it will save the global file.
+func (d *Secure) SaveEnv(env string) error {
+	if d == nil {
+		return fmt.Errorf("Secure object is nil")
+	}
+	if envData, found := d.secrets.Envs[env]; found {
+		if err := envData.save(); err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("Unknown deployment environment '%s'", env)
 	}
 	return nil
 }

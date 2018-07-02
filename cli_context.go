@@ -78,6 +78,10 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		gotrace.Warning("%s", err)
 	}
 
+	if a.f.GetDeployment() == "global" && (utils.InStringList(a.contextAction, val_act, cr_act, upd_act, maint_act) != "") {
+		return fmt.Errorf("'global' is not a valid deployment environment"), false
+	}
+
 	// Set organization name to use.
 	if err := a.set_organization_name(); err != nil {
 		a.w.SetError(err)
