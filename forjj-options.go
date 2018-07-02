@@ -54,12 +54,14 @@ func (a *Forj) SetDefault(action string) {
 }
 
 // LoadForge loads the forjj options definitions from the LoadContext().
-func (a *Forj) LoadForge(deployTo string) (err error) {
+func (a *Forj) LoadForge() (err error) {
 	if v := a.forjfile_tmpl_path; v != "" && a.w.InfraPath() == v {
 		gotrace.Info("If your Forfile template has defined local settings and/or credentials data, those data will " +
 			"be moved to the internal forjj workspace.")
 		return
 	}
+
+	deployTo, _, _ := a.GetPrefs(deployToArg) // cli or Forjfile(empty) or cli default
 
 	_, err = a.f.Load(deployTo)
 

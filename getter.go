@@ -55,7 +55,18 @@ func (a *Forj) GetPrefs(field string) (string, bool, error) {
 		entry = e
 	}
 
-	v, found, isdefault, err := a.cli.GetStringValue(entry.cli_obj, entry.cli_instance, entry.cli_field)
+	var (
+		v         string
+		found     bool
+		isdefault bool
+		err       error
+	)
+
+	if f, funcFound := entry.cliFuncs[a.contextAction]; funcFound {
+		v, found, isdefault, err = f(field)
+	} else {
+		v, found, isdefault, err = a.cli.GetStringValue(entry.cli_obj, entry.cli_instance, entry.cli_field)
+	}
 	if err != nil {
 		gotrace.Trace("Unable to get data from cli. %s", err)
 		err = nil

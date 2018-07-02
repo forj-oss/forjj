@@ -438,17 +438,20 @@ func (a *Forj) init() {
 	a.AddMap(orga_f, workspace, "", orga_f, "settings", "", orga_f)
 	a.AddMap(infra_name_f, infra, "", infra_name_f, infra, "", "name")
 	a.AddMap(infra_upstream_f, infra, "", infra_upstream_f, infra, "", "apps:upstream")
+	a.AddMap(deployToArg, "_app", "forjj", deployToArg, "settings", "default", "dev-deploy")
+	a.AddMapFunc("secrets", deployToArg, a.secrets.context.GetStringValue)
+
 	a.AddMap(infra_path_f, workspace, "", infra_path_f, workspace, "", infra_path_f)
-	a.AddMapFunc("secrets", infra_path_f, a.secrets.GetStringValue)
+	a.AddMapFunc("secrets", infra_path_f, a.secrets.context.GetStringValue)
 
 	a.AddMap("contribs-repo", workspace, "", "contribs-repo", "", "", "contrib-repo-path")
-	a.AddMapFunc("secrets", "contribs-repo", a.secrets.GetStringValue)
+	a.AddMapFunc("secrets", "contribs-repo", a.secrets.context.GetStringValue)
 
 	a.AddMap("flows-repo", workspace, "", "flows-repo", "", "", "flow-repo-path")
-	a.AddMapFunc("secrets", "flows-repo", a.secrets.GetStringValue)
+	a.AddMapFunc("secrets", "flows-repo", a.secrets.context.GetStringValue)
 
 	a.AddMap("repotemplates-repo", workspace, "", "repotemplates-repo", "", "", "repotemplate-repo-path")
-	a.AddMapFunc("secrets", "repotemplates-repo", a.secrets.GetStringValue)
+	a.AddMapFunc("secrets", "repotemplates-repo", a.secrets.context.GetStringValue)
 	// TODO: Add git-remote cli mapping
 }
 

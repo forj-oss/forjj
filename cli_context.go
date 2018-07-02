@@ -41,7 +41,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		return nil, false
 	}
 
-	a.secrets.defineContext(c.GetParseContext())
+	a.secrets.context.defineContext(c.GetParseContext())
 	if a.contextAction == cr_act || a.contextAction == val_act {
 		// Detect and load a Forjfile template given.
 		if err := a.LoadForjfile(a.contextAction); err != nil {
@@ -69,26 +69,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		return nil, false
 	}
 
-	deployTo, _, _, _ := a.cli.GetStringValue("_app", "forjj", deployToArg)
-
 	// Load Forjfile from infra repo, if found.
-	if err := a.LoadForge(deployTo); err != nil {
+	if err := a.LoadForge(); err != nil {
 		if utils.InStringList(a.contextAction, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "" {
 			a.w.SetError(fmt.Errorf("Forjfile not loaded. %s", err))
 			return nil, false
 		}
 		gotrace.Warning("%s", err)
-	}
-
-	// if deployTo was not set, use the default one
-	if deployTo == "" {
-		if v, found, _ := a.f.Get("settings", "default", "dev-deploy"); found {
-			deployTo = v.GetString()
-		} else {
-			a.w.SetError(fmt.Errorf("No development environment found in your Forjfile. " +
-				"If you want to introduce a DEV time in your forge flow, create at least one DEV deployment."))
-			return nil, false
-		}
 	}
 
 	// Set organization name to use.
@@ -164,16 +151,16 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		if v, err := a.f.GetDeploymentPROType(); err != nil {
 			return err, false
 		} else {
-			gotrace.Info("Using %s deployment.", v.Name())
+			gotrace.Info("Using production deployment: '%s'.", v.Name())
 			a.f.SetDeployment(v.Name())
 			a.d = &v.DeploymentCoreStruct
 		}
 	} else {
+		deployTo := a.f.GetDeployment()
 		// Setup each deployment internal data
 		if v, found := a.f.GetADeployment(deployTo); found {
 			// Define selected deployment.
 			a.d = &v.DeploymentCoreStruct
-			a.f.SetDeployment(v.Name())
 			gotrace.Info("Using %s deployment.", v.Name())
 		} else {
 			a.w.SetError(fmt.Errorf("Unknown deployment environment '%s'. Use one defined in your Forjfile", deployTo))
