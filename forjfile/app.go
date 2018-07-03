@@ -113,7 +113,7 @@ func (a *AppStruct) Get(flag string) (value *goforjj.ValueStruct, found bool, so
 func (r *AppStruct) SetHandler(source string, from func(field string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
 	for _, key := range keys {
 		if v, found := from(key); found {
-			r.Set(key, v, source, set)
+			r.Set(source, key, v, set)
 		}
 	}
 }
