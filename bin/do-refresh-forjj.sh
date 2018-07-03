@@ -35,6 +35,18 @@ set +e
 echo "Refreshing do-refresh-forjj.sh..."
 $DOWNLOAD_PROG $DOWNLOAD_PROG_ARGS ~/bin/do-refresh-forjj.new https://github.com/forj-oss/forjj/raw/master/bin/do-refresh-forjj.sh
 DO_REFRESH_STATUS=$?
+if [[ "$1" = "--restore" ]]
+then
+    if [[ ! -f forjj.backup ]]
+    then 
+        echo "No forjj backup to restore."
+    else
+        mv forjj.backup forjj
+        forjj --version
+        echo "Previous forjj version restored."
+    fi
+fi
+
 echo "Downloading forjj..."
 $DOWNLOAD_PROG $DOWNLOAD_PROG_ARGS ~/bin/forjj.new https://github.com/forj-oss/forjj/releases/download/$VERSION/forjj
 set -e
@@ -55,8 +67,9 @@ then
             echo "OLD: $OLD_FORJJ"
             echo "NEW: $NEW_FORJJ"
         fi
-        rm -f forjj
+        mv forjj forjj.backup
         mv forjj.new forjj
+        echo "To restore the previous version, use --restore."
     else
         echo "You already have the $VERSION version."
     fi
