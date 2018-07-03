@@ -41,10 +41,11 @@ then
     then 
         echo "No forjj backup to restore."
     else
-        mv forjj.backup forjj
-        forjj --version
+        mv ~/bin/forjj.backup ~/bin/forjj
+        ~/bin/forjj --version
         echo "Previous forjj version restored."
     fi
+    exit
 fi
 
 echo "Downloading forjj..."
@@ -69,14 +70,21 @@ then
         fi
         mv forjj forjj.backup
         mv forjj.new forjj
-        echo "To restore the previous version, use --restore."
     else
         echo "You already have the $VERSION version."
+        rm -f ~/bin/forjj.new
     fi
+
+    printf "\nTo restore the previous version, use $0 --restore.\n"
+
 else
-   mv forjj.new forjj 
+   mv ~/bin/forjj.new ~/bin/forjj 
+   echo "Welcome to Forjj! Thank you for choosing and testing forjj. 
+If you found issues, create issue in https://github.com/forjj-oss/forjj/issues/new
+
+You can reach us also irc.freenode.net#forj"
 fi
-chmod +x forjj
+chmod +x ~/bin/forjj
 
 if [[ $DO_REFRESH_STATUS -eq 0 ]] 
 then
