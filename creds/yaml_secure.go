@@ -103,13 +103,16 @@ func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name st
 			d.Objects[obj_name][instance_name] = keys
 			updated = true
 		} else {
-			if v, found := k[key_name]; found && !value.Equal(v) {
-				*v = *value
-				updated = true
+			if v, found := k[key_name]; found {
+				if !value.Equal(v) {
+					*v = *value
+					updated = true
+				}
 			} else {
 				newValue := new(goforjj.ValueStruct)
 				*newValue = *value
 				k[key_name] = newValue
+				updated = true
 			}
 		}
 	}

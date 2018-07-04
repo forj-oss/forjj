@@ -203,6 +203,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		d.Plugin.Yaml.Runtime.Docker.Env = make(map[string]string)
 	}
 
+	d.Plugin.ServiceAddEnv("LOGNAME", "$LOGNAME", false)
 	d.Plugin.Yaml.Runtime.Docker.Env["LOGNAME"] = "$LOGNAME"
 	if v := os.Getenv("http_proxy"); v != "" {
 		d.Plugin.Yaml.Runtime.Docker.Env["http_proxy"] = v

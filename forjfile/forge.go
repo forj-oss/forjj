@@ -220,6 +220,13 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 		deployData.Details = deployDetail
 	}
 
+	defer f.yaml.set_defaults()
+
+	if deployTo == "global" { // We did not defined a deployment environment.
+		f.SetDeployment(deployTo)
+		return
+	}
+
 	if deployTo != "" {
 		if _, found := f.yaml.Deployments.GetADeployment(deployTo); !found {
 			err = fmt.Errorf("Deployment '%s' not defined", deployTo)
@@ -246,8 +253,6 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 		// Define current deployment loaded in memory.
 		f.SetDeployment(deployTo)
 	}
-
-	f.yaml.set_defaults()
 
 	f.yaml.defineDefaults(true) // Do warn if default are set to suggest updating the Forfile instead.
 
