@@ -20,6 +20,8 @@ type secrets struct {
 
 	set secretsSet
 
+	edit secretsEdit
+
 	unset struct {
 		cmd *kingpin.CmdClause
 		key *string
@@ -36,6 +38,7 @@ func (s *secrets) init(app *kingpin.Application) {
 	s.common.init(&s.context, s.secrets)
 	s.list.init(s.secrets)
 	s.set.init(s.secrets)
+	s.edit.init(s.secrets)
 
 	s.get.cmd = s.secrets.Command("get", "Get value of a credential unencrypted")
 	s.get.key = s.get.cmd.Arg("key", "Full key path").Required().String()
@@ -52,6 +55,8 @@ func (s *secrets) action(action string) {
 		s.list.showList()
 	case "set":
 		s.set.doSet()
+	case "edit":
+		s.edit.doEdit()
 	case "unset":
 	case "show":
 	}
