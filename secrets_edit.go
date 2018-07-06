@@ -2,10 +2,12 @@ package main
 
 import (
 	"forjj/scandrivers"
-	"forjj/utils"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
+
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/trace"
@@ -56,7 +58,7 @@ func (s *secretsEdit) doEdit() {
 	scan.DoScanDriversObject()
 
 	if _, found := s.elements[*s.key]; !found {
-		gotrace.Error("'%s' is not a valid secret path. check with `forjj secrets`")
+		gotrace.Error("'%s' is not a valid secret path. check with `forjj secrets`", *s.key)
 		return
 	}
 
@@ -70,6 +72,9 @@ func (s *secretsEdit) doEdit() {
 		return
 	}
 
+	fileName := tmpFile.Name()
+	defer os.Remove(fileName)
+
 	keyPath := strings.Split(*s.key, "/")
 
 	s.password, _, _, _ = forj_app.s.GetString(keyPath[0], keyPath[1], keyPath[2])
@@ -79,16 +84,25 @@ func (s *secretsEdit) doEdit() {
 		gotrace.Error("Unable to write temporary file in /tmp. Exiting.")
 		return
 	}
-	fileName := tmpFile.Name()
 	tmpFile.Close()
 
-	if utils.RunCmd(*s.editor, fileName) != 0 {
-		gotrace.Error("Unable to start the editor on file %s. Exiting.", tmpFile.Name())
+	cmd := exec.Command(*s.editor, fileName)
+	if !terminal.IsTerminal(int(os.Stdin.Fd())) {
+		gotrace.Error("Unable to edit %s. Not a terminal. Exiting.", *s.key)
+		return
+	}
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+
+	if err != nil {
+		gotrace.Error("Unable to start the editor %s on file %s. %s. Exiting.", *s.editor, fileName, err)
 		return
 	}
 
 	if data, err := ioutil.ReadFile(fileName); err != nil {
-		gotrace.Error("Unable to read the editor file %s. Exiting.", tmpFile.Name())
+		gotrace.Error("Unable to read the editor file %s. Exiting.", fileName)
 		return
 	} else {
 		s.password = strings.Trim(string(data), " \n")
@@ -98,7 +112,6 @@ func (s *secretsEdit) doEdit() {
 		gotrace.Info("File is empty. Update ignored.")
 		return
 	}
-	os.Remove(fileName)
 	v := goforjj.ValueStruct{}
 	v.Set(s.password)
 	env := forj_app.f.GetDeployment()
