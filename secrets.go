@@ -22,10 +22,7 @@ type secrets struct {
 
 	edit secretsEdit
 
-	unset struct {
-		cmd *kingpin.CmdClause
-		key *string
-	}
+	unset secretsUnset
 }
 
 func (s *secrets) init(app *kingpin.Application) {
@@ -43,9 +40,7 @@ func (s *secrets) init(app *kingpin.Application) {
 	s.get.cmd = s.secrets.Command("get", "Get value of a credential unencrypted")
 	s.get.key = s.get.cmd.Arg("key", "Full key path").Required().String()
 
-	s.unset.cmd = s.secrets.Command("unset", "remove a credential key path value from forjj secrets")
-	s.unset.key = s.unset.cmd.Arg("key", "Full key path").Required().String()
-
+	s.unset.init(s.secrets)
 }
 
 func (s *secrets) action(action string) {
@@ -58,6 +53,7 @@ func (s *secrets) action(action string) {
 	case "edit":
 		s.edit.doEdit()
 	case "unset":
+		s.unset.doUnset()
 	case "show":
 	}
 }

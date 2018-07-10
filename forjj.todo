@@ -2,6 +2,7 @@ projects:
   forjj:
     tasks:
       ✔ @high  bug: Forjj create from template do not create proper deployment forjfile. @done (2018-4-27 14:07:07)
+      ☐ @low if a new deployment has been added, when running forjj update, it should accept to create it.
       ☐ @low projects from Forjfile template is not defined in generated Forjfile
       ☐ @low Do not require application type at Forjfile loaded, but at validation phase. workaround add type in each applications
       ☐ @low Simplify Repo creation with Defaults so that we do not need to re-apply the full flow. create.go:157,1
@@ -15,6 +16,8 @@ projects:
       ✔ @critical when forjj update is executed on non declared deployment repos, all deployment repos are disabled by github plugin. @done (2018-4-27 14:07:39)
       ☐ @critical Deployment repositories not added in Forjfile.
       ☐ @critical When deployment defined in Forjfile template, the production deployment is not selected and used.
+      ☐ @high even in error, if a plugin has already updated files, it must report it and forjj must `git add` it.
+      ☐ @critical forjj do a git reset --hard, which removes files updated by the upstream driver just before...
 
   github:
     tasks:

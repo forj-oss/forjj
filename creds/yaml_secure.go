@@ -79,6 +79,25 @@ func (d *yamlSecure) GetForjValue(key string) (ret string, found bool) {
 	return
 }
 
+func (d *yamlSecure) unsetObjectValue(source, obj_name, instance_name, key_name string) (updated bool) {
+	if d.Objects == nil {
+		return
+	}
+	if i, found := d.Objects[obj_name]; !found {
+		return
+	} else if k, found := i[instance_name]; !found {
+		return
+	} else if _, found := k[key_name]; !found {
+		return
+	} else {
+		delete(k, key_name)
+		i[instance_name] = k
+		d.Objects[obj_name] = i
+		updated = true
+	}
+	return
+}
+
 func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (updated bool) {
 	if d.Objects == nil {
 		d.Objects = make(map[string]map[string]map[string]*goforjj.ValueStruct)
@@ -94,27 +113,23 @@ func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name st
 		instances[instance_name] = keys
 		d.Objects[obj_name] = instances
 		updated = true
-	} else {
-		if k, found := i[instance_name]; !found {
-			keys = make(map[string]*goforjj.ValueStruct)
-			newValue := new(goforjj.ValueStruct)
-			*newValue = *value
-			keys[key_name] = newValue
-			d.Objects[obj_name][instance_name] = keys
+	} else if k, found := i[instance_name]; !found {
+		keys = make(map[string]*goforjj.ValueStruct)
+		newValue := new(goforjj.ValueStruct)
+		*newValue = *value
+		keys[key_name] = newValue
+		d.Objects[obj_name][instance_name] = keys
+		updated = true
+	} else if v, found := k[key_name]; found {
+		if !value.Equal(v) {
+			*v = *value
 			updated = true
-		} else {
-			if v, found := k[key_name]; found {
-				if !value.Equal(v) {
-					*v = *value
-					updated = true
-				}
-			} else {
-				newValue := new(goforjj.ValueStruct)
-				*newValue = *value
-				k[key_name] = newValue
-				updated = true
-			}
 		}
+	} else {
+		newValue := new(goforjj.ValueStruct)
+		*newValue = *value
+		k[key_name] = newValue
+		updated = true
 	}
 	d.sources = d.sources.Set(source, obj_name+"/"+instance_name+"/"+key_name, value.GetString())
 	return
