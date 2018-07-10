@@ -234,6 +234,23 @@ func (d *Secure) SetObjectValue(env, source, obj_name, instance_name, key_name s
 	return
 }
 
+// UnsetObjectValue remove the object value
+func (d *Secure) UnsetObjectValue(env, source, objName, instanceName, keyName string) (_ bool) {
+	if d == nil {
+		return
+	}
+	if v, found := d.secrets.Envs[env]; found {
+		if v.unsetObjectValue(source, objName, instanceName, keyName) {
+			d.updated = true
+			d.secrets.Envs[env] = v
+			return true
+		}
+	}
+	return
+}
+
+
+
 // GetString return a string representation of the value.
 func (d *Secure) GetString(objName, instanceName, keyName string) (value string, found bool, source, env string) {
 	if d == nil {
