@@ -142,6 +142,71 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 	}
 }
 
+func Test_YamlSecure_unsetObjectValue(t *testing.T) {
+
+	t.Log("Expecting yamlSecure.unsetObjectValue to remove values from secrets.")
+
+	s := yamlSecure{}
+	const (
+		object1   = "object1"
+		object2   = "object2"
+		instance1 = "instance1"
+		instance2 = "instance2"
+		key1      = "key1"
+		value1    = "value1"
+		value2    = "value2"
+		src1      = "src1"
+	)
+
+	value := new(goforjj.ValueStruct)
+	value.Set(value1)
+	result := s.setObjectValue(src1, object1, instance1, key1, value)
+	// ------------- call the function
+	result = s.unsetObjectValue(src1, object1, instance1, key1)
+
+	// -------------- testing
+	if s.Objects == nil {
+		t.Error("Expected s.Objects to be set. Got nil")
+	} else if l1 := len(s.Objects); l1 != 1 {
+		t.Errorf("Expected s.Objects to have 1 element. Got %d.", l1)
+	} else if v1, found := s.Objects[object1]; !found {
+		t.Errorf("Expected s.Objects[%s] to exist. Not found", object1)
+	} else if v1 == nil {
+		t.Errorf("Expected s.Objects[%s] to be set. Got nil", object1)
+	} else if l2 := len(v1); l2 != 1 {
+		t.Errorf("Expected s.Objects to have 1 element. Got %d.", l2)
+	} else if v2, found := v1[instance1]; !found {
+		t.Errorf("Expected s.Objects[%s][%s] to exist. Not found", object1, instance1)
+	} else if v2 == nil {
+		t.Errorf("Expected s.Objects[%s][%s] to be set. Got nil", object1, instance1)
+	} else if l3 := len(v2); l3 != 0 {
+		t.Errorf("Expected s.Objects to have 0 element. Got %d.", l3)
+	} else if _, found := v2[key1]; found {
+		t.Errorf("Expected s.Objects[%s][%s][%s] to NOT exist. Found it", object1, instance1, key1)
+	} else if !result {
+		t.Error("Expected s.unsetObjectValue to return true. Gto false")
+	}
+
+	// ------------- call the function
+	result = s.unsetObjectValue(src1, object1, instance2, key1)
+	// -------------- testing
+	if s.Objects == nil {
+		t.Error("Expected s.Objects to be set. Got nil")
+	} else if l1 := len(s.Objects); l1 != 1 {
+		t.Errorf("Expected s.Objects to have 1 element. Got %d.", l1)
+	} else if v1, found := s.Objects[object1]; !found {
+		t.Errorf("Expected s.Objects[%s] to exist. Not found", object1)
+	} else if v1 == nil {
+		t.Errorf("Expected s.Objects[%s] to be set. Got nil", object1)
+	} else if l2 := len(v1); l2 != 1 {
+		t.Errorf("Expected s.Objects to have 1 element. Got %d.", l2)
+	} else if _, found := v1[instance2]; found {
+		t.Errorf("Expected s.Objects[%s][%s] to NOT exist. But found it", object1, instance1)
+	} else if result {
+		t.Error("Expected s.unsetObjectValue to return false. Got true")
+	}
+}
+
 func Test_YamlSecure_get(t *testing.T) {
 
 	t.Log("Expecting yamlSecure.get to set values in Objects section.")
