@@ -245,16 +245,19 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 
 	termBrown, termReset := utils.DefColor(33)
 	for _, line := range strings.Split(d.Plugin.Result.Data.Status, "\n") {
-		log.Printf("%s%s%s", termBrown, line, termReset)
+		log.Println(termBrown, line, termReset)
 	}
 
 	if d.Plugin.Result.Data.ErrorMessage != "" {
 		termRed, _ := utils.DefColor(31)
 		for _, line := range strings.Split(d.Plugin.Result.Data.ErrorMessage, "\n") {
-			log.Printf("%s%s%s", termRed, line, termReset)
+			log.Println(termRed, line, termReset)
 		}
 	}
-	if err != nil {
+	if d.Plugin.Result.State_code != 0 || err != nil {
+		if err == nil {
+			err = fmt.Errorf("The plugin has returned an error. Please review and fix.")
+		}
 		if d.Plugin.Result.State_code == 419 { // The plugin won't do the task because of requirement not met. This is not an error which requires Forjj to exit.
 			aborted = true // So, when a plugin return 419, the plugin task is considered as aborted. So forjj can continue if it is possible. (create/update action case)
 		}
