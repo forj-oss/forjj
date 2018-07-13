@@ -1,5 +1,12 @@
 # vim: syntax=yaml
 ---
+deployments:
+  production: # production deployment type. You cannot create more than one PROD deployment type.
+    type: PROD 
+  dev: # Development deployment type. You can create multiple of them
+    type: DEV
+  test: # Test deployment type. You can create multiple of them
+    type: TEST
 local-settings:
   docker-exe-path: "~/<<Path To Your Static Docker Binary>>"
 forj-settings:
@@ -7,10 +14,11 @@ forj-settings:
 applications:
   github:
     type: upstream
-    token: <<Your Github Token>>
+    token: <<Your Github Token>> # Note that this token will move to forjj secrets as soon as you create your forge with `forjj create`
     # server: << Your github enterprise server name >>
   jenkins:
     type: ci
+    # server: # by default if not set, forjj will use localhost. Note the link between github and your jenkins won't be created, because localhost won't be accessible to github. If you have a public access, you can server this `server`
 repositories:
   forjj-example:
     # flow: "pull_request" # Optionnel: Par défaut, pas de flow. ou le flow par défaut de la forge.
