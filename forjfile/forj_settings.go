@@ -34,6 +34,12 @@ func (s *ForjSettingsStruct) Flags() (flags []string) {
 }
 
 func (s *ForjSettingsStruct) mergeFrom(from *ForjSettingsStruct) {
+	if s == nil {
+		return
+	}
+	if from == nil {
+		return
+	}
 	for _, instance := range []string{"default", "default-repo-apps", "noinstance"} {
 		for _, flag := range from.Flags() {
 			if v, found, source := from.Get(instance, flag); found {

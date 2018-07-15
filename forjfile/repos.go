@@ -4,7 +4,13 @@ import "github.com/forj-oss/forjj-modules/trace"
 
 type ReposStruct map[string]*RepoStruct
 
-func (r ReposStruct) mergeFrom(from ReposStruct) {
+func (r ReposStruct) mergeFrom(from ReposStruct) ReposStruct {
+	if from == nil {
+		return r
+	}
+	if r == nil {
+		r = make(ReposStruct)
+	}
 	for key, repoFrom := range from {
 		if repo, found := r[key]; found {
 			repo.mergeFrom(repoFrom)
@@ -12,6 +18,7 @@ func (r ReposStruct) mergeFrom(from ReposStruct) {
 		}
 		r[key] = repoFrom
 	}
+	return r
 }
 
 func (r ReposStruct) MarshalYAML() (interface{}, error) {
