@@ -3,7 +3,7 @@
 deployments:
   production: # production deployment type. You cannot create more than one PROD deployment type.
     type: PRO 
-    forj-settins:
+    forj-settings:
       organization: "<<Your production organization Name in Github>>"
     repositories:
       forjj-example:
@@ -11,7 +11,7 @@ deployments:
         title: "Forjj blueprint examples"
   dev: # Development deployment type. You can create multiple of them
     type: DEV
-    forj-settins:
+    forj-settings:
       organization: "<<Your dev organization Name in Github>>"
     repositories:
       forjj-test:
@@ -19,7 +19,7 @@ deployments:
         title: "Forjj repo test"
   test: # Test deployment type. You can create multiple of them
     type: TEST
-    forj-settins:
+    forj-settings:
       organization: "<<Your test organization Name in Github>>"
 local-settings:
   docker-exe-path: "~/<<Path To Your Static Docker Binary>>"
