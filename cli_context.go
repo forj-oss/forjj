@@ -146,7 +146,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	}
 
 	// Setting infra repository name
-	if err := a.set_infra_name(a.contextAction); err != nil {
+	if err := a.setInfraName(a.contextAction); err != nil {
 		a.w.SetError(err)
 		return nil, false
 	}
@@ -249,7 +249,18 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	return nil, true
 }
 
-func (a *Forj) set_infra_name(action string) (err error) {
+// setInfraName configure the infra repository name 
+// It can take data from the cli, or Forjfile.
+// If none are defined, forjj will create one based on the organization name
+//
+// When this is done, forjj will ensure this repo is available in list of repositories
+// For next actions (REST API against plugins)
+// 
+// Note that in maintains use case, cli is not usable. Data must be in the Forfile if default forjj calculates needs to be changed.
+//
+// forjj do not read any infra fields from Deployment Forjfiles. The only place where infra data must be stored is in the global one.
+//
+func (a *Forj) setInfraName(action string) (err error) {
 	defer a.f.SetInfraAsRepo()
 	// Setting default if the organization is defined.
 	if a.w.Organization != "" {
@@ -258,13 +269,13 @@ func (a *Forj) set_infra_name(action string) (err error) {
 			SetParamOptions(infra_name_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
 	}
 
-	var infra_name string
+	var infraName string
 	var found bool
 
 	if action == maint_act {
-		infra_name, found, err = a.GetForgePrefs(infra_name_f)
+		infraName, found, err = a.GetForgePrefs(infra_name_f)
 	} else {
-		infra_name, found, err = a.GetPrefs(infra_name_f)
+		infraName, found, err = a.GetPrefs(infra_name_f)
 	}
 	if err != nil {
 		return err
@@ -275,11 +286,11 @@ func (a *Forj) set_infra_name(action string) (err error) {
 		// Can be set only the first time
 		if a.w.Infra.Name == "" {
 			// Get infra name from the flag
-			a.w.Infra.Name = infra_name
-			return a.SetPrefs("forjj", infra_name_f, a.w.Infra.Name) // Forjfile update
+			a.w.Infra.Name = infraName
+			return a.SetPrefsTo("global", "forjj", infra_name_f, a.w.Infra.Name) // Global Forjfile update
 		}
-		if infra_name != a.w.Infra.Name && a.w.Organization != "" {
-			gotrace.Warning("You cannot update the Infra repository name from '%s' to '%s'.", a.w.Infra.Name, infra_name)
+		if infraName != a.w.Infra.Name && a.w.Organization != "" {
+			gotrace.Warning("You cannot update the Infra repository name from '%s' to '%s'.", a.w.Infra.Name, infraName)
 		}
 		return a.SetPrefs("forjj", infra_name_f, a.w.Infra.Name)
 	}
@@ -287,7 +298,7 @@ func (a *Forj) set_infra_name(action string) (err error) {
 	if a.w.Organization != "" {
 		// Use the default setting.
 		a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
-		err = a.SetPrefs("forjj", infra_name_f, a.w.Infra.Name) // Forjfile update
+		err = a.SetPrefsTo("global", "forjj", infra_name_f, a.w.Infra.Name) // Global Forjfile update
 	}
 	return err
 }
