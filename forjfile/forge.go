@@ -65,11 +65,11 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	}
 	if forj_path != "." {
 		if fi, e := os.Stat(forj_path); e != nil {
-			err = e
+			err = fmt.Errorf("Unable to load the Forjfile model from '%s'. %s", forj_path, e)
 			return
 		} else {
 			if !fi.Mode().IsDir() {
-				return f, loaded, fmt.Errorf("'%s' must be a path to '%s'.", aPath, forjfileName)
+				return f, loaded, fmt.Errorf("'%s' must be a path to '%s'", aPath, forjfileName)
 			}
 		}
 	}
@@ -104,7 +104,7 @@ func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	// Setting default values found in Forjfile/forj-settings/default/...
 	f.yaml.defineDefaults(false) // Do not warn if default are set.
 
-	gotrace.Trace("Forjfile template '%s' has been loaded.", file)
+	gotrace.Trace("Forjfile model '%s' has been loaded.", file)
 	return
 }
 
@@ -524,7 +524,7 @@ func (f *Forge) save(infraPath string) error {
 	return nil
 }
 
-// SaveTmpl provide Forjfile template export from a Forge.
+// SaveTmpl provide Forjfile model export from a Forge.
 func SaveTmpl(aPath string, f *Forge) error {
 	forge := new(Forge)
 	*forge = *f

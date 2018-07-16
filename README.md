@@ -73,31 +73,41 @@ Really? I can create a DevOps organization on my workstation??? Yes.
 How easy is it to create and maintain a DevOps Solution? Follow this
 3 steps to get a Minimal DevOps Solution based on github and jenkins
 
-1. Download our sample Forjfile and edit it. Replace any <...> by appropriate value.
+1. Download our Forjfile model template and edit it. Replace any <...> by appropriate value.
 
-```bash
-cd /tmp
-wget -O Forjfile https://github.com/forj-oss/forjj/raw/master/samples/minimal/Forjfile
-vim Forjfile
-```
+    ```bash
+    cd /tmp
+    wget -O Forjfile https://github.com/forj-oss/forjj/raw/master/samples/minimal/Forjfile
+    vim Forjfile
+    ```
 
-2. Download `forjj` binary with the `do-refresh-forjj.sh` helper
+> **NOTE**: A Forjfile model is a unique Forjfile describing a Factory model and used at create time only to create a new factory.
+> This file usually defines deployments specification (`deployments/<deployName>/define/...`) and can contain credentials.
+> When your forge will be created:
+> - deployment specfications will be dispatched in several deployment files in the infra repository (`deployments/<deployName>/Forfile`)
+> - Credentials data will be moved to Forjj vault.
+>
+> Later, you can create your own Forjfile model to help other teams to create their Factory from your Factory model. So it became easy to deploy a `Factory On Demand`.
 
-```bash
-mkdir -p ~/bin
-wget -O ~/bin/do-refresh-forjj.sh https://raw.githubusercontent.com/forj-oss/forjj/master/bin/do-refresh-forjj.sh
-bash ~/bin/do-refresh-forjj.sh
-```
+1. Download `forjj` binary with the `do-refresh-forjj.sh` helper
 
-3. Create your infra with:
+    ```bash
+    mkdir -p ~/bin
+    wget -O ~/bin/do-refresh-forjj.sh https://raw.githubusercontent.com/forj-oss/forjj/master/bin/do-refresh-forjj.sh
+    bash ~/bin/do-refresh-forjj.sh
+    ```
 
-```bash
-forjj create --infra-path ~/devops/myforj-infra
-```
+    **NOTE**: Anytime you need to get latest forjj version, call `do-refresh-forjj.ss`.
 
-Access your github organization to see what has been created.
-Open http://localhost:8080 to see your Jenkins master.
-(You may need to replace localhost by your VM DNS name instead)
+2. Create your infra with:
+
+    ```bash
+    forjj create --infra-path ~/devops/myforj-infra
+    ```
+
+    Access your github organization to see what has been created.
+    Open http://localhost:8080 to see your Jenkins master.
+    (You may need to replace localhost by your VM DNS name instead)
 
 ### What is behind the scene?
 

@@ -90,7 +90,7 @@ func (a *Forj) GetPrefs(field string) (string, bool, error) {
 // GetLocalPrefs return a value found (or not) from different source of data
 // 1: from cli, then exit if found
 // 2: from Workspace local settings if found
-//    Usually, LocalSetting is loaded from a Forjfile template and stored in the Workspace.
+//    Usually, LocalSetting is loaded from a Forjfile model and stored in the Workspace.
 // 3: Then cli default
 func (a *Forj) GetLocalPrefs(field string) (string, bool, error) {
 	var entry AppMapEntry
@@ -129,7 +129,7 @@ func (a *Forj) GetLocalPrefs(field string) (string, bool, error) {
 	if found {
 		gotrace.Trace("Found Local setting '%s' from cli default: %s", entry.cli_field, v)
 	} else {
-		gotrace.Trace("Local setting '%s' not found from any of cli, Forjfile template or cli default", entry.cli_field)
+		gotrace.Trace("Local setting '%s' not found from any of cli, Forjfile or cli default", entry.cli_field)
 	}
 	return v, found, err
 }

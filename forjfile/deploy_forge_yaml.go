@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"forjj/sources_info"
+
 	"github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
-	"forjj/sources_info"
 )
 
 // DeployForgeYaml represents a dedicated deployed Forge.
@@ -21,8 +22,8 @@ type DeployForgeYaml struct {
 	Users         UsersStruct
 	Groups        GroupsStruct
 	// Collection of Object/Name/Keys=values
-	More map[string]map[string]ForjValues `yaml:",inline,omitempty"`
-	sources       *sourcesinfo.Sources
+	More    map[string]map[string]ForjValues `yaml:",inline,omitempty"`
+	sources *sourcesinfo.Sources
 }
 
 // NewDeployForgeYaml creates an empty pre-initialized object.
@@ -460,15 +461,21 @@ func (f *DeployForgeYaml) init() bool {
 }
 
 func (f *DeployForgeYaml) mergeFrom(from *DeployForgeYaml) error {
-	f.Apps.mergeFrom(from.Apps)
+	if f == nil {
+		return fmt.Errorf("DeployForgeYaml is nil")
+	}
+	if from == nil {
+		return nil
+	}
+	f.Apps = f.Apps.mergeFrom(from.Apps)
 	f.ForjSettings.mergeFrom(&from.ForjSettings)
-	f.Groups.mergeFrom(from.Groups)
-	f.Users.mergeFrom(from.Users)
-	f.Repos.mergeFrom(from.Repos)
+	f.Groups = f.Groups.mergeFrom(from.Groups)
+	f.Users = f.Users.mergeFrom(from.Users)
+	f.Repos = f.Repos.mergeFrom(from.Repos)
 	if f.Infra == nil && from.Infra != nil {
 		f.Infra = f.Repos[from.Infra.name]
 	}
-	f.Infra.mergeFrom(from.Infra)
+	f.Infra = f.Infra.mergeFrom(from.Infra)
 	for k, v := range from.More {
 		f.More[k] = v
 	}

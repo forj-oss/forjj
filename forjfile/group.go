@@ -8,7 +8,13 @@ import (
 
 type GroupsStruct map[string]*GroupStruct
 
-func (g GroupsStruct) mergeFrom(from GroupsStruct) {
+func (g GroupsStruct) mergeFrom(from GroupsStruct) GroupsStruct {
+	if from == nil {
+		return g
+	}
+	if g == nil {
+		g = make(GroupsStruct)
+	}
 	for k, groupFrom := range from {
 		if group, found := g[k]; found {
 			group.mergeFrom(groupFrom)
@@ -16,7 +22,7 @@ func (g GroupsStruct) mergeFrom(from GroupsStruct) {
 			g[k] = groupFrom
 		}
 	}
-
+	return g
 }
 
 type GroupStruct struct {

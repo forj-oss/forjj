@@ -89,15 +89,16 @@ func (r *RepoStruct) Flags() (flags []string) {
 
 }
 
-func (r *RepoStruct) mergeFrom(from *RepoStruct) {
+func (r *RepoStruct) mergeFrom(from *RepoStruct) *RepoStruct{
 	if r == nil {
-		return
+		return from
 	}
 	for _, flag := range from.Flags() {
 		if v, found, source := from.Get(flag); found {
 			r.Set(source, flag, v.GetString())
 		}
 	}
+	return r
 }
 
 type RepoFlow struct {

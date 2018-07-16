@@ -3,26 +3,30 @@
 deployments:
   production: # production deployment type. You cannot create more than one PROD deployment type.
     type: PRO 
-    forj-settins:
-      organization: "<<Your production organization Name in Github>>"
-    repositories:
-      forjj-example:
-        # flow: "pull_request" # Optionnel: Par défaut, pas de flow. ou le flow par défaut de la forge.
-        title: "Forjj blueprint examples"
+    define:
+      forj-settings:
+        organization: "<<Your production organization Name in Github>>"
+      repositories:
+        forjj-example:
+          # flow: "pull_request" # Optionnel: Par défaut, pas de flow. ou le flow par défaut de la forge.
+          title: "Forjj blueprint examples"
   dev: # Development deployment type. You can create multiple of them
     type: DEV
-    forj-settins:
-      organization: "<<Your dev organization Name in Github>>"
-    repositories:
-      forjj-test:
-        # flow: "pull_request" # Optionnel: Par défaut, pas de flow. ou le flow par défaut de la forge.
-        title: "Forjj repo test"
+    define:
+      forj-settings:
+        organization: "<<Your dev organization Name in Github>>"
+      repositories:
+        forjj-test:
+          # flow: "pull_request" # Optionnel: Par défaut, pas de flow. ou le flow par défaut de la forge.
+          title: "Forjj repo test"
   test: # Test deployment type. You can create multiple of them
     type: TEST
-    forj-settins:
-      organization: "<<Your test organization Name in Github>>"
+    define:
+      forj-settings:
+        organization: "<<Your test organization Name in Github>>"
 local-settings:
   docker-exe-path: "~/<<Path To Your Static Docker Binary>>"
+  # infra-path: # Put the futur infra repository path which will be created in your workstation. You can also set INFRA_PATH or --infra-path instead. Ex: ~/tmp/myFactory/infra
 applications:
   github:
     type: upstream
