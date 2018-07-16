@@ -2,6 +2,7 @@ package forjfile
 
 import (
 	"forjj/sources_info"
+
 	"github.com/forj-oss/goforjj"
 )
 
@@ -9,7 +10,7 @@ type DefaultSettingsStruct struct {
 	forge            *ForgeYaml
 	UpstreamInstance string            `yaml:"upstream-instance,omitempty"` // TODO: to remove - obsolete
 	Flow             string            `yaml:",omitempty"`
-	DevDeploy        string            `yaml:",omitempty"`
+	DevDeploy        string            `yaml:"dev-deploy,omitempty"`
 	More             map[string]string `yaml:",inline"`
 	sources          *sourcesinfo.Sources
 }

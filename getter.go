@@ -153,6 +153,21 @@ func (a *Forj) GetForgePrefs(field string) (v string, found bool, _ error) {
 	return
 }
 
+// SetPrefsTo permits to store key/values to a known Forjfile data attached to a real file.
+func (a *Forj) SetPrefsTo(dest, source, field, value string) error {
+	var entry AppMapEntry
+
+	if e, found := a.appMapEntries[field]; !found {
+		return fmt.Errorf("Unable to get '%s' from Forjfile/cli mapping. Missing", field)
+	} else {
+		entry = e
+	}
+
+	a.f.SetTo(dest, source, entry.forj_section, entry.forj_instance, entry.forj_field, value)
+	return nil
+}
+
+// SetPrefs uses global or merged data. As soon as a merge has been built, SetPrefs will save it in it.
 func (a *Forj) SetPrefs(source, field, value string) error {
 	var entry AppMapEntry
 

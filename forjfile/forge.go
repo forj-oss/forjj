@@ -147,6 +147,9 @@ func (f *Forge) attachInfraToDeployment(deploy string) {
 	infra.deployment = deploy
 }
 
+// SetInfraAsRepo create the infra repo in the list of repositories (Repos)
+//
+// Forjj deals with this list of repositories but saved specifically as Infra dedicated section in Forjfile.
 func (f *Forge) SetInfraAsRepo() {
 	// Copy the infra repo in list of repositories, tagged as infra.
 	if !f.Init() {
@@ -154,27 +157,23 @@ func (f *Forge) SetInfraAsRepo() {
 	}
 
 	var repo *RepoStruct
-	forge := f.selectCore()
-	if forge == nil {
+
+	if v, found := f.yaml.ForjCore.Infra.More["name"]; found && v != "" {
+		f.yaml.ForjCore.Infra.name = v
+	}
+
+	if f.yaml.ForjCore.Infra.name == "" || f.yaml.ForjCore.Infra.name == "none" {
 		return
 	}
 
-	if v, found := forge.Infra.More["name"]; found && v != "" {
-		forge.Infra.name = v
-	}
-
-	if forge.Infra.name == "" || forge.Infra.name == "none" {
-		return
-	}
-
-	if r, found_repo := forge.Repos[forge.Infra.name]; found_repo {
+	if r, found_repo := f.yaml.ForjCore.Repos[f.yaml.ForjCore.Infra.name]; found_repo {
 		repo = r
 	}
 	if repo == nil {
 		repo = new(RepoStruct)
-		forge.Repos[forge.Infra.name] = repo
+		f.yaml.ForjCore.Repos[f.yaml.ForjCore.Infra.name] = repo
 	}
-	repo.setFromInfra(forge.Infra)
+	repo.setFromInfra(f.yaml.ForjCore.Infra)
 }
 
 func (f *Forge) GetInfraName() string {
@@ -719,6 +718,24 @@ func (f *Forge) Remove(object, name, key string) {
 	forge.Remove(object, name, key)
 }
 
+// SetTo permit to store the data in one of the Forjfile representative.
+// Compare to Set, which can use the global or the merged data.
+func (f *Forge) SetTo(dest, source, object, name, key, value string) {
+	var forge *DeployForgeYaml
+	if dest == "global" {
+		forge = &f.yaml.ForjCore
+	} else {
+		if v, found := f.GetADeployment(dest); found && v.Details != nil {
+			forge = v.Details
+		}
+	}
+	if forge == nil {
+		return
+	}
+	forge.Set(source, object, name, key, value)
+}
+
+// Set store a key/value to the merged or global Forjfile
 func (f *Forge) Set(source, object, name, key, value string) {
 	forge := f.selectCore()
 	if forge == nil {
@@ -843,6 +860,9 @@ func (f *Forge) Validate() error {
 			if repo.Deployment != "" {
 				return fmt.Errorf("Unable to declare a deployment Repository in the deployment %s/Forjfile. Remove 'deployment' entry for repo %s", deploy.Name(), repo.name)
 			}
+		}
+		if deploy.Details.Infra != nil {
+			gotrace.Warning("Found infra data from deployment '%s'. This definition is ignored. Move it to your main Forjfile.", deploy.Desc)
 		}
 	}
 

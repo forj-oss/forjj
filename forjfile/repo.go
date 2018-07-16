@@ -28,7 +28,7 @@ type RepoStruct struct {
 	Flow            RepoFlow                    `yaml:",omitempty"`
 	More            map[string]string           `yaml:",inline"`
 	apps            map[string]*AppStruct       // List of applications connected to this repo. Defaults are added automatically.
-	Apps            map[string]string           `yaml:"in-relation-with"` // key: <AppRelName>, value: <appName>
+	Apps            map[string]string           `yaml:"in-relation-with,omitempty"` // key: <AppRelName>, value: <appName>
 	sources         *sourcesinfo.Sources
 }
 
@@ -89,7 +89,7 @@ func (r *RepoStruct) Flags() (flags []string) {
 
 }
 
-func (r *RepoStruct) mergeFrom(from *RepoStruct) *RepoStruct{
+func (r *RepoStruct) mergeFrom(from *RepoStruct) *RepoStruct {
 	if r == nil {
 		return from
 	}

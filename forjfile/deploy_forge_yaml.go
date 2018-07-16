@@ -475,7 +475,7 @@ func (f *DeployForgeYaml) mergeFrom(from *DeployForgeYaml) error {
 	if f.Infra == nil && from.Infra != nil {
 		f.Infra = f.Repos[from.Infra.name]
 	}
-	f.Infra = f.Infra.mergeFrom(from.Infra)
+	// if infra requires to be defined, it MUST be in the main Forjfile. No Infra merge is made from deployment.
 	for k, v := range from.More {
 		f.More[k] = v
 	}
@@ -538,6 +538,7 @@ func (f *DeployForgeYaml) initDefaults(forge *ForgeYaml) {
 	}
 	if f.Infra == nil {
 		f.Infra = new(RepoStruct)
+		f.Infra.is_infra = true
 	}
 	f.Infra.set_forge(forge)
 	f.ForjSettings.set_forge(forge)

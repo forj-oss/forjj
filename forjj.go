@@ -59,7 +59,7 @@ func (a *Forj) contextDisplayed() {
 	if tmpl_file != "" || file != "" {
 		msg := "Forjj has loaded the following context:\n"
 		if tmpl_file != "" {
-			msg += "Template Forjfile: " + tmpl_file + "\n"
+			msg += "Forjfile model: " + tmpl_file + "\n"
 		}
 		if file != "" {
 			msg += "Repository Forjfile: " + file + "\n"
