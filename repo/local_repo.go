@@ -2,14 +2,15 @@ package repository
 
 import (
 	"fmt"
+
 	"github.com/forj-oss/forjj-modules/trace"
 	//"log"
 	"os"
 	"path"
 	"regexp"
 	//"strings"
-	"forjj/utils"
 	"forjj/git"
+	"forjj/utils"
 	"strings"
 )
 
@@ -41,7 +42,7 @@ func (i *GitRepoStruct) EnsureInitialized() error {
 // and give a pull/push status
 // And error is returned when branches has diverged.
 func (i *GitRepoStruct) EnsureBranchConnected(branch, remote string) (string, error) {
-	if err := i.use() ; err != nil {
+	if err := i.use(); err != nil {
 		return "", fmt.Errorf("Unable to connect branches. %s", err)
 	}
 	// FIXME: git branch to fix
@@ -50,13 +51,13 @@ func (i *GitRepoStruct) EnsureBranchConnected(branch, remote string) (string, er
 		return "", fmt.Errorf("GIT Remote string '%s' is invalid. Must be 'RemoteName/BranchName'", remote)
 	}
 
-	if found, err := git.RemoteBranchExist(remote) ; err != nil {
+	if found, err := git.RemoteBranchExist(remote); err != nil {
 		return "", err
 	} else {
 		if !found {
 			git.Do("push", "-u", remote_names[0], remote_names[1])
 		} else {
-			if git.Do("branch", "--set-upstream-to=" + remote, branch) > 0 {
+			if git.Do("branch", "--set-upstream-to="+remote, branch) > 0 {
 				return "", fmt.Errorf("Unable to set url '%s' to branch '%s'", remote, branch)
 			}
 		}
@@ -67,7 +68,7 @@ func (i *GitRepoStruct) EnsureBranchConnected(branch, remote string) (string, er
 }
 
 func (i *GitRepoStruct) CheckOut(branch string) error {
-	if err := i.use() ; err != nil {
+	if err := i.use(); err != nil {
 		return fmt.Errorf("Unable to connect branches. %s", err)
 	}
 	if git.Do("checkout", branch) > 0 {
@@ -81,7 +82,7 @@ func (i *GitRepoStruct) CheckOut(branch string) error {
 // If remote is missing. It will be created then fetched.
 // if exists, check remote. If different, old is renamed to original, then created and fetched
 func (i *GitRepoStruct) EnsureGitRemote(upstream, upstream_name string) error {
-	if err := i.use() ; err != nil {
+	if err := i.use(); err != nil {
 		return fmt.Errorf("Unable to ensure Git remote properly configured. %s", err)
 	}
 
@@ -139,7 +140,7 @@ func GitRemoteExist(branch, remote, upstream string) (exist, found bool, err err
 }
 
 // return true is at least one commit exists.
-func (i *GitRepoStruct)git_1st_commit_exist(branch string) bool {
+func (i *GitRepoStruct) git_1st_commit_exist(branch string) bool {
 	if _, err := git.Get("log", branch, "-1", "--oneline"); err == nil {
 		return true
 	}
@@ -147,10 +148,10 @@ func (i *GitRepoStruct)git_1st_commit_exist(branch string) bool {
 }
 
 // Create initial commit
-func (i *GitRepoStruct)git_1st_commit(initial_commit func()([]string, error)) (err error) {
+func (i *GitRepoStruct) git_1st_commit(initial_commit func() ([]string, error)) (err error) {
 	var files []string
 
-	if files, err = initial_commit() ; err != nil {
+	if files, err = initial_commit(); err != nil {
 		return
 	} else {
 		git.Add(files)
@@ -199,12 +200,15 @@ func (i *GitRepoStruct) is_creatable() (creatable bool) {
 		i.err = fmt.Errorf("%s is not a valid git repository work tree.", i.path)
 		return
 	}
-	i.err = fmt.Errorf("'%s' already exist and can't be created a second time.\n" +
-		"You have 2 options:\n" +
-		"- Create somewhere else:\n" +
-		"  You can set FORJJ_INFRA to point to a new directory to create or change to a directory(cd) " +
-		"which will both become your infra repository.\n" +
-		"- If the repository is your infra repository, you can update it with `forjj add/update/remove/...`\n" +
+	i.err = fmt.Errorf("'%s' already exist and can't be created a second time.\n"+
+		"You have 2 options:\n"+
+		"- Create somewhere else: You can choose one option to create your forge properly:\n"+
+		"  - Define local-settings/infra-path: If you are creating a new forge from a Forjfile model, you can set local-settings/infra-path to the futur infra repository to create.\n"+
+		"  - Set FORJJ_INFRA: You can set FORJJ_INFRA to point to a new infra repository to create.\n"+
+		"  - Use the --infra-path: You can add the futur repository path with --infra-path. Ex: forjj create --infra-path ~/src/myFactory/infra \n"+
+		"  - Change dir: Move to the futur infra repository.\n"+
+		"which will both become your infra repository.\n"+
+		"- Update existing one: If the repository is your infra repository, simply do update with `forjj update`\n"+
 		"\nMore details with forjj --help or documentation.", i.path)
 	return
 }

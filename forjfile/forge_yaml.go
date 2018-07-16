@@ -4,7 +4,7 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
-// ForgeYaml represents the master Forjfile or a piece of the Forjfile template.
+// ForgeYaml represents the master Forjfile or a piece of the Forjfile model.
 type ForgeYaml struct {
 	updated     bool
 	Deployments Deployments
@@ -85,6 +85,9 @@ func (f *ForgeYaml) set_defaults() {
 	} else {
 		for name, deploy := range f.Deployments {
 			deploy.name = name
+			if deploy.Details != nil {
+				deploy.Details.initDefaults(f)
+			}
 			f.Deployments[name] = deploy
 		}
 	}

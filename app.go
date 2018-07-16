@@ -125,10 +125,10 @@ const (
 	debug_instance_f = "run-plugin-debugger"
 	orga_f           = "organization" // Organization name for the Forge. Could be used to set upstream organization.
 	// create flags
-	forjfile_path_f = "forjfile-path" // Path where the Forjfile template resides.
+	forjfile_path_f = "forjfile-path" // Path where the Forjfile model resides.
 	// deployTo is the name of the deployment environment to update/maintain.
 	deployToArg   = "deploy-to"
-	forjfile_f    = "forjfile-name" // Name of the forjfile where the Forjfile template resides.
+	forjfile_f    = "forjfile-name" // Name of the forjfile where the Forjfile model resides.
 	ssh_dir_f     = "ssh-dir"
 	no_maintain_f = "no-maintain"
 	message_f     = "message"

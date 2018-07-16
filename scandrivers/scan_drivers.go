@@ -134,7 +134,7 @@ func (s *ScanDrivers) DoScanDriversObject() (err error) {
 	return
 }
 
-// DispatchObjectFlags is dispatching Forjfile template data between Forjfile and creds
+// DispatchObjectFlags is dispatching Forjfile model data between Forjfile and creds
 // All plugin defined flags set with secret ON, are moving to creds
 // All plugin undefined flags named with "secret_" as prefix are considered as required to be moved to
 // creds
