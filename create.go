@@ -166,10 +166,8 @@ func (a *Forj) Create() error {
 		return fmt.Errorf("Failed to create your infra repository. %s", err)
 	}
 
-	for deployName := range a.f.GetDeployments() {
-		if err := a.createDeployment(deployName); err != nil {
-			return fmt.Errorf("failed to build the '%s' deployment source. %s", deployName, err)
-		}
+	if err := a.createDeployment(a.deployContext.to); err != nil {
+		return fmt.Errorf("failed to build the '%s' deployment source. %s", a.deployContext.to, err)
 	}
 
 	return nil
