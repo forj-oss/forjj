@@ -249,6 +249,20 @@ func (d *Secure) UnsetObjectValue(env, source, objName, instanceName, keyName st
 	return
 }
 
+// GetGlobalString return a string representation of the value.
+func (d *Secure) GetGlobalString(objName, instanceName, keyName string) (value string, found bool, source, env string) {
+	if d == nil {
+		return
+	}
+	for _, env = range []string{Global} {
+		if v, isFound := d.secrets.Envs[env]; isFound {
+			if value, found, source = v.getString(objName, instanceName, keyName); found {
+				return
+			}
+		}
+	}
+	return "", false, "", ""
+}
 
 
 // GetString return a string representation of the value.

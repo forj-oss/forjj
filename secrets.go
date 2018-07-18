@@ -33,14 +33,14 @@ func (s *secrets) init(app *kingpin.Application) {
 	s.secrets = app.Command("secrets", "Manage forjj secrets")
 	s.context.init()
 	s.common.init(&s.context, s.secrets)
-	s.list.init(s.secrets)
-	s.set.init(s.secrets)
-	s.edit.init(s.secrets)
+	s.list.init(s.secrets, &s.common)
+	s.set.init(s.secrets, &s.common)
+	s.edit.init(s.secrets, &s.common)
 
 	s.get.cmd = s.secrets.Command("get", "Get value of a credential unencrypted")
 	s.get.key = s.get.cmd.Arg("key", "Full key path").Required().String()
 
-	s.unset.init(s.secrets)
+	s.unset.init(s.secrets, &s.common)
 }
 
 func (s *secrets) action(action string) {
