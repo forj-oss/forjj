@@ -15,11 +15,13 @@ type secretsList struct {
 	cmd      *kingpin.CmdClause
 	show     *bool
 	elements map[string]secretInfo
+	common   *secretsCommon
 }
 
-func (l *secretsList) init(parentCmd *kingpin.CmdClause) {
+func (l *secretsList) init(parentCmd *kingpin.CmdClause, common *secretsCommon) {
 	l.cmd = parentCmd.Command("list", "Show all credentials of the factory").Default()
 	l.show = l.cmd.Flag("show", "Show password unencrypted.").Bool()
+	l.common = common
 }
 
 // Display the list of secrets
@@ -40,7 +42,11 @@ func (l *secretsList) showList() {
 			}
 			info.keyPath += keyName
 
-			info.value, info.found, info.source, info.env = forj_app.s.GetString(objectName, instanceName, keyName)
+			if *l.common.common {
+				info.value, info.found, info.source, info.env = forj_app.s.GetGlobalString(objectName, instanceName, keyName)
+			} else {
+				info.value, info.found, info.source, info.env = forj_app.s.GetString(objectName, instanceName, keyName)
+			}
 
 			l.elements[info.keyPath] = info
 		}

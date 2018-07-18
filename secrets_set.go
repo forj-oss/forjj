@@ -1,6 +1,7 @@
 package main
 
 import (
+	"forjj/creds"
 	"fmt"
 	"forjj/scandrivers"
 	"os"
@@ -17,15 +18,16 @@ type secretsSet struct {
 	cmd      *kingpin.CmdClause
 	key      *string
 	password *string
+	common   *secretsCommon
 
 	elements map[string]secretInfo
 }
 
-func (s *secretsSet) init(parent *kingpin.CmdClause) {
+func (s *secretsSet) init(parent *kingpin.CmdClause, common *secretsCommon) {
 	s.cmd = parent.Command("set", "store a new credential in forjj secrets")
 	s.key = s.cmd.Arg("key", "Key path. Format is <objectType>/<objectInstance>/<key>.)").Required().String()
 	s.password = s.cmd.Flag("password", "Secret key value").Short('P').String()
-
+	s.common = common
 }
 
 // doSet register a password to the path given.
@@ -47,7 +49,11 @@ func (s *secretsSet) doSet() {
 			}
 			info.keyPath += keyName
 
-			info.value, info.found, info.source, info.env = forj_app.s.GetString(objectName, instanceName, keyName)
+			if *s.common.common {
+				info.value, info.found, info.source, info.env = forj_app.s.GetGlobalString(objectName, instanceName, keyName)
+			} else {
+				info.value, info.found, info.source, info.env = forj_app.s.GetString(objectName, instanceName, keyName)
+			}
 
 			s.elements[info.keyPath] = info
 		}
@@ -76,6 +82,9 @@ func (s *secretsSet) doSet() {
 	v := goforjj.ValueStruct{}
 	v.Set(*s.password)
 	env := forj_app.f.GetDeployment()
+	if *s.common.common {
+		env = creds.Global
+	}
 	if !forj_app.s.SetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2], &v) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)
 		return

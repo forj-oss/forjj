@@ -1,6 +1,7 @@
 package main
 
 import (
+	"forjj/creds"
 	"forjj/scandrivers"
 	"io/ioutil"
 	"os"
@@ -19,18 +20,20 @@ type secretsEdit struct {
 	cmd      *kingpin.CmdClause
 	key      *string
 	password string
+	common   *secretsCommon
 
 	elements map[string]secretInfo
 }
 
-func (e *secretsEdit) init(parent *kingpin.CmdClause) {
+func (s *secretsEdit) init(parent *kingpin.CmdClause, common *secretsCommon) {
 
-	e.cmd = parent.Command("edit", "edit a credential stored in forjj secrets")
-	e.key = e.cmd.Arg("key", "Key path. Format is <objectType>/<objectInstance>/<key>.)").Required().String()
-	e.editor = e.cmd.Flag("editor", "editor to execute").Envar("EDITOR").Default("/usr/bin/vi").String()
+	s.cmd = parent.Command("edit", "edit a credential stored in forjj secrets")
+	s.key = s.cmd.Arg("key", "Key path. Format is <objectType>/<objectInstance>/<key>.)").Required().String()
+	s.editor = s.cmd.Flag("editor", "editor to execute").Envar("EDITOR").Default("/usr/bin/vi").String()
+	s.common = common
 }
 
-// doSet register a password to the path given.
+// doEdit register a password to the path given.
 // Only supported path are recognized.
 func (s *secretsEdit) doEdit() {
 	ffd := forj_app.f.InMemForjfile()
@@ -115,6 +118,9 @@ func (s *secretsEdit) doEdit() {
 	v := goforjj.ValueStruct{}
 	v.Set(s.password)
 	env := forj_app.f.GetDeployment()
+	if *s.common.common {
+		env = creds.Global
+	}
 	if !forj_app.s.SetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2], &v) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)
 		return

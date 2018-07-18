@@ -1,6 +1,7 @@
 package main
 
 import (
+	"forjj/creds"
 	"forjj/scandrivers"
 	"strings"
 
@@ -11,15 +12,17 @@ import (
 )
 
 type secretsUnset struct {
-	cmd *kingpin.CmdClause
-	key *string
+	cmd    *kingpin.CmdClause
+	key    *string
+	common *secretsCommon
 
 	elements map[string]secretInfo
 }
 
-func (s *secretsUnset) init(parent *kingpin.CmdClause) {
+func (s *secretsUnset) init(parent *kingpin.CmdClause, common *secretsCommon) {
 	s.cmd = parent.Command("unset", "remove a credential stored in forjj secrets")
 	s.key = s.cmd.Arg("key", "Key path to remove. Format is <objectType>/<objectInstance>/<key>.)").Required().String()
+	s.common = common
 }
 
 // doSet register a password to the path given.
@@ -57,6 +60,9 @@ func (s *secretsUnset) doUnset() {
 	keyPath := strings.Split(*s.key, "/")
 
 	env := forj_app.f.GetDeployment()
+	if *s.common.common {
+		env = creds.Global
+	}
 	if !forj_app.s.UnsetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2]) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)
 		return
