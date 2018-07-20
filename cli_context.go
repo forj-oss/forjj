@@ -183,9 +183,14 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	if fileDesc, err := a.cli.GetAppStringValue(cred_f); err == nil && fileDesc != "" {
 		a.s.SetFile(a.f.GetDeployment(), fileDesc)
 	}
-	if err := a.s.Load(); err != nil {
-		gotrace.Info("Some credential files were not loaded. %s", err)
+
+	if err := a.s.EncryptAll(true); err != nil {
+		return fmt.Errorf("Unable to encrypt files. %s", err), false
 	}
+	if err := a.s.Load(); err != nil {
+		return fmt.Errorf("Some credential files were not loaded. %s", err), false
+	}
+
 	if err := a.s.Upgrade(func(d *creds.Secure, version string) (err error) {
 		// Function to identify creds V0 and do upgrade
 		if deployObj, err := a.f.GetDeploymentPROType(); err != nil {
@@ -249,13 +254,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	return nil, true
 }
 
-// setInfraName configure the infra repository name 
+// setInfraName configure the infra repository name
 // It can take data from the cli, or Forjfile.
 // If none are defined, forjj will create one based on the organization name
 //
 // When this is done, forjj will ensure this repo is available in list of repositories
 // For next actions (REST API against plugins)
-// 
+//
 // Note that in maintains use case, cli is not usable. Data must be in the Forfile if default forjj calculates needs to be changed.
 //
 // forjj do not read any infra fields from Deployment Forjfiles. The only place where infra data must be stored is in the global one.

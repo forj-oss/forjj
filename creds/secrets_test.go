@@ -313,7 +313,7 @@ func Test_Import(t *testing.T) {
 		return
 	}
 
-	s.Envs["test"] = yamlSecure{
+	s.Envs["test"] = &yamlSecure{
 		Version: "V1",
 	}
 
