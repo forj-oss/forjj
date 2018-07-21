@@ -59,4 +59,9 @@ done
 
 be_common_load
 
+for MOD in $MODS
+do
+    ${MOD}_create_build_env "$@"
+done
+
 be_ci_run

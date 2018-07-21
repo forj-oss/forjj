@@ -49,12 +49,6 @@ function be_docker_setup {
     source build-env.sh --sudo ..."
        return 1
     fi
-
-    $BUILD_ENV_DOCKER inspect forjj-golang-env > /dev/null
-    if [ $? -ne 0 ]
-    then
-       bin/create-build-env.sh
-    fi
 }
 
 function be_common_load {

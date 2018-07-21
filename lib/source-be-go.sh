@@ -106,4 +106,12 @@ function be_create_go_docker_build {
     cp -vrp $BASE_DIR/modules/go/glide build-env-docker/
 }
 
+function go_create_build_env {
+    $BUILD_ENV_DOCKER inspect ${BE_PROJECT}-$MOD-env > /dev/null
+    if [ $? -ne 0 ]
+    then
+       bin/create-go-build-env.sh
+    fi
+}
+
 beWrappers["go"]="go glide create-go-build-env.sh"
