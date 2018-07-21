@@ -2,6 +2,7 @@ package creds
 
 import (
 	"bufio"
+	"fmt"
 	"forjj/sources_info"
 	"io"
 	"io/ioutil"
@@ -13,13 +14,18 @@ import (
 )
 
 type yamlSecure struct {
-	file      string
-	file_path string
-	loaded    bool
-	Version   string
-	Forj      map[string]string
-	Objects   map[string]map[string]map[string]*goforjj.ValueStruct
-	sources   *sourcesinfo.Sources
+	file       string
+	credFile   string
+	files      []string
+	fileToLoad string
+	secretFile bool
+	file_path  string
+	loaded     bool
+	Version    string
+	Forj       map[string]string
+	Objects    map[string]map[string]map[string]*goforjj.ValueStruct
+	sources    *sourcesinfo.Sources
+	s          *Secrets
 }
 
 func (d *yamlSecure) isLoaded() bool {
@@ -29,17 +35,51 @@ func (d *yamlSecure) isLoaded() bool {
 	return d.loaded
 }
 
-func (d *yamlSecure) load() error {
-	fd, err := os.Open(d.file)
+func (d *yamlSecure) foundFiles() (ret []string) {
+	d.files = make([]string, 2)
+
+	for i, file := range []string{d.credFile, d.file} {
+		_, err := os.Stat(file)
+		if err == nil {
+			d.files[i] = file
+		}
+	}
+	return d.files
+}
+
+// load Read the file from encrypted or not file type
+func (d *yamlSecure) load(env string, secretFile bool) error {
+	d.foundFiles()
+	file := d.files[0]
+	if ! secretFile {
+		file = d.files[1]
+	}
+	if file == "" {
+		gotrace.Trace("no env '%s' file loaded. Not found.", env)
+		d.files[0] = d.credFile
+		return nil
+	}
+	fd, err := os.Open(file)
 	if err != nil {
 		return err
 	}
 
 	defer fd.Close()
+	if secretFile {
+		var data []byte
+		data, err = ioutil.ReadAll(fd)
+		if err != nil {
+			return fmt.Errorf("Unable to read '%s'. %s", d.fileToLoad, err)
+		}
+		err = d.s.ImportToEnv(data, d)
+		if err != nil {
+			return fmt.Errorf("Unable to decrypt '%s'. %s", d.fileToLoad, err)
+		}
+	} else {
+		d.iLoad(bufio.NewReader(fd))
+	}
 
-	d.iLoad(bufio.NewReader(fd))
-
-	gotrace.Trace("Credential file '%s' has been loaded.", d.file)
+	gotrace.Trace("Credential file '%s' has been loaded.", file)
 	return nil
 }
 
@@ -48,17 +88,27 @@ func (d *yamlSecure) iLoad(r io.Reader) error {
 	return decoder.Decode(d)
 }
 
-func (d *yamlSecure) save() error {
-	yamlData, err := yaml.Marshal(d)
+func (d *yamlSecure) save(secretFile bool) (err error) {
+	var (
+		yamlData []byte
+	)
+	file := d.credFile
+	if ! secretFile {
+		file = d.file
+		yamlData, err = yaml.Marshal(d)
+	} else {
+		yamlData, err = d.s.ExportEnv(d)
+	}
+
 	if err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(d.file, yamlData, 0644); err != nil {
+	if err = ioutil.WriteFile(d.credFile, yamlData, 0644); err != nil {
 		return err
 	}
-	gotrace.Trace("File name saved: %s", d.file)
-	return nil
+	gotrace.Trace("File name saved: %s", file)
+	return
 }
 
 func (d *yamlSecure) SetForjValue(source, key, value string) (updated bool) {

@@ -18,13 +18,16 @@ type Secure struct {
 	defaultPath string
 	curEnv      string
 	updated     bool
+	key         string
 	secrets     Secrets
 }
 
 // DefaultCredsFile is the default credential file name, without environment information.
 const (
-	DefaultCredsFile = "forjj-creds.yml"
-	Global           = "global"
+	DefaultCredsFile     = "forjj-creds.yml"
+	DefaultSecretFile    = "forjj.enc"
+	DefaultSecretKeyFile = ".forjj.key"
+	Global               = "global"
 )
 
 // Upgrade detects a need to upgrade current credentials data to new version
@@ -82,22 +85,61 @@ func (d *Secure) DirName(env string) (_ string) {
 	return
 }
 
+// EncryptAll is executed to encrypt all unencrypted files if found. The process is as follow:
+//
+// if one uncrypted file is found, and no encrypted found, the file will be encrypted, automatically
+// if both unencrypted and encrrypted files are found, it removes the unencrypted file
+// if only encrypted file is found, nothing is done
+//
+// If error is found, the function exit.
+func (d *Secure) EncryptAll(encrypt bool) error {
+	if _, err := os.Stat(d.key); err != nil && encrypt {
+		d.secrets.GenerateKey()
+		d.secrets.SaveKey(d.key)
+	} else {
+		d.secrets.ReadKey(d.key)
+	}
+
+	if !encrypt {
+		return nil
+	}
+
+	for key, env := range d.secrets.Envs {
+		files := env.foundFiles()
+		if files[0] == "" && files[1] != "" {
+			// encrypt the file
+			env.load(key, false)
+			if err := env.save(true); err != nil {
+				return fmt.Errorf("Unable to encrypt '%s'. %s", files[1], err)
+			}
+			if err := os.Remove(files[1]); err != nil {
+				return fmt.Errorf("Unable to remove unencrypted '%s'. %s", files[1], err)
+			}
+			env.files[0] = env.credFile
+			env.files[1] = ""
+		} else if files[0] != "" && files[1] != "" {
+			// remove unencrypted one
+			if err := os.Remove(files[1]); err != nil {
+				return fmt.Errorf("Unable to remove unencrypted '%s'. %s", files[1], err)
+			}
+			env.files[1] = ""
+		}
+	}
+	return nil
+}
+
 // Load security files (global + deployment one)
 func (d *Secure) Load() error {
 	if d == nil {
 		return fmt.Errorf("Secure object is nil")
 	}
 	inError := false
+
 	for key, env := range d.secrets.Envs {
-		if _, err := os.Stat(env.file); err != nil {
-			gotrace.Trace(" '%s'. %s. Ignored", env.file, err)
-			continue
-		}
-		if err := env.load(); err != nil {
+		if err := env.load(key, true); err != nil {
 			gotrace.Error("%s", err)
 			inError = true
 		}
-		d.secrets.Envs[key] = env
 	}
 	if inError {
 		return fmt.Errorf("Issues detected while loading credential files")
@@ -112,7 +154,7 @@ func (d *Secure) Save() error {
 	}
 	inError := false
 	for _, env := range d.secrets.Envs {
-		if err := env.save(); err != nil {
+		if err := env.save(true); err != nil {
 			gotrace.Error("%s", err)
 			inError = true
 		}
@@ -131,7 +173,7 @@ func (d *Secure) SaveEnv(env string) error {
 		return fmt.Errorf("Secure object is nil")
 	}
 	if envData, found := d.secrets.Envs[env]; found {
-		if err := envData.save(); err != nil {
+		if err := envData.save(true); err != nil {
 			return err
 		}
 	} else {
@@ -147,7 +189,8 @@ func (d *Secure) InitEnvDefaults(aPath, env string) {
 		return
 	}
 	d.defaultPath = aPath
-	d.secrets.Envs = make(map[string]yamlSecure)
+	d.key = path.Join(aPath, DefaultSecretKeyFile)
+	d.secrets.Envs = make(map[string]*yamlSecure)
 	for _, curEnv := range []string{Global, env} {
 		d.SetDefaultFile(curEnv)
 	}
@@ -165,6 +208,17 @@ func (d *Secure) DefineDefaultCredFileName(aPath, env string) string {
 	return path.Join(aPath, env+"-"+DefaultCredsFile)
 }
 
+// DefineDefaultSecretFileName define the internal credential path file for a specific environment.
+func (d *Secure) DefineDefaultSecretFileName(aPath, env string) string {
+	if d == nil {
+		return ""
+	}
+	if env == Global {
+		return path.Join(aPath, DefaultSecretFile)
+	}
+	return path.Join(aPath, env+"-"+DefaultSecretFile)
+}
+
 // SetDefaultFile
 func (d *Secure) SetDefaultFile(env string) {
 	if d == nil || d.secrets.Envs == nil {
@@ -173,9 +227,11 @@ func (d *Secure) SetDefaultFile(env string) {
 	data := yamlSecure{
 		Version:   CredsVersion,
 		file:      path.Clean(d.DefineDefaultCredFileName(d.defaultPath, env)),
+		credFile:  path.Clean(d.DefineDefaultSecretFileName(d.defaultPath, env)),
 		file_path: d.defaultPath,
+		s:         &d.secrets,
 	}
-	d.secrets.Envs[env] = data
+	d.secrets.Envs[env] = &data
 	return
 }
 
@@ -190,7 +246,7 @@ func (d *Secure) SetFile(filePath, env string) {
 		file:      path.Clean(filePath),
 		file_path: path.Dir(filePath),
 	}
-	d.secrets.Envs[env] = data
+	d.secrets.Envs[env] = &data
 }
 
 // SetForjValue set a value in Forj section.
@@ -263,7 +319,6 @@ func (d *Secure) GetGlobalString(objName, instanceName, keyName string) (value s
 	}
 	return "", false, "", ""
 }
-
 
 // GetString return a string representation of the value.
 func (d *Secure) GetString(objName, instanceName, keyName string) (value string, found bool, source, env string) {
