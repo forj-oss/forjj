@@ -184,11 +184,25 @@ func (f *Forge) GetInfraName() string {
 	return forge.Infra.name
 }
 
+// IsLoaded return true is a Forjfile has been loaded in Memory. Even empty.
+func (f *Forge) IsLoaded() (ret bool) {
+	if f == nil {
+		return
+	}
+	ret = (f.yaml != nil)
+	return
+}
+
 // Load : Load Forjfile stored in a Repository.
 func (f *Forge) Load(deployTo string) (loaded bool, err error) {
-	if !f.Init() {
+	if f == nil {
 		return false, fmt.Errorf("Forge is nil.")
 	}
+	bAlreadyLoaded := false
+	if f.yaml != nil { // Forjfile data already loaded. Do not load
+		bAlreadyLoaded = true
+	}
+	f.Init()
 
 	if f.infra_path != "" {
 		if _, err = os.Stat(f.infra_path); err != nil {
@@ -198,9 +212,19 @@ func (f *Forge) Load(deployTo string) (loaded bool, err error) {
 
 	aPath := path.Join(f.infra_path, f.Forjfile_name())
 
+	if _, err = os.Stat(f.infra_path); err != nil {
+		if !bAlreadyLoaded {
+			f.yaml = nil
+		}
+		return
+	}
+
 	// Loading master forjfile
 	if _, err = f.load(&f.yaml, aPath); err != nil {
 		return
+	}
+	if bAlreadyLoaded {
+		gotrace.Warning("Both, a Forjfile and a Forjfile model were loaded. The model has been ignored.")
 	}
 
 	// Loading All Deployments forjfiles
