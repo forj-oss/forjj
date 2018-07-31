@@ -16,11 +16,12 @@ import (
 )
 
 type secretsEdit struct {
-	editor   *string
-	cmd      *kingpin.CmdClause
-	key      *string
-	password string
-	common   *secretsCommon
+	editor          *string
+	noTerminalSetup *bool
+	cmd             *kingpin.CmdClause
+	key             *string
+	password        string
+	common          *secretsCommon
 
 	elements map[string]secretInfo
 }
@@ -30,6 +31,7 @@ func (s *secretsEdit) init(parent *kingpin.CmdClause, common *secretsCommon) {
 	s.cmd = parent.Command("edit", "edit a credential stored in forjj secrets")
 	s.key = s.cmd.Arg("key", "Key path. Format is <objectType>/<objectInstance>/<key>.)").Required().String()
 	s.editor = s.cmd.Flag("editor", "editor to execute").Envar("EDITOR").Default("/usr/bin/vi").String()
+	s.noTerminalSetup = s.cmd.Flag("no-terminal-setup", "do not set terminal i/o to edit the credential.").Short('T').Bool()
 	s.common = common
 }
 
@@ -90,13 +92,15 @@ func (s *secretsEdit) doEdit() {
 	tmpFile.Close()
 
 	cmd := exec.Command(*s.editor, fileName)
-	if !terminal.IsTerminal(int(os.Stdin.Fd())) {
-		gotrace.Error("Unable to edit %s. Not a terminal. Exiting.", *s.key)
-		return
+	if !*s.noTerminalSetup {
+		if !terminal.IsTerminal(int(os.Stdin.Fd())) {
+			gotrace.Error("Unable to edit %s. Not a terminal. Exiting.", *s.key)
+			return
+		}
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 	}
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	err = cmd.Run()
 
 	if err != nil {
