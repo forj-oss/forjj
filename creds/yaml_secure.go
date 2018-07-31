@@ -51,7 +51,7 @@ func (d *yamlSecure) foundFiles() (ret []string) {
 func (d *yamlSecure) load(env string, secretFile bool) error {
 	d.foundFiles()
 	file := d.files[0]
-	if ! secretFile {
+	if !secretFile {
 		file = d.files[1]
 	}
 	if file == "" {
@@ -93,7 +93,7 @@ func (d *yamlSecure) save(secretFile bool) (err error) {
 		yamlData []byte
 	)
 	file := d.credFile
-	if ! secretFile {
+	if !secretFile {
 		file = d.file
 		yamlData, err = yaml.Marshal(d)
 	} else {
@@ -170,7 +170,7 @@ func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name st
 		keys[key_name] = newValue
 		d.Objects[obj_name][instance_name] = keys
 		updated = true
-	} else if v, found := k[key_name]; found {
+	} else if v, found := k[key_name]; found && v != nil {
 		if !value.Equal(v) {
 			*v = *value
 			updated = true
