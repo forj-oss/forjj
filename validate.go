@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"fmt"
+	"log"
 
 	"github.com/forj-oss/goforjj"
 )
@@ -26,6 +26,12 @@ func (a *Forj) FoundValidAppFlag(key, driver, object string, required bool) (_ b
 		err = fmt.Errorf("Internal issue. Driver %s not found in memory", driver)
 		return
 	}
+
+	if d.Plugin == nil {
+		err = fmt.Errorf("No %s driver '%s' loaded for application '%s'", d.DriverType, d.Name, driver)
+		return
+	}
+
 	if o, found := d.Plugin.Yaml.Objects[object]; found {
 		return o.HasValidKey(key), nil
 	}
@@ -39,7 +45,7 @@ func (a *Forj) FoundValidAppFlag(key, driver, object string, required bool) (_ b
 func (a *Forj) ValidateForjfile() (_ error) {
 	f := a.f.DeployForjfile()
 
-	if err := a.f.Validate() ; err != nil {
+	if err := a.f.Validate(); err != nil {
 		return fmt.Errorf("Validation error. %s", err)
 	}
 

@@ -16,7 +16,7 @@ import (
 
 func (a *Forj) createAction(string) {
 	if err := a.Create(); err != nil {
-		log.Fatalf("Forjj create issue. %s", err)
+		log.Fatalf("Forjj create issue. %s.", err)
 	}
 	log.Print("===========================================")
 	if !*a.no_maintain {
@@ -115,7 +115,7 @@ func (a *Forj) Create() error {
 	}
 
 	if err := a.ValidateForjfile(); err != nil {
-		return fmt.Errorf("Your Forjfile is having issues. %s Try to fix and retry.", err)
+		return fmt.Errorf("Your Forjfile is having issues. %s. Fix it and retry", err)
 	}
 
 	// Set plugin defaults for objects defined by plugins loaded.
