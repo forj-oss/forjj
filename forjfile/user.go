@@ -68,14 +68,14 @@ func (u *UserStruct) Set(source, field, value string) {
 		if u.More == nil {
 			u.More = make(map[string]string)
 		}
-		if v, found := u.More[field]; found && value == "" {
-			u.More[field] = value
-			u.forge.dirty()
-		} else {
+		if v, found := u.More[field]; found {
 			if v != value {
 				u.forge.dirty()
 				u.More[field] = value
 			}
+		} else {
+			u.forge.dirty()
+			u.More[field] = value
 		}
 	}
 	u.sources = u.sources.Set(source, field, value)
