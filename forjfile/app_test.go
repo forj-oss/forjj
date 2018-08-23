@@ -225,22 +225,3 @@ func TestApp(t *testing.T) {
 
 }
 
-func TestAppModel(t *testing.T) {
-	assert := assert.New(t)
-
-	/*********************************/
-	testCase := "when app is nil"
-
-	var app *AppStruct
-	model := app.Model()
-
-	assert.Nilf(model.app, "Expect model app to be nil %s", testCase)
-
-	/*********************************/
-	testCase = "when app is created"
-	app = NewAppStruct()
-	model = app.Model()
-	assert.NotNil(app, "Expect App object returned %s", testCase)
-	assert.NotNil(model.app, "Expect App object set in model %s", testCase)
-
-}
