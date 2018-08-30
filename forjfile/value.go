@@ -1,10 +1,5 @@
 package forjfile
 
-// TODO: Add a function/cap to forjj to generate Forjfile with Default values (ForjValueSelectDefault = true)
-var ForjValueSelectDefault bool
-
-type ForjValues map[string]ForjValue
-
 type ForjValue struct {
 	value string
 	default_value string
@@ -18,7 +13,7 @@ func (v *ForjValue) Set(aValue string) (updated bool) {
 }
 
 func (v *ForjValue) SetDefault(aDefValue string) (updated bool) {
-	updated = (v.value != aDefValue)
+	updated = (v.default_value != aDefValue)
 	v.default_value = aDefValue
 	return
 }
@@ -43,32 +38,11 @@ func (v *ForjValue) IsDefault() (_ bool) {
 	return
 }
 
-func (v ForjValues) Map() (values map[string]string) {
-	values = make(map[string]string)
-	for key, value := range v {
-		if v1, f1 := value.get_selected() ; f1 {
-			values[key] = v1
-		}
-	}
-	return
-}
-
 func (v *ForjValue)get_selected() (string, bool) {
 	if ForjValueSelectDefault && v.value == "" {
 		return v.default_value, (v.default_value != "")
 	}
 	return v.value, (v.value != "")
-}
-
-func (v ForjValues) MarshalYAML() (interface{}, error) {
-	values := make(map[string]string)
-
-	for key, value := range v {
-		if v1, f1 := value.get_selected() ; f1 {
-			values[key] = v1
-		}
-	}
-	return values, nil
 }
 
 func (v ForjValue) MarshalYAML() (interface{}, error) {

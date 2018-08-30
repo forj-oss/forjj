@@ -43,6 +43,9 @@ func NewAppStruct() (ret *AppStruct) {
 }
 
 func (a *AppStruct) Flags() (flags []string) {
+	if a == nil {
+		return
+	}
 	flags = make([]string, 3, 3+len(a.more))
 	flags[0] = appName
 	flags[1] = appType
@@ -53,9 +56,12 @@ func (a *AppStruct) Flags() (flags []string) {
 	return
 }
 
-func (r *AppStruct) Model() AppModel {
+func (a *AppStruct) Model() AppModel {
+	if a == nil {
+		return AppModel{}
+	}
 	model := AppModel{
-		app: r,
+		app: a,
 	}
 
 	return model
@@ -64,6 +70,9 @@ func (r *AppStruct) Model() AppModel {
 // TODO: Add struct unit tests
 
 func (a *AppStruct) UnmarshalYAML(unmarchal func(interface{}) error) error {
+	if a == nil {
+		return nil
+	}
 	var app AppYamlStruct
 
 	if err := unmarchal(&app); err != nil {
@@ -83,18 +92,27 @@ func (a *AppStruct) UnmarshalYAML(unmarchal func(interface{}) error) error {
 }
 
 func (a *AppStruct) MarshalYAML() (interface{}, error) {
+	if a == nil {
+		return nil, nil
+	}
 	// Ensure we write only Yaml Data.
 	a.AppYamlStruct.More = a.AppYamlStruct.more.Map()
 	return a.AppYamlStruct, nil
 }
 
 func (a *AppStruct) Name() string {
+	if a == nil {
+		return ""
+	}
 	return a.name
 }
 
 // Get return the flag value.
 // found is true if value exist in more or if the value is not empty
 func (a *AppStruct) Get(flag string) (value *goforjj.ValueStruct, found bool, source string) {
+	if a == nil {
+		return
+	}
 	source = a.sources.Get(flag)
 	switch flag {
 	case appName:
@@ -110,30 +128,48 @@ func (a *AppStruct) Get(flag string) (value *goforjj.ValueStruct, found bool, so
 	return
 }
 
-func (r *AppStruct) SetHandler(source string, from func(field string) (string, bool), set func(*ForjValue, string) bool, keys ...string) {
+func (a *AppStruct) SetHandler(source string, from func(field string) (string, bool), set func(*ForjValue, string) bool, keys ...string) (updated bool) {
+	if a == nil {
+		return
+	}
 	for _, key := range keys {
 		if v, found := from(key); found {
-			r.Set(source, key, v, set)
+			updated = a.set(source, key, v, set) || updated
 		}
 	}
+	return
 }
 
-func (a *AppStruct) Set(source, flag, value string, set func(*ForjValue, string) bool) {
+func (a *AppStruct) Set(source, flag, value string) (updated bool) {
+	if a == nil {
+		return
+	}
+
+	return a.set(source, flag, value, (*ForjValue).Set)
+}
+
+func (a *AppStruct) set(source, flag, value string, set func(*ForjValue, string) bool) (updated bool) {
+	if a == nil {
+		return
+	}
 	switch flag {
 	case "name":
 		if a.name != value {
 			a.forge.dirty()
 			a.name = value
+			updated = true
 		}
 	case "type":
 		if a.Type != value {
 			a.Type = value
 			a.forge.dirty()
+			updated = true
 		}
 	case "driver":
 		if a.Driver != value {
 			a.Driver = value
 			a.forge.dirty()
+			updated = true
 		}
 	default:
 		if a.more == nil {
@@ -142,10 +178,12 @@ func (a *AppStruct) Set(source, flag, value string, set func(*ForjValue, string)
 		if v, found := a.more[flag]; found && value == "" {
 			a.forge.dirty()
 			delete(a.more, flag)
+			updated = true
 		} else {
 			if set(&v, value) {
 				a.forge.dirty()
 				a.more[flag] = v
+				updated = true
 			}
 		}
 	}
@@ -153,14 +191,20 @@ func (a *AppStruct) Set(source, flag, value string, set func(*ForjValue, string)
 	return
 }
 
-func (g *AppStruct) set_forge(f *ForgeYaml) {
-	g.forge = f
+func (a *AppStruct) set_forge(f *ForgeYaml) {
+	if a == nil {
+		return
+	}
+	a.forge = f
 }
 
 func (a *AppStruct) mergeFrom(from *AppStruct) {
+	if a == nil {
+		return
+	}
 	for _, flag := range from.Flags() {
 		if v, found, source := from.Get(flag); found {
-			a.Set(source, flag, v.GetString(), (*ForjValue).Set)
+			a.set(source, flag, v.GetString(), (*ForjValue).Set)
 		}
 	}
 }
