@@ -57,14 +57,19 @@ func (w *Workspace) SetPath(Workspace_path string) error {
 	return nil
 }
 
-// GetString return the data of the requested field.
-func (w *Workspace) GetString(field string) (value string) {
-	return w.internal.getString(field)
+// Data provides the list of workspace variables stored.
+func (w *Workspace) Data() (result map[string]string) {
+	result = w.More
+	result["docker-bin-path"] = w.DockerBinPath
+	result["contrib-repo-path"] = w.Contrib_repo_path
+	result["flow-repo-path"] = w.Flow_repo_path
+	result["repotemplate-repo-path"] = w.Repotemplate_repo_path
+	return
 }
 
-// Get return the value of the requested field and found if was found.
-func (w *Workspace) Get(field string) (value string, found bool) {
-	return w.internal.get(field)
+// Len provides the numbers of workspace data stored.
+func (w *Workspace) Len() int {
+	return 4 + len(w.More)
 }
 
 // Set save field/value pair in the workspace.
@@ -77,6 +82,18 @@ func (w *Workspace) Set(field, value string, persistent bool) (updated bool) {
 			w.dirty = true
 		}
 	}
+
+// GetString return the data of the requested field.
+func (w *Workspace) GetString(field string) (value string) {
+	return w.internal.getString(field)
+}
+
+// Get return the value of the requested field and found if was found.
+func (w *Workspace) Get(field string) (value string, found bool) {
+	return w.internal.get(field)
+}
+
+	value, found = w.More[field]
 	return
 }
 
@@ -231,6 +248,7 @@ func (w *Workspace) Save() {
 		return
 	}
 
+	err = ioutil.WriteFile(fjson, djson, 0644)
 	kingpin.FatalIfError(err, "Unable to create/update '%s'", fjson)
 
 	gotrace.Trace("File '%s' saved.", fjson)

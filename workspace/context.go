@@ -17,10 +17,12 @@ import (
 type Context struct {
 	params     map[string]cli.ForjParam
 	cliContext clier.ParseContexter
+	isParsePhase func() bool
 }
 
-func (s *Context) init() {
+func (s *Context) init(isParsePhase func() bool) {
 	s.params = make(map[string]cli.ForjParam)
+	s.isParsePhase = isParsePhase
 }
 
 // Create a cli flag from a kingpin flag (for forjj-modules/cli)
@@ -69,7 +71,7 @@ func (s *Context) GetStringValue(field string) (value string, found, isDefault b
 	}
 
 	var v interface{}
-	if !forj_app.cli.IsParsePhase() {
+	if !s.isParsePhase() {
 		v, found = param.GetContextValue(s.cliContext)
 		if !found {
 			return

@@ -8,6 +8,7 @@ import (
 	"forjj/flow"
 	"forjj/forjfile"
 	"forjj/repo"
+	"forjj/workspace"
 	"log"
 	"net/url"
 	"os"
@@ -51,7 +52,9 @@ type Forj struct {
 	cli *cli.ForjCli // ForjCli data
 	app *kingpin.Application
 
+	// cli commands modules
 	secrets secrets
+	workspace workspace.Workspace
 
 	contextAction string // Context action defined in ParseContext.
 	// Can be create/update or maintain. But it can be any others, like secrets...
@@ -204,6 +207,7 @@ func (a *Forj) init() {
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 
 	a.secrets.init(a.app)
+	a.workspace.Init(a.app, &a.w)
 
 	var version string
 	if PRERELEASE {

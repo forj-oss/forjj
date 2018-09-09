@@ -1,15 +1,16 @@
 package workspace
 
 import (
+	"forjj/forjfile"
 	"strings"
 
 	"github.com/alecthomas/kingpin"
 )
 
+// Workspace represents cli subcommand actions and options
 type Workspace struct {
 	workspaceCmd *kingpin.CmdClause
 	context Context
-	common  wsCommon
 
 	list wsList
 	edit wsEdit
@@ -18,22 +19,17 @@ type Workspace struct {
 
 }
 
-func (w *Workspace) init(app *kingpin.Application) {
+func (w *Workspace) Init(app *kingpin.Application, data *forjfile.Workspace, isParsePhase func() bool) {
 	if w == nil || app == nil {
 		return
 	}
 
-	w.secrets = app.Command("workspace", "Manage forjj workspace data")
-	w.context.init()
-	w.common.init(&s.context, s.secrets)
-	w.list.init(s.secrets, &s.common)
-	w.set.init(s.secrets, &s.common)
-	w.edit.init(s.secrets, &s.common)
-
-	w.get.cmd = s.secrets.Command("get", "Get value of a credential unencrypted")
-	w.get.key = s.get.cmd.Arg("key", "Full key path").Required().String()
-
-	w.unset.init(s.secrets, &s.common)
+	w.workspaceCmd = app.Command("workspace", "Manage forjj workspace data")
+	w.context.init(isParsePhase)
+	w.list.init(w.workspaceCmd, data)
+	w.set.init(w.workspaceCmd, data)
+	w.edit.init(w.workspaceCmd, data)
+	w.unset.init(w.workspaceCmd, data)
 }
 
 func (w *Workspace) action(action string) {
