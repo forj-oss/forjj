@@ -1,21 +1,22 @@
 package repository
 
 import (
-	"path"
-	"forjj/git"
 	"fmt"
+	"forjj/git"
 	"os"
+	"path"
 )
 
 type GitRepoStruct struct {
 	path string
-	err error
+	err  error
 }
 
-func (i *GitRepoStruct)Create(repo_path string, initial_commit func() ([]string, error), force_create bool) error {
+// Create the infra repository. Used at forjj create time.
+func (i *GitRepoStruct) Create(repo_path string, initial_commit func() ([]string, error), force_create bool) error {
 	i.path = path.Clean(repo_path)
 
-	if creatable := i.is_creatable() ; !creatable {
+	if creatable := i.isCreatable(); !creatable {
 		if force_create {
 			return i.use()
 		}
@@ -30,23 +31,24 @@ func (i *GitRepoStruct)Create(repo_path string, initial_commit func() ([]string,
 		return fmt.Errorf("Unable to move repository at %s. %s", i.path, err)
 	}
 
-	if ! i.git_1st_commit_exist("master") {
-		return i.git_1st_commit(initial_commit)
+	if !i.git1stCommitExist("master") {
+		return i.git1stCommit(initial_commit)
 	}
 	return nil
 }
 
-func (i *GitRepoStruct)Use(repo_path string) error {
+// Use re-use an existing repository (in cur dir) and check if this repo contains at least one Forjfile. Forjj will detect later if this Forjfile is not a Template one to exit.
+func (i *GitRepoStruct) Use(repo_path string) error {
 	i.path = path.Clean(repo_path)
 
 	return i.use()
 }
 
-func (i *GitRepoStruct)use() error {
-	if ! i.is_valid() {
+func (i *GitRepoStruct) use() error {
+	if !i.isValid() {
 		return i.err
 	}
-	if ! i.git_1st_commit_exist("master") {
+	if !i.masterForjfileControlled() {
 		return fmt.Errorf("%s do not have the initial commit. You need to use create to create it first.", i.path)
 	}
 	return nil
