@@ -23,7 +23,7 @@ func (i *GitRepoStruct) Path() string {
 // - repo initialized
 // At the end Current dir is in the Repo.
 func (i *GitRepoStruct) EnsureInitialized() error {
-	if creatable := i.is_creatable(); !creatable {
+	if creatable := i.isCreatable(); !creatable {
 		return i.err
 	}
 
@@ -139,8 +139,16 @@ func GitRemoteExist(branch, remote, upstream string) (exist, found bool, err err
 	return
 }
 
-// return true is at least one commit exists.
-func (i *GitRepoStruct) git_1st_commit_exist(branch string) bool {
+// return true if the current repo control the master Forjfile.
+func (i *GitRepoStruct) masterForjfileControlled() bool {
+	if result, err := git.Get("ls-files", "Forjfile"); err == nil && result == "Forjfile" {
+		return true
+	}
+	return false
+}
+
+// return true is at least one commit exists on the specified branch.
+func (i *GitRepoStruct) git1stCommitExist(branch string) bool {
 	if _, err := git.Get("log", branch, "-1", "--oneline"); err == nil {
 		return true
 	}
@@ -148,7 +156,7 @@ func (i *GitRepoStruct) git_1st_commit_exist(branch string) bool {
 }
 
 // Create initial commit
-func (i *GitRepoStruct) git_1st_commit(initial_commit func() ([]string, error)) (err error) {
+func (i *GitRepoStruct) git1stCommit(initial_commit func() ([]string, error)) (err error) {
 	var files []string
 
 	if files, err = initial_commit(); err != nil {
@@ -166,7 +174,7 @@ func (i *GitRepoStruct) git_1st_commit(initial_commit func() ([]string, error)) 
 // If the path is a valid repo, create-able will be false and err = nil
 // else err is won't be nil. But create-able is true only if the repo
 // can be initialized.
-func (i *GitRepoStruct) is_creatable() (creatable bool) {
+func (i *GitRepoStruct) isCreatable() (creatable bool) {
 
 	gotrace.Trace("Checking '%s' repository...", i.path)
 
@@ -213,7 +221,7 @@ func (i *GitRepoStruct) is_creatable() (creatable bool) {
 	return
 }
 
-func (i *GitRepoStruct) is_valid() (valid bool) {
+func (i *GitRepoStruct) isValid() (valid bool) {
 	gotrace.Trace("Checking '%s' repository...", i.path)
 
 	if dir, err := os.Stat(i.path); err != nil && os.IsNotExist(err) {
