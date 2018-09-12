@@ -57,11 +57,11 @@ func (a *Forj) do_driver_task(action, instance string) (err error, aborted bool)
 	// The driver has created or aborted his task.
 
 	if a.InfraPluginDriver == d { // Infra upstream instance case
-		if v, found := a.InfraPluginDriver.Plugin.Result.Data.Repos[a.w.Infra.Name]; found {
+		if v, found := a.InfraPluginDriver.Plugin.Result.Data.Repos[a.w.Infra().Name]; found {
 			// Saving infra repository information to the workspace
-			a.w.Infra = &v
+			a.w.SetInfra(&v)
 		} else {
-			return fmt.Errorf("Unable to find Infra repository '%s' from driver '%s'", a.w.Infra.Name, a.w.Instance), false
+			return fmt.Errorf("Unable to find Infra repository '%s' from driver '%s'", a.w.Infra().Name, a.w.GetString("infra-instance-name")), false
 		}
 	}
 
@@ -177,7 +177,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	log.Print("-------------------------------------------")
 	log.Printf("Running %s on %s...", action, instance_name)
 
-	if err := d.Plugin.PluginInit(a.w.Organization + "_" + instance_name); err != nil {
+	if err := d.Plugin.PluginInit(a.w.GetString("organization") + "_" + instance_name); err != nil {
 		return err, false
 	}
 
@@ -192,9 +192,9 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	d.Plugin.PluginSetWorkspace(a.w.Path())
 	d.Plugin.PluginSocketPath(path.Join(a.w.Path(), "lib"))
 	if v, found, _, _ := a.cli.GetStringValue(workspace, "", "docker-exe-path"); found && v != "" {
-		a.w.DockerBinPath = v
+		a.w.Set("docker-bin-path", v, true)
 	}
-	if err := d.Plugin.PluginDockerBin(a.w.DockerBinPath); err != nil {
+	if err := d.Plugin.PluginDockerBin(a.w.GetString("docker-bin-path")); err != nil {
 		return err, false
 	}
 

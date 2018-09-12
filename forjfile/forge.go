@@ -35,10 +35,11 @@ type Forge struct {
 // WorkspaceStruct represents the yaml structure of a workspace.
 type WorkspaceStruct struct {
 	updated                bool
-	DockerBinPath          string            `yaml:"docker-exe-path"`    // Docker static binary path
-	Contrib_repo_path      string            `yaml:"contribs-repo"`      // Contrib Repo path used.
-	Flow_repo_path         string            `yaml:"flows-repo"`         // Flow repo path used.
-	Repotemplate_repo_path string            `yaml:"repotemplates-repo"` // Repotemplate Path used.
+	DockerBinPath          string            `yaml:"docker-exe-path"`          // Docker static binary path
+	Contrib_repo_path      string            `yaml:"contribs-repo"`            // Contrib Repo path used.
+	Flow_repo_path         string            `yaml:"flows-repo"`               // Flow repo path used.
+	Repotemplate_repo_path string            `yaml:"repotemplates-repo"`       // Repotemplate Path used.
+	SocketDir              string            `yaml:"plugins-socket-dirs-path"` // Path to forjj plugins socket dirs mounted to forjj plugins containers
 	More                   map[string]string `yaml:",inline"`
 }
 

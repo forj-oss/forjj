@@ -193,6 +193,7 @@ func (a *Forj) init() {
 	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default(defaultContribsRepo)
 	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default(defaultFlowRepo)
 	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)
+	optsDirsPath := cli.Opts().Envar("PLUGINS_SOCKET_DIRS_PATH")
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
@@ -270,6 +271,7 @@ func (a *Forj) init() {
 		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w", opts_contribs_repo).
 		AddField(cli.String, "flows-repo", flows_repo_help, "#w", opts_flows_repo).
 		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w", opts_repotmpl).
+		AddField(cli.String, "plugins-socket-dirs-path", socketDirsPathHelp, "#w", optsDirsPath).
 		AddField(cli.String, orga_f, forjj_orga_name_help, "#w", nil).
 		DefineActions(chg_act, rem_act).OnActions().
 		AddFlag(infra_path_f, nil).
@@ -277,6 +279,7 @@ func (a *Forj) init() {
 		AddFlag("contribs-repo", nil).
 		AddFlag("flows-repo", nil).
 		AddFlag("repotemplates-repo", nil).
+		AddFlag("plugins-socket-dirs-path", nil).
 		AddFlag(orga_f, opts_orga_name) == nil {
 		log.Printf("Workspace : %s", a.cli.GetObject(workspace).Error())
 	}
@@ -470,20 +473,18 @@ func (a *Forj) LoadInternalData() {
 func (a *Forj) getInternalData(param string) (result string) {
 	switch param {
 	case "organization":
-		result = a.w.Organization
+		result = a.w.GetString(param)
 	case "infra":
-		result = a.w.Infra.Name
-	case "infra-upstream":
-		if a.w.Instance == "" || a.w.Instance == "none" {
-			result = ""
-		} else {
-			result = a.w.Infra.GetUpstream(true)
+		if infra := a.w.Infra() ; infra != nil {
+			result = infra.Name
 		}
-	case "infra-upstream-url":
-		if a.w.Instance == "" || a.w.Instance == "none" {
+	case "infra-upstream", "infra-upstream-url":
+		if instanceName := a.w.GetString("infra-instance-name") ; instanceName == "" || instanceName == "none" {
 			result = ""
 		} else {
-			result = a.w.Infra.GetUpstream(false)
+			if infra := a.w.Infra() ; infra != nil {
+				result = infra.GetUpstream(param == "infra-upstream")
+			}
 		}
 	case "instance-name":
 		if a.CurrentPluginDriver != nil {

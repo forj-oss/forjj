@@ -156,27 +156,33 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		return nil, false
 	}
 
-	gotrace.Trace("Infrastructure repository defined : %s (organization: %s)", a.w.Infra.Name, a.w.Organization)
+	gotrace.Trace("Infrastructure repository defined : %s (organization: %s)", a.w.Infra().Name, a.w.GetString("organization"))
 
 	// Identifying appropriate Contribution Repository.
 	// The value is not set in flagsv. But is in the parser context.
 
 	a.ContribRepoURIs = make([]*url.URL, 0, 1)
 
-	if v, err := a.set_from_urlflag("contribs-repo", &a.w.Contrib_repo_path); err == nil {
+	if v, err := a.setFromURLFlag("contribs-repo", func(f, v string) (updated bool) {
+		return a.w.Set(f, v, need_to_create)
+	}); err == nil {
 		a.ContribRepoURIs = append(a.ContribRepoURIs, v)
 		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
 	} else {
 		return fmt.Errorf("Contribs repository url issue: %s", err), false
 	}
-	if v, err := a.set_from_urlflag("flows-repo", &a.w.Flow_repo_path); err == nil {
+	if v, err := a.setFromURLFlag("flows-repo", func(f, v string) (updated bool) {
+		return a.w.Set(f, v, need_to_create)
+	}); err == nil {
 		a.flows.AddRepoPath(v)
 		vpath, _ := url.PathUnescape(v.String())
 		gotrace.Trace("Using '%s' for '%s'", vpath, "flows-repo")
 	} else {
 		gotrace.Error("Flow repository url issue: %s", err)
 	}
-	if v, err := a.set_from_urlflag("repotemplates-repo", &a.w.Repotemplate_repo_path); err == nil {
+	if v, err := a.setFromURLFlag("repotemplates-repo", func(f, v string) (updated bool) {
+		return a.w.Set(f, v, need_to_create)
+	}); err == nil {
 		a.RepotemplateRepo_uri = v
 		gotrace.Trace("Using '%s' for '%s'", v, "repotemplates-repo")
 	} else {
@@ -272,11 +278,13 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 //
 func (a *Forj) setInfraName(action string) (err error) {
 	defer a.f.SetInfraAsRepo()
+	org := a.w.GetString("organization")
+
 	// Setting default if the organization is defined.
-	if a.w.Organization != "" {
+	if org != "" {
 		// Set the 'infra' default flag value in cli
 		a.cli.GetObject(infra).
-			SetParamOptions(infra_name_f, cli.Opts().Default(fmt.Sprintf("%s-infra", a.w.Organization)))
+			SetParamOptions(infra_name_f, cli.Opts().Default(fmt.Sprintf("%s-infra", org)))
 	}
 
 	var infraName string
@@ -291,24 +299,28 @@ func (a *Forj) setInfraName(action string) (err error) {
 		return err
 	}
 
+	infra := a.w.Infra()
 	if found {
 		// Set the infra repo name to use
 		// Can be set only the first time
-		if a.w.Infra.Name == "" {
+		if infra == nil {
+			return fmt.Errorf("Internal issue: Infra object not found.")
+		}
+		if infra.Name == "" {
 			// Get infra name from the flag
-			a.w.Infra.Name = infraName
-			return a.SetPrefsTo("global", "forjj", infra_name_f, a.w.Infra.Name) // Global Forjfile update
+			infra.Name = infraName
+			return a.SetPrefsTo("global", "forjj", infra_name_f, infra.Name) // Global Forjfile update
 		}
-		if infraName != a.w.Infra.Name && a.w.Organization != "" {
-			gotrace.Warning("You cannot update the Infra repository name from '%s' to '%s'.", a.w.Infra.Name, infraName)
+		if infraName != infra.Name && org != "" {
+			gotrace.Warning("You cannot update the Infra repository name from '%s' to '%s'.", infra.Name, infraName)
 		}
-		return a.SetPrefs("forjj", infra_name_f, a.w.Infra.Name)
+		return a.SetPrefs("forjj", infra_name_f, infra.Name)
 	}
 	// Default infra-name
-	if a.w.Organization != "" {
+	if org != "" {
 		// Use the default setting.
-		a.w.Infra.Name = fmt.Sprintf("%s-infra", a.w.Organization)
-		err = a.SetPrefsTo("global", "forjj", infra_name_f, a.w.Infra.Name) // Global Forjfile update
+		infra.Name = fmt.Sprintf("%s-infra", org)
+		err = a.SetPrefsTo("global", "forjj", infra_name_f, infra.Name) // Global Forjfile update
 	}
 	return err
 }
@@ -321,21 +333,23 @@ func (a *Forj) set_organization_name() error {
 	if err != nil {
 		return err
 	}
-	if a.w.Organization == "" {
+	curOrg := a.w.GetString("organization")
+	if curOrg == "" {
 		if found && orga != "" {
-			a.w.Organization = orga
+			a.w.Set("organization", orga, true)
 		}
 	} else {
-		if found && a.w.Organization != orga {
-			gotrace.Warning("Sorry, but you cannot update the organization name. The Forjfile will be updated back to '%s'", a.w.Organization)
+		if found && curOrg != orga {
+			gotrace.Warning("Sorry, but you cannot update the organization name. The Forjfile will be updated back to '%s'", curOrg)
 		}
 	}
-	if a.w.Organization != "" {
-		if err := a.SetPrefs("forjj", orga_f, a.w.Organization); err != nil {
+	curOrg = a.w.GetString("organization")
+	if curOrg != "" {
+		if err := a.SetPrefs("forjj", orga_f, curOrg); err != nil {
 			return err
 		}
-		log.Printf("Organization : '%s'", a.w.Organization)
-		a.cli.GetObject(workspace).SetParamOptions(orga_f, cli.Opts().Default(a.w.Organization))
+		log.Printf("Organization : '%s'", curOrg)
+		a.cli.GetObject(workspace).SetParamOptions(orga_f, cli.Opts().Default(curOrg))
 	} else {
 		if a.w.Error() == nil {
 			a.w.SetError(fmt.Errorf("No organization defined. Use --organization or add 'organization' to your Forjfile under 'forj-settings')"))
@@ -371,14 +385,14 @@ func (a *Forj) setWorkspace() error {
 	return a.w.SetPath(workspace_path)
 }
 
-// set_from_urlflag initialize a URL structure from a flag given.
+// setFromURLFlag initialize a URL structure from a flag given.
 // If the flag is set from cli and valid, the URL will be stored in the given string address (store).
 // if the flag has no value, store data is used as default.
 // flag : Application flag value (from cli module)
 //
 // store : string address where this flag will be stored
 //
-func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error) {
+func (a *Forj) setFromURLFlag(flag string, Set func(string, string) bool) (u *url.URL, e error) {
 	value, found, err := a.GetLocalPrefs(flag)
 	if err != nil {
 		gotrace.Trace("%s", err)
@@ -387,7 +401,7 @@ func (a *Forj) set_from_urlflag(flag string, store *string) (u *url.URL, e error
 
 	if found {
 		if u, e = url.Parse(value); e == nil {
-			*store = u.String()
+			Set(flag, u.String())
 		}
 		return
 	}

@@ -3,13 +3,14 @@ package forjfile
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alecthomas/kingpin"
-	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
+	"forjj/utils"
 	"io/ioutil"
 	"os"
 	"path"
-	"forjj/utils"
+
+	"github.com/alecthomas/kingpin"
+	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 )
 
 const forjj_workspace_json_file = "forjj.json"
@@ -20,30 +21,35 @@ const forjj_workspace_json_file = "forjj.json"
 // But it can store any data that is workspace environment specific.
 // like where is the docker static binary.
 type Workspace struct {
-	Organization           string              // Workspace Organization name
-	Driver                 string              // Infra upstream driver name
-	Instance               string              // Infra upstream instance name
-	Infra                  *goforjj.PluginRepo // Infra-repo definition
-	workspace              string              // Workspace name
-	workspace_path         string              // Workspace directory path.
-	error                  error               // Error detected
-	is_workspace           bool                // True if instance is the workspace data to save in Workspace path.
-	clean_entries          []string            // List of keys to ensure removed.
-	WorkspaceStruct
+	workspace      string   // Workspace name
+	workspace_path string   // Workspace directory path.
+	error          error    // Error detected
+	is_workspace   bool     // True if instance is the workspace data to save in Workspace path.
+	clean_entries  []string // List of keys to ensure removed.
+
+	internal   WorkspaceData
+	persistent WorkspaceData // Data saved and loaded in forjj.json
 }
 
-/*func (w *WorkspaceStruct)MarshalYAML() (interface{}, error) {
+// WorkspaceData contains the structured data saved as json
+type WorkspaceData struct {
+	Organization    string              // Workspace Organization name
+	Driver          string              // Infra upstream driver name
+	Instance        string              // Infra upstream instance name
+	Infra           *goforjj.PluginRepo // Infra-repo definition
+	WorkspaceStruct                     // Struct shared with local-settings of a Forjfile model
+}
 
-}*/
-
-func (w *Workspace)Init(non_ws_entries ...string) {
+// Init initialize the Workspace object
+func (w *Workspace) Init(non_ws_entries ...string) {
 	if w == nil {
 		return
 	}
-	w.Infra = goforjj.NewRepo()
+	w.internal.Infra = goforjj.NewRepo()
 	w.clean_entries = non_ws_entries
 }
 
+// SetPath define the workspace path.
 func (w *Workspace) SetPath(Workspace_path string) error {
 	if w == nil {
 		return fmt.Errorf("Workspace object nil.")
@@ -58,19 +64,93 @@ func (w *Workspace) SetPath(Workspace_path string) error {
 	return nil
 }
 
-func (w *Workspace) GetString(field string) (value string, found bool) {
+// GetString return the data of the requested field.
+func (w *Workspace) GetString(field string) (value string) {
 	switch field {
 	case "docker-bin-path":
-		return w.DockerBinPath, (w.DockerBinPath != "")
+		return w.internal.DockerBinPath
 	case "contrib-repo-path":
-		return w.Contrib_repo_path, (w.Contrib_repo_path != "")
+		return w.internal.Contrib_repo_path
 	case "flow-repo-path":
-		return w.Flow_repo_path, (w.Flow_repo_path != "")
+		return w.internal.Flow_repo_path
 	case "repotemplate-repo-path":
-		return w.Repotemplate_repo_path, (w.Repotemplate_repo_path != "")
+		return w.internal.Repotemplate_repo_path
+	case "plugins-socket-dirs-path":
+		return w.internal.SocketDir
+	case "organization":
+		return w.internal.Organization
+	case "infra-instance-name":
+		return w.internal.Instance
+	case "infra-driver-name":
+		return w.internal.Driver
 	}
-	value, found = w.More[field]
+	value, _ = w.internal.More[field]
 	return
+}
+
+// Get return the value of the requested field and found if was found.
+func (w *Workspace) Get(field string) (value string, found bool) {
+	if value, found = w.internal.More[field]; found {
+		return
+	}
+	value = w.GetString(field)
+	found = (value != "")
+	return
+}
+
+func (w *Workspace) Set(field, value string, persistent bool) (updated bool) {
+	switch field {
+	case "docker-bin-path":
+		updated = (w.internal.DockerBinPath != value)
+		w.internal.DockerBinPath = value
+		return
+	case "contrib-repo-path":
+		updated = (w.internal.Contrib_repo_path != value)
+		w.internal.Contrib_repo_path = value
+		return
+	case "flow-repo-path":
+		updated = (w.internal.Flow_repo_path != value)
+		w.internal.Flow_repo_path = value
+		return
+	case "repotemplate-repo-path":
+		updated = (w.internal.Repotemplate_repo_path != value)
+		w.internal.Repotemplate_repo_path = value
+		return
+	case "plugins-socket-dirs-path":
+		updated = (w.internal.SocketDir != value)
+		w.internal.SocketDir = value
+		return
+	case "organization":
+		updated = (w.internal.Organization != value)
+		w.internal.Organization = value
+		return
+	case "infra-instance-name":
+		updated = (w.internal.Instance != value)
+		w.internal.Instance = value
+		return
+	case "infra-driver-name":
+		updated = (w.internal.Driver != value)
+		w.internal.Driver = value
+		return
+	}
+	if v, found := w.internal.More[field] ; found {
+		updated = (v != value)
+	} else {
+		updated = true
+	}
+	w.internal.More[field] = value
+	return
+
+}
+
+// Infra return the Infra data object
+func (w *Workspace) Infra() (ret *goforjj.PluginRepo) {
+	return w.internal.Infra
+}
+
+// SetInfra save the infra object in the workspace internal data
+func (w *Workspace) SetInfra(infra *goforjj.PluginRepo) {
+	w.internal.Infra = infra
 }
 
 func (w *Workspace) RequireWorkspacePath() error {
@@ -78,8 +158,8 @@ func (w *Workspace) RequireWorkspacePath() error {
 		return fmt.Errorf("Workspace path not defined.")
 	}
 	aPath := w.Path()
-	if _, err := os.Stat(aPath) ; err != nil {
-		if err = os.Mkdir(aPath, 0755) ; err != nil {
+	if _, err := os.Stat(aPath); err != nil {
+		if err = os.Mkdir(aPath, 0755); err != nil {
 			return fmt.Errorf("Unable to create Workspace path '%s'. %s", aPath, err)
 		}
 		gotrace.Trace("Workspace path '%s' has been created.", aPath)
@@ -93,7 +173,8 @@ func (w *Workspace) SetFrom(aWorkspace WorkspaceStruct) {
 	if w == nil {
 		return
 	}
-	w.WorkspaceStruct = aWorkspace
+	w.internal.WorkspaceStruct = aWorkspace
+	w.persistent.WorkspaceStruct = aWorkspace
 }
 
 // InfraPath Return the path which contains the workspace.
@@ -172,7 +253,7 @@ func (w *Workspace) Save() {
 
 	w.CleanUnwantedEntries()
 
-	djson, err = json.Marshal(w)
+	djson, err = json.Marshal(w.persistent)
 	kingpin.FatalIfError(err, "Issue to encode in json '%s'", djson)
 
 	err = ioutil.WriteFile(fjson, djson, 0644)
@@ -185,8 +266,8 @@ func (w *Workspace) Save() {
 // Ex: infra-path
 func (w *Workspace) CleanUnwantedEntries() {
 	for _, key := range w.clean_entries {
-		if _, found := w.More[key] ; found {
-			delete(w.More, key)
+		if _, found := w.internal.More[key]; found {
+			delete(w.internal.More, key)
 		}
 	}
 }
@@ -198,7 +279,7 @@ func (w *Workspace) Error() error {
 	return w.error
 }
 
-func (w *Workspace) SetError(err error) error{
+func (w *Workspace) SetError(err error) error {
 	if w == nil {
 		return fmt.Errorf("Workspace is nil.")
 	}
@@ -233,9 +314,10 @@ func (w *Workspace) Load() error {
 		return fmt.Errorf("Unable to read '%s'. %s", fjson, err)
 	}
 
-	if err := json.Unmarshal(djson, &w); err != nil {
+	if err := json.Unmarshal(djson, &w.persistent); err != nil {
 		return fmt.Errorf("Unable to load '%s'. %s", fjson, err)
 	}
+	w.internal = w.persistent
 	gotrace.Trace("Workspace data loaded from '%s'.", fjson)
 	return nil
 }
