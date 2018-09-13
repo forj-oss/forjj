@@ -29,15 +29,7 @@ type Workspace struct {
 
 	internal   WorkspaceData
 	persistent WorkspaceData // Data saved and loaded in forjj.json
-}
-
-// WorkspaceData contains the structured data saved as json
-type WorkspaceData struct {
-	Organization    string              // Workspace Organization name
-	Driver          string              // Infra upstream driver name
-	Instance        string              // Infra upstream instance name
-	Infra           *goforjj.PluginRepo // Infra-repo definition
-	WorkspaceStruct                     // Struct shared with local-settings of a Forjfile model
+	dirty      bool          // True is persistent data has been updated
 }
 
 // Init initialize the Workspace object
@@ -66,81 +58,25 @@ func (w *Workspace) SetPath(Workspace_path string) error {
 
 // GetString return the data of the requested field.
 func (w *Workspace) GetString(field string) (value string) {
-	switch field {
-	case "docker-bin-path":
-		return w.internal.DockerBinPath
-	case "contrib-repo-path":
-		return w.internal.Contrib_repo_path
-	case "flow-repo-path":
-		return w.internal.Flow_repo_path
-	case "repotemplate-repo-path":
-		return w.internal.Repotemplate_repo_path
-	case "plugins-socket-dirs-path":
-		return w.internal.SocketDir
-	case "organization":
-		return w.internal.Organization
-	case "infra-instance-name":
-		return w.internal.Instance
-	case "infra-driver-name":
-		return w.internal.Driver
-	}
-	value, _ = w.internal.More[field]
-	return
+	return w.internal.getString(field)
 }
 
 // Get return the value of the requested field and found if was found.
 func (w *Workspace) Get(field string) (value string, found bool) {
-	if value, found = w.internal.More[field]; found {
-		return
-	}
-	value = w.GetString(field)
-	found = (value != "")
-	return
+	return w.internal.get(field)
 }
 
+// Set save field/value pair in the workspace.
+// If persistent is true, this data will be stored in the internal persistent workspace data
+// Save will check this flag to update the .forj-workspace/forjj.json
 func (w *Workspace) Set(field, value string, persistent bool) (updated bool) {
-	switch field {
-	case "docker-bin-path":
-		updated = (w.internal.DockerBinPath != value)
-		w.internal.DockerBinPath = value
-		return
-	case "contrib-repo-path":
-		updated = (w.internal.Contrib_repo_path != value)
-		w.internal.Contrib_repo_path = value
-		return
-	case "flow-repo-path":
-		updated = (w.internal.Flow_repo_path != value)
-		w.internal.Flow_repo_path = value
-		return
-	case "repotemplate-repo-path":
-		updated = (w.internal.Repotemplate_repo_path != value)
-		w.internal.Repotemplate_repo_path = value
-		return
-	case "plugins-socket-dirs-path":
-		updated = (w.internal.SocketDir != value)
-		w.internal.SocketDir = value
-		return
-	case "organization":
-		updated = (w.internal.Organization != value)
-		w.internal.Organization = value
-		return
-	case "infra-instance-name":
-		updated = (w.internal.Instance != value)
-		w.internal.Instance = value
-		return
-	case "infra-driver-name":
-		updated = (w.internal.Driver != value)
-		w.internal.Driver = value
-		return
+	updated = w.internal.set(field, value)
+	if persistent {
+		if w.persistent.set(field, value) {
+			w.dirty = true
+		}
 	}
-	if v, found := w.internal.More[field] ; found {
-		updated = (v != value)
-	} else {
-		updated = true
-	}
-	w.internal.More[field] = value
 	return
-
 }
 
 // Infra return the Infra data object
@@ -175,6 +111,7 @@ func (w *Workspace) SetFrom(aWorkspace WorkspaceStruct) {
 	}
 	w.internal.WorkspaceStruct = aWorkspace
 	w.persistent.WorkspaceStruct = aWorkspace
+	w.dirty = true
 }
 
 // InfraPath Return the path which contains the workspace.
@@ -208,7 +145,7 @@ func (w *Workspace) Name() string {
 	return w.workspace
 }
 
-// Ensure workspace path exists. So, if missing, it will be created.
+// Ensure_exist Ensure workspace path exists. So, if missing, it will be created.
 // The current path (pwd) is moved to the existing workspace path.
 func (w *Workspace) Ensure_exist() (string, error) {
 	if w == nil {
@@ -226,7 +163,29 @@ func (w *Workspace) Ensure_exist() (string, error) {
 	return w_path, nil
 }
 
-// Check if a workspace exist or not
+// checkDataExist create missing workspace path
+//
+func (w *Workspace) checkDataExist() (fjson string, found bool, err error) {
+	if w == nil {
+		return
+	}
+
+	wPath := w.Path()
+	fjson = path.Join(wPath, forjj_workspace_json_file)
+
+	_, err = os.Stat(wPath)
+	if os.IsNotExist(err) {
+		if err = os.MkdirAll(wPath, 0755); err != nil {
+			return
+		}
+	}
+
+	_, err = os.Stat(fjson)
+	found = !os.IsNotExist(err)
+	return
+}
+
+// Check_exist Check if a workspace exist or not
 func (w *Workspace) Check_exist() (bool, error) {
 	if w == nil {
 		return false, fmt.Errorf("Workspace is nil.")
@@ -240,34 +199,34 @@ func (w *Workspace) Check_exist() (bool, error) {
 
 }
 
+// Save persistent workspace data to the json file
 func (w *Workspace) Save() {
 	if w == nil {
 		return
 	}
 	var djson []byte
 
-	workspace_path, err := w.Ensure_exist()
-	kingpin.FatalIfError(err, "Issue with '%s'", workspace_path)
-
-	fjson := path.Join(workspace_path, forjj_workspace_json_file)
+	fjson, exist, err := w.checkDataExist()
+	kingpin.FatalIfError(err, "Issue with '%s'", fjson)
 
 	w.CleanUnwantedEntries()
 
-	djson, err = json.Marshal(w.persistent)
-	kingpin.FatalIfError(err, "Issue to encode in json '%s'", djson)
+	if !exist || w.dirty {
+		err = w.persistent.save(fjson)
+	}
 
-	err = ioutil.WriteFile(fjson, djson, 0644)
 	kingpin.FatalIfError(err, "Unable to create/update '%s'", fjson)
 
 	gotrace.Trace("File '%s' saved with '%s'", fjson, djson)
+	w.dirty = false
 }
 
 // CleanUnwantedEntries is called before save to remove some unwanted data in the Workspace file.
 // Ex: infra-path
 func (w *Workspace) CleanUnwantedEntries() {
 	for _, key := range w.clean_entries {
-		if _, found := w.internal.More[key]; found {
-			delete(w.internal.More, key)
+		if _, found := w.persistent.More[key]; found {
+			delete(w.persistent.More, key)
 		}
 	}
 }
