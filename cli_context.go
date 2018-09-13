@@ -163,16 +163,16 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 
 	a.ContribRepoURIs = make([]*url.URL, 0, 1)
 
-	if v, err := a.setFromURLFlag("contribs-repo", func(f, v string) (updated bool) {
-		return a.w.Set(f, v, false)
+	if v, err := a.setFromURLFlag("contribs-repo", func(_, v string) (updated bool) {
+		return a.w.Set("contrib-repo-path", v, false)
 	}); err == nil {
 		a.ContribRepoURIs = append(a.ContribRepoURIs, v)
 		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
 	} else {
 		return fmt.Errorf("Contribs repository url issue: %s", err), false
 	}
-	if v, err := a.setFromURLFlag("flows-repo", func(f, v string) (updated bool) {
-		return a.w.Set(f, v, false)
+	if v, err := a.setFromURLFlag("flows-repo", func(_, v string) (updated bool) {
+		return a.w.Set("flow-repo-path", v, false)
 	}); err == nil {
 		a.flows.AddRepoPath(v)
 		vpath, _ := url.PathUnescape(v.String())
@@ -180,8 +180,8 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	} else {
 		gotrace.Error("Flow repository url issue: %s", err)
 	}
-	if v, err := a.setFromURLFlag("repotemplates-repo", func(f, v string) (updated bool) {
-		return a.w.Set(f, v, false)
+	if v, err := a.setFromURLFlag("repotemplates-repo", func(_, v string) (updated bool) {
+		return a.w.Set("repotemplate-repo-path", v, false)
 	}); err == nil {
 		a.RepotemplateRepo_uri = v
 		gotrace.Trace("Using '%s' for '%s'", v, "repotemplates-repo")
