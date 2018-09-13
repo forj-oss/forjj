@@ -301,9 +301,9 @@ func (a *Forj) define_infra_upstream() (err error) {
 	defer func() {
 		driverName := "none"
 		instanceName := a.w.GetString("infra-instance-name")
-		a.w.Set("infra-driver-name", driverName, true)
 		if instanceName == "none" {
 			gotrace.Trace("No infra instance driver to load.")
+			a.w.Set("infra-driver-name", driverName, true)
 			return
 		}
 		if d, found := a.drivers[instanceName]; found {
