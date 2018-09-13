@@ -2,9 +2,10 @@ package forjfile
 
 import (
 	"encoding/json"
-	"github.com/forj-oss/goforjj"
 	"fmt"
 	"io/ioutil"
+
+	"github.com/forj-oss/goforjj"
 )
 
 // WorkspaceData contains the structured data saved as json
@@ -102,7 +103,7 @@ func (w *WorkspaceData) save(fjson string) error {
 		return nil
 	}
 
-	djson, err := json.Marshal(w)
+	djson, err := json.MarshalIndent(w, "", " ")
 	if err != nil {
 		return fmt.Errorf("Issue to encode in json. %s", err)
 	}

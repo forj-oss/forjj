@@ -213,6 +213,9 @@ func (w *Workspace) Save() {
 
 	if !exist || w.dirty {
 		err = w.persistent.save(fjson)
+	} else {
+		gotrace.Trace("No Workspace updates: File '%s' not saved.'", fjson)
+		return
 	}
 
 	kingpin.FatalIfError(err, "Unable to create/update '%s'", fjson)
