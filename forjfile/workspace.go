@@ -14,6 +14,7 @@ import (
 )
 
 const forjj_workspace_json_file = "forjj.json"
+const forjjSocketBaseDir = "/tmp/forjj"
 
 // Define the workspace data saved at create/update time.
 // Workspace data are not controlled by any git repo. It is local.
@@ -142,7 +143,8 @@ func (w *Workspace) SocketPath() (socketPath string) {
 	socketPath = w.GetString("plugins-socket-dirs-path")
 	if socketPath == "" {
 		var err error
-		socketPath, err =  ioutil.TempDir("/tmp", "forjj-")
+		os.MkdirAll(forjjSocketBaseDir, 0755)
+		socketPath, err =  ioutil.TempDir(forjjSocketBaseDir, "forjj-")
 		kingpin.FatalIfError(err, "Unable to create temporary dir in '%s'", "/tmp")
 		w.Set("plugins-socket-dirs-path", socketPath, true)
 	}
