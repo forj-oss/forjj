@@ -136,6 +136,19 @@ func (w *Workspace) Path() string {
 	return path.Clean(path.Join(w.workspace_path, w.workspace))
 }
 
+// SocketPath creates a socket path if it doesn't exist.
+// This information is stored in the workspace forjj.json file
+func (w *Workspace) SocketPath() (socketPath string) {
+	socketPath = w.GetString("plugins-socket-dirs-path")
+	if socketPath == "" {
+		var err error
+		socketPath, err =  ioutil.TempDir("/tmp", "forjj-")
+		kingpin.FatalIfError(err, "Unable to create temporary dir in '%s'", "/tmp")
+		w.Set("plugins-socket-dirs-path", socketPath, true)
+	}
+	return
+}
+
 // Name Provide the workspace Name
 func (w *Workspace) Name() string {
 	if w == nil {
@@ -204,8 +217,6 @@ func (w *Workspace) Save() {
 	if w == nil {
 		return
 	}
-	var djson []byte
-
 	fjson, exist, err := w.checkDataExist()
 	kingpin.FatalIfError(err, "Issue with '%s'", fjson)
 
@@ -220,7 +231,7 @@ func (w *Workspace) Save() {
 
 	kingpin.FatalIfError(err, "Unable to create/update '%s'", fjson)
 
-	gotrace.Trace("File '%s' saved with '%s'", fjson, djson)
+	gotrace.Trace("File '%s' saved.", fjson)
 	w.dirty = false
 }
 

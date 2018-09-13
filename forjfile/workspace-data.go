@@ -92,6 +92,9 @@ func (w *WorkspaceData) set(field, value string) (updated bool) {
 	} else {
 		updated = true
 	}
+	if w.More == nil {
+		w.More = make(map[string]string)
+	}
 	w.More[field] = value
 	return
 
