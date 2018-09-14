@@ -8,7 +8,7 @@ import (
 	"forjj/flow"
 	"forjj/forjfile"
 	"forjj/repo"
-	"forjj/workspace"
+	forjjWorkspace "forjj/workspace"
 	"log"
 	"net/url"
 	"os"
@@ -54,7 +54,7 @@ type Forj struct {
 
 	// cli commands modules
 	secrets secrets
-	workspace workspace.Workspace
+	workspace forjjWorkspace.Workspace
 
 	contextAction string // Context action defined in ParseContext.
 	// Can be create/update or maintain. But it can be any others, like secrets...
@@ -194,8 +194,11 @@ func (a *Forj) init() {
 	opts_required := cli.Opts().Required()
 	//opts_ssh_dir := cli.Opts().Default(fmt.Sprintf("%s/.ssh", os.Getenv("HOME")))
 	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default(defaultContribsRepo)
+	a.w.SetDefault("contrib-repo-path", defaultContribsRepo)
 	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default(defaultFlowRepo)
+	a.w.SetDefault("flow-repo-path", defaultFlowRepo)
 	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)
+	a.w.SetDefault("repotemplate-repo-path", defaultRepoTemplate)
 	optsDirsPath := cli.Opts().Envar("PLUGINS_SOCKET_DIRS_PATH")
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
@@ -207,7 +210,7 @@ func (a *Forj) init() {
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 
 	a.secrets.init(a.app)
-	a.workspace.Init(a.app, &a.w)
+	a.workspace.Init(a.app, &a.w, a.cli.IsParsePhase)
 
 	var version string
 	if PRERELEASE {

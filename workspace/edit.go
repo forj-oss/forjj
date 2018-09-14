@@ -37,7 +37,7 @@ func (s *wsEdit) init(parent *kingpin.CmdClause, data *forjfile.Workspace) {
 // Only supported path are recognized.
 func (s *wsEdit) doEdit() {
 	value := ""
-	if v, found := s.data.GetString(*s.key); !found {
+	if v, found := s.data.Get(*s.key); !found {
 		gotrace.Error("'%s' is not a valid workspace path. check with `forjj workspace`", *s.key)
 		return
 	} else {
@@ -93,7 +93,7 @@ func (s *wsEdit) doEdit() {
 		return
 	}
 
-	if !s.data.Set(*s.key, value) {
+	if !s.data.Set(*s.key, value, true) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)
 		return
 	}
