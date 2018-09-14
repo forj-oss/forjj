@@ -1,5 +1,5 @@
 hash: 96c626ea3b685de3d27336771760c757e1c870bfac2f1f2b838a36b09c940d6f
-updated: 2018-09-13T20:48:16.7689036Z
+updated: 2018-09-14T13:47:01.674960599Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -11,7 +11,7 @@ imports:
 - name: github.com/alecthomas/units
   version: 2efee857e7cfd4f3d0138cc3cbb1b4966962b93a
 - name: github.com/docker/distribution
-  version: a5c2fdc5b87bb6a142cf89f7406ffe25374affb5
+  version: b089e91688254eb5aef187f188c8ee0ebe4e4675
   subpackages:
   - digestset
   - reference
@@ -59,7 +59,7 @@ imports:
   - cli/tools
   - trace
 - name: github.com/forj-oss/goforjj
-  version: 4bdecb2c15237bad575fd9f6291933860db44ede
+  version: 88bd6c8b68a005d3d2a8c3652ae853fc9aeda12d
 - name: github.com/kr/text
   version: e2ffdb16a802fe2bb95e2e35ff34f0e53aeef34f
 - name: github.com/kvz/logstreamer
@@ -101,8 +101,6 @@ imports:
   subpackages:
   - unix
   - windows
-- name: gopkg.in/alecthomas/kingpin.v2
-  version: 947dcec5ba9c011838740e680966fd7087a71d0d
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports:
