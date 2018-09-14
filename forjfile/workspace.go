@@ -29,6 +29,7 @@ type Workspace struct {
 	clean_entries  []string // List of keys to ensure removed.
 
 	internal   WorkspaceData
+	def        WorkspaceData // Default values
 	persistent WorkspaceData // Data saved and loaded in forjj.json
 	dirty      bool          // True is persistent data has been updated
 }
@@ -59,17 +60,17 @@ func (w *Workspace) SetPath(Workspace_path string) error {
 
 // Data provides the list of workspace variables stored.
 func (w *Workspace) Data() (result map[string]string) {
-	result = w.More
-	result["docker-bin-path"] = w.DockerBinPath
-	result["contrib-repo-path"] = w.Contrib_repo_path
-	result["flow-repo-path"] = w.Flow_repo_path
-	result["repotemplate-repo-path"] = w.Repotemplate_repo_path
+	result = w.internal.More
+	result["docker-bin-path"] = w.internal.DockerBinPath
+	result["contrib-repo-path"] = w.internal.Contrib_repo_path
+	result["flow-repo-path"] = w.internal.Flow_repo_path
+	result["repotemplate-repo-path"] = w.internal.Repotemplate_repo_path
 	return
 }
 
 // Len provides the numbers of workspace data stored.
 func (w *Workspace) Len() int {
-	return 4 + len(w.More)
+	return 4 + len(w.internal.More)
 }
 
 // Set save field/value pair in the workspace.
@@ -83,6 +84,32 @@ func (w *Workspace) Set(field, value string, persistent bool) (updated bool) {
 		}
 	}
 
+	return
+}
+
+// SetDefault save field/value pair in the workspace as default value.
+// This value is set to the internal if not set or if unset
+func (w *Workspace) SetDefault(field, value string) {
+	if _, found := w.internal.get(field); !found {
+		w.internal.set(field, value)
+	}
+	w.def.set(field, value)
+}
+
+// Unset remove value of the given field in the workspace.
+// The default value can be restored if it was originally set
+func (w *Workspace) Unset(field string) (updated bool) {
+	w.internal.set(field, "")
+	if w.persistent.set(field, "") {
+		w.dirty = true
+		updated = true
+	}
+	if v, found := w.def.get(field); !found {
+		w.internal.set(field, v)
+	}
+	return
+}
+
 // GetString return the data of the requested field.
 func (w *Workspace) GetString(field string) (value string) {
 	return w.internal.getString(field)
@@ -91,10 +118,6 @@ func (w *Workspace) GetString(field string) (value string) {
 // Get return the value of the requested field and found if was found.
 func (w *Workspace) Get(field string) (value string, found bool) {
 	return w.internal.get(field)
-}
-
-	value, found = w.More[field]
-	return
 }
 
 // Infra return the Infra data object
@@ -161,7 +184,7 @@ func (w *Workspace) SocketPath() (socketPath string) {
 	if socketPath == "" {
 		var err error
 		os.MkdirAll(forjjSocketBaseDir, 0755)
-		socketPath, err =  ioutil.TempDir(forjjSocketBaseDir, "forjj-")
+		socketPath, err = ioutil.TempDir(forjjSocketBaseDir, "forjj-")
 		kingpin.FatalIfError(err, "Unable to create temporary dir in '%s'", "/tmp")
 		w.Set("plugins-socket-dirs-path", socketPath, true)
 	}
@@ -247,9 +270,6 @@ func (w *Workspace) Save() {
 		gotrace.Trace("No Workspace updates: File '%s' not saved.'", fjson)
 		return
 	}
-
-	err = ioutil.WriteFile(fjson, djson, 0644)
-	kingpin.FatalIfError(err, "Unable to create/update '%s'", fjson)
 
 	gotrace.Trace("File '%s' saved.", fjson)
 	w.dirty = false
