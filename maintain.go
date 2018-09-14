@@ -14,7 +14,7 @@ func (a *Forj) maintainAction(string) {
 	if err := a.Maintain(); err != nil {
 		log.Fatalf("Forjj maintain issue. %s", err)
 	}
-	println("FORJJ - maintain ", a.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
+	println("FORJJ - maintain ", a.w.GetString("organization"), " DONE") // , cmd.ProcessState.Sys().WaitStatus)
 
 }
 
@@ -37,7 +37,7 @@ func (a *Forj) Maintain() error {
 		return err
 	}
 
-	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
+	gotrace.Trace("Infra upstream selected: '%s'", a.w.GetString("infra-instance-name"))
 
 	ffd := a.f.InMemForjfile()
 	if err := a.DefineDeployRepositories(ffd, true); err != nil {

@@ -29,7 +29,7 @@ func (a *Forj) createAction(string) {
 	} else {
 		log.Print("Source codes are in place. Now, Please review commits, push and start instantiating your DevOps Environment services with 'forjj maintain' ...")
 	}
-	println("FORJJ - create ", a.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
+	println("FORJJ - create ", a.w.GetString("organization"), " DONE") // , cmd.ProcessState.Sys().WaitStatus)
 }
 
 //  initial_commit is called by infra.Create to create the initial commit with any needed files.
@@ -140,7 +140,7 @@ func (a *Forj) Create() error {
 		return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
 	}
 
-	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
+	gotrace.Trace("Infra upstream selected: '%s'", a.w.GetString("infra-instance-name"))
 
 	// Credentials on master and deployment credential files.
 	gotrace.Trace("Running ScanCreds from Global Forjfile...")
@@ -233,7 +233,7 @@ func (a *Forj) createDeployment(deploy string) error {
 		}
 
 		if d.HasNoFiles() {
-			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' %s requires to commit at least one file.", a.w.Instance, d.DriverType)
+			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' %s requires to commit at least one file.", a.w.GetString("infra-instance-name"), d.DriverType)
 		}
 
 		// Committing source code.
@@ -242,7 +242,7 @@ func (a *Forj) createDeployment(deploy string) error {
 		}
 	}
 
-	commitMsg := fmt.Sprintf("Forge '%s' created.", a.w.Organization)
+	commitMsg := fmt.Sprintf("Forge '%s' created.", a.w.GetString("organization"))
 	if err := git.Commit(commitMsg, true); err != nil {
 		return fmt.Errorf("Failed to commit source files. %s", err)
 	}
@@ -299,18 +299,20 @@ func (a *Forj) define_infra_upstream() (err error) {
 
 	// At the end, Set Forj.InfraPluginDriver/Forj.w.Driver/Forj.w.Driver.InfraRepo=true from instance in drivers
 	defer func() {
-		a.w.Driver = "none"
-		if a.w.Instance == "none" {
+		driverName := "none"
+		instanceName := a.w.GetString("infra-instance-name")
+		if instanceName == "none" {
 			gotrace.Trace("No infra instance driver to load.")
+			a.w.Set("infra-driver-name", driverName, true)
 			return
 		}
-		if d, found := a.drivers[a.w.Instance]; found {
+		if d, found := a.drivers[instanceName]; found {
 			d.InfraRepo = true
 			a.InfraPluginDriver = d
-			a.w.Driver = d.Name
+			a.w.Set("infra-driver-name", d.Name, true)
 			gotrace.Trace("Infra Plugin driver identified and referenced.")
 		} else {
-			gotrace.Warning("Infra '%s' Plugin driver not found.", a.w.Instance)
+			gotrace.Warning("Infra '%s' Plugin driver not found.", instanceName)
 		}
 	}()
 
@@ -318,16 +320,17 @@ func (a *Forj) define_infra_upstream() (err error) {
 
 	// Requested to change the infra instance name from the cli
 	var instance_requested string
+	curInstanceName := a.w.GetString("infra-instance-name")
 
 	instance_requested, _, err = a.GetPrefs(infra_upstream_f)
 	if err != nil {
 		return fmt.Errorf("Unable to define your INFRA upstream. %s", err)
 	}
 
-	if instance_requested != "" && a.w.Instance != instance_requested {
+	if instance_requested != "" && curInstanceName != instance_requested {
 		switch {
-		case a.w.Instance == "none" || a.w.Instance == "":
-			a.w.Instance = instance_requested
+		case curInstanceName == "none" || curInstanceName == "":
+			a.w.Set("infra-instance-name", instance_requested, true)
 		default:
 			log.Printf("Unable to migrate your infra-repository to a different instance. "+
 				"Not yet implemented. Migrating to '%s' is ignored.", instance_requested)
@@ -335,17 +338,17 @@ func (a *Forj) define_infra_upstream() (err error) {
 	}
 
 	// Inform user selected NO UPSTREAM and exit.
-	if instance_requested == "none" && a.w.Instance == "none" {
+	if instance_requested == "none" && curInstanceName == "none" {
 		gotrace.Trace("No upstream instance configured as requested by '--infra-upstream none' " +
 			"or Forjfile (infra/upstream-app:none)")
-		err = a.SetPrefs("forjj", infra_upstream_f, a.w.Instance) // Forjfile updated
+		err = a.SetPrefs("forjj", infra_upstream_f, curInstanceName) // Forjfile updated
 		return
 	}
 
 	// Instance name is identified. Exiting.
-	if a.w.Instance != "" {
-		gotrace.Trace("Infra repository instance used: %s", a.w.Instance)
-		err = a.SetPrefs("forjj", infra_upstream_f, a.w.Instance) // Forjfile updated
+	if curInstanceName != "" {
+		gotrace.Trace("Infra repository instance used: %s", curInstanceName)
+		err = a.SetPrefs("forjj", infra_upstream_f, curInstanceName) // Forjfile updated
 		return
 	}
 
@@ -370,9 +373,10 @@ func (a *Forj) define_infra_upstream() (err error) {
 	}
 
 	if len(upstreams) == 1 {
-		a.w.Instance = upstreams[0].InstanceName
-		gotrace.Trace("Selected by default '%s' as upstream instance to connect '%s' repo", a.w.Instance, a.w.Infra.Name)
-		return a.SetPrefs("forjj", infra_upstream_f, a.w.Instance) // Forjfile updated
+		curInstanceName = upstreams[0].InstanceName
+		a.w.Set("infra-instance-name", curInstanceName, true)
+		gotrace.Trace("Selected by default '%s' as upstream instance to connect '%s' repo", curInstanceName, a.w.Infra().Name)
+		return a.SetPrefs("forjj", infra_upstream_f, curInstanceName) // Forjfile updated
 	}
 
 	return fmt.Errorf("No 'upstream' application defined. At least one upstream application is required, " +

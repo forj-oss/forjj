@@ -65,7 +65,7 @@ func TestWorkspace(t *testing.T) {
 	testCase = "when workspace is empty."
 
 	for _, field := range []string{"docker-bin-path", "contrib-repo-path", "flow-repo-path", "repotemplate-repo-path", "field1"} {
-		value, found := workspace.GetString(field)
+		value, found := workspace.Get(field)
 		test.False(found, "expect to not found %s %s", field, testCase)
 		test.Emptyf(value, "expect to get an empty string for %s %s", field, testCase)
 	}

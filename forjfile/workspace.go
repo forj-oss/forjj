@@ -3,16 +3,18 @@ package forjfile
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alecthomas/kingpin"
-	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
+	"forjj/utils"
 	"io/ioutil"
 	"os"
 	"path"
-	"forjj/utils"
+
+	"github.com/alecthomas/kingpin"
+	"github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
 )
 
 const forjj_workspace_json_file = "forjj.json"
+const forjjSocketBaseDir = "/tmp/forjj"
 
 // Define the workspace data saved at create/update time.
 // Workspace data are not controlled by any git repo. It is local.
@@ -20,30 +22,27 @@ const forjj_workspace_json_file = "forjj.json"
 // But it can store any data that is workspace environment specific.
 // like where is the docker static binary.
 type Workspace struct {
-	Organization           string              // Workspace Organization name
-	Driver                 string              // Infra upstream driver name
-	Instance               string              // Infra upstream instance name
-	Infra                  *goforjj.PluginRepo // Infra-repo definition
-	workspace              string              // Workspace name
-	workspace_path         string              // Workspace directory path.
-	error                  error               // Error detected
-	is_workspace           bool                // True if instance is the workspace data to save in Workspace path.
-	clean_entries          []string            // List of keys to ensure removed.
-	WorkspaceStruct
+	workspace      string   // Workspace name
+	workspace_path string   // Workspace directory path.
+	error          error    // Error detected
+	is_workspace   bool     // True if instance is the workspace data to save in Workspace path.
+	clean_entries  []string // List of keys to ensure removed.
+
+	internal   WorkspaceData
+	persistent WorkspaceData // Data saved and loaded in forjj.json
+	dirty      bool          // True is persistent data has been updated
 }
 
-/*func (w *WorkspaceStruct)MarshalYAML() (interface{}, error) {
-
-}*/
-
-func (w *Workspace)Init(non_ws_entries ...string) {
+// Init initialize the Workspace object
+func (w *Workspace) Init(non_ws_entries ...string) {
 	if w == nil {
 		return
 	}
-	w.Infra = goforjj.NewRepo()
+	w.internal.Infra = goforjj.NewRepo()
 	w.clean_entries = non_ws_entries
 }
 
+// SetPath define the workspace path.
 func (w *Workspace) SetPath(Workspace_path string) error {
 	if w == nil {
 		return fmt.Errorf("Workspace object nil.")
@@ -58,19 +57,37 @@ func (w *Workspace) SetPath(Workspace_path string) error {
 	return nil
 }
 
-func (w *Workspace) GetString(field string) (value string, found bool) {
-	switch field {
-	case "docker-bin-path":
-		return w.DockerBinPath, (w.DockerBinPath != "")
-	case "contrib-repo-path":
-		return w.Contrib_repo_path, (w.Contrib_repo_path != "")
-	case "flow-repo-path":
-		return w.Flow_repo_path, (w.Flow_repo_path != "")
-	case "repotemplate-repo-path":
-		return w.Repotemplate_repo_path, (w.Repotemplate_repo_path != "")
+// GetString return the data of the requested field.
+func (w *Workspace) GetString(field string) (value string) {
+	return w.internal.getString(field)
+}
+
+// Get return the value of the requested field and found if was found.
+func (w *Workspace) Get(field string) (value string, found bool) {
+	return w.internal.get(field)
+}
+
+// Set save field/value pair in the workspace.
+// If persistent is true, this data will be stored in the internal persistent workspace data
+// Save will check this flag to update the .forj-workspace/forjj.json
+func (w *Workspace) Set(field, value string, persistent bool) (updated bool) {
+	updated = w.internal.set(field, value)
+	if persistent {
+		if w.persistent.set(field, value) {
+			w.dirty = true
+		}
 	}
-	value, found = w.More[field]
 	return
+}
+
+// Infra return the Infra data object
+func (w *Workspace) Infra() (ret *goforjj.PluginRepo) {
+	return w.internal.Infra
+}
+
+// SetInfra save the infra object in the workspace internal data
+func (w *Workspace) SetInfra(infra *goforjj.PluginRepo) {
+	w.internal.Infra = infra
 }
 
 func (w *Workspace) RequireWorkspacePath() error {
@@ -78,8 +95,8 @@ func (w *Workspace) RequireWorkspacePath() error {
 		return fmt.Errorf("Workspace path not defined.")
 	}
 	aPath := w.Path()
-	if _, err := os.Stat(aPath) ; err != nil {
-		if err = os.Mkdir(aPath, 0755) ; err != nil {
+	if _, err := os.Stat(aPath); err != nil {
+		if err = os.Mkdir(aPath, 0755); err != nil {
 			return fmt.Errorf("Unable to create Workspace path '%s'. %s", aPath, err)
 		}
 		gotrace.Trace("Workspace path '%s' has been created.", aPath)
@@ -93,7 +110,9 @@ func (w *Workspace) SetFrom(aWorkspace WorkspaceStruct) {
 	if w == nil {
 		return
 	}
-	w.WorkspaceStruct = aWorkspace
+	w.internal.WorkspaceStruct = aWorkspace
+	w.persistent.WorkspaceStruct = aWorkspace
+	w.dirty = true
 }
 
 // InfraPath Return the path which contains the workspace.
@@ -118,6 +137,20 @@ func (w *Workspace) Path() string {
 	return path.Clean(path.Join(w.workspace_path, w.workspace))
 }
 
+// SocketPath creates a socket path if it doesn't exist.
+// This information is stored in the workspace forjj.json file
+func (w *Workspace) SocketPath() (socketPath string) {
+	socketPath = w.GetString("plugins-socket-dirs-path")
+	if socketPath == "" {
+		var err error
+		os.MkdirAll(forjjSocketBaseDir, 0755)
+		socketPath, err =  ioutil.TempDir(forjjSocketBaseDir, "forjj-")
+		kingpin.FatalIfError(err, "Unable to create temporary dir in '%s'", "/tmp")
+		w.Set("plugins-socket-dirs-path", socketPath, true)
+	}
+	return
+}
+
 // Name Provide the workspace Name
 func (w *Workspace) Name() string {
 	if w == nil {
@@ -127,7 +160,7 @@ func (w *Workspace) Name() string {
 	return w.workspace
 }
 
-// Ensure workspace path exists. So, if missing, it will be created.
+// Ensure_exist Ensure workspace path exists. So, if missing, it will be created.
 // The current path (pwd) is moved to the existing workspace path.
 func (w *Workspace) Ensure_exist() (string, error) {
 	if w == nil {
@@ -145,7 +178,29 @@ func (w *Workspace) Ensure_exist() (string, error) {
 	return w_path, nil
 }
 
-// Check if a workspace exist or not
+// checkDataExist create missing workspace path
+//
+func (w *Workspace) checkDataExist() (fjson string, found bool, err error) {
+	if w == nil {
+		return
+	}
+
+	wPath := w.Path()
+	fjson = path.Join(wPath, forjj_workspace_json_file)
+
+	_, err = os.Stat(wPath)
+	if os.IsNotExist(err) {
+		if err = os.MkdirAll(wPath, 0755); err != nil {
+			return
+		}
+	}
+
+	_, err = os.Stat(fjson)
+	found = !os.IsNotExist(err)
+	return
+}
+
+// Check_exist Check if a workspace exist or not
 func (w *Workspace) Check_exist() (bool, error) {
 	if w == nil {
 		return false, fmt.Errorf("Workspace is nil.")
@@ -159,34 +214,35 @@ func (w *Workspace) Check_exist() (bool, error) {
 
 }
 
+// Save persistent workspace data to the json file
 func (w *Workspace) Save() {
 	if w == nil {
 		return
 	}
-	var djson []byte
-
-	workspace_path, err := w.Ensure_exist()
-	kingpin.FatalIfError(err, "Issue with '%s'", workspace_path)
-
-	fjson := path.Join(workspace_path, forjj_workspace_json_file)
+	fjson, exist, err := w.checkDataExist()
+	kingpin.FatalIfError(err, "Issue with '%s'", fjson)
 
 	w.CleanUnwantedEntries()
 
-	djson, err = json.Marshal(w)
-	kingpin.FatalIfError(err, "Issue to encode in json '%s'", djson)
+	if !exist || w.dirty {
+		err = w.persistent.save(fjson)
+	} else {
+		gotrace.Trace("No Workspace updates: File '%s' not saved.'", fjson)
+		return
+	}
 
-	err = ioutil.WriteFile(fjson, djson, 0644)
 	kingpin.FatalIfError(err, "Unable to create/update '%s'", fjson)
 
-	gotrace.Trace("File '%s' saved with '%s'", fjson, djson)
+	gotrace.Trace("File '%s' saved.", fjson)
+	w.dirty = false
 }
 
 // CleanUnwantedEntries is called before save to remove some unwanted data in the Workspace file.
 // Ex: infra-path
 func (w *Workspace) CleanUnwantedEntries() {
 	for _, key := range w.clean_entries {
-		if _, found := w.More[key] ; found {
-			delete(w.More, key)
+		if _, found := w.persistent.More[key]; found {
+			delete(w.persistent.More, key)
 		}
 	}
 }
@@ -198,7 +254,7 @@ func (w *Workspace) Error() error {
 	return w.error
 }
 
-func (w *Workspace) SetError(err error) error{
+func (w *Workspace) SetError(err error) error {
 	if w == nil {
 		return fmt.Errorf("Workspace is nil.")
 	}
@@ -233,9 +289,10 @@ func (w *Workspace) Load() error {
 		return fmt.Errorf("Unable to read '%s'. %s", fjson, err)
 	}
 
-	if err := json.Unmarshal(djson, &w); err != nil {
+	if err := json.Unmarshal(djson, &w.persistent); err != nil {
 		return fmt.Errorf("Unable to load '%s'. %s", fjson, err)
 	}
+	w.internal = w.persistent
 	gotrace.Trace("Workspace data loaded from '%s'.", fjson)
 	return nil
 }

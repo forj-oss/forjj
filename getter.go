@@ -122,7 +122,7 @@ func (a *Forj) GetLocalPrefs(field string) (string, bool, error) {
 		gotrace.Trace("Found Local setting '%s' from cli: %s", entry.forj_field, v)
 		return v, found, err
 	}
-	if v2, found2 := a.w.GetString(entry.forj_field); found2 {
+	if v2, found2 := a.w.Get(entry.forj_field); found2 {
 		gotrace.Trace("Found Local setting '%s' from workspace : %s", entry.forj_field, v2)
 		return v2, found2, nil
 	}

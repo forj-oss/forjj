@@ -13,7 +13,7 @@ func (a *Forj) updateAction(string) {
 	if err := a.Update(); err != nil {
 		log.Fatalf("Forjj update issue. %s", err)
 	}
-	println("FORJJ - update ", a.w.Organization, " DONE") // , cmd.ProcessState.Sys().WaitStatus)
+	println("FORJJ - update ", a.w.GetString("organization"), " DONE") // , cmd.ProcessState.Sys().WaitStatus)
 
 }
 
@@ -29,11 +29,6 @@ func (a *Forj) Update() error {
 	defer func() {
 		// save infra repository location in the workspace.
 		a.w.Save()
-
-		/* Disable until forjj propose a way to change it from cli.
-		if err := a.s.Save(); err != nil {
-			log.Printf("%s", err)
-		}*/
 	}()
 
 	if err := a.ValidateForjfile(); err != nil {
@@ -57,7 +52,7 @@ func (a *Forj) Update() error {
 	if err := a.DefineDeployRepositories(ffd, true); err != nil {
 		return fmt.Errorf("Issues to automatically add your deployment repositories. %s", err)
 	}
-	
+
 	// Defining information about current deployment repository
 	a.defineDeployContext()
 
@@ -70,9 +65,8 @@ func (a *Forj) Update() error {
 		return fmt.Errorf("Unable to identify a valid infra repository upstream. %s", err)
 	}
 
-	gotrace.Trace("Infra upstream selected: '%s'", a.w.Instance)
+	gotrace.Trace("Infra upstream selected: '%s'", a.w.GetString("infra-instance-name"))
 
-	
 	// Apply the flow to the inMemForjfile
 	if err := a.FlowApply(); err != nil {
 		return fmt.Errorf("Unable to apply flows. %s", err)
@@ -120,7 +114,7 @@ func (a *Forj) Update() error {
 		}
 	}
 
-	commitMsg := fmt.Sprintf("Forge '%s' updated.", a.w.Organization)
+	commitMsg := fmt.Sprintf("Forge '%s' updated.", a.w.GetString("organization"))
 
 	if deployPublish, found, _ := a.cli.GetBoolValue("_app", "forjj", "deploy-publish"); found && deployPublish {
 		if err := a.d.GitCommit(commitMsg); err != nil {
