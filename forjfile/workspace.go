@@ -34,6 +34,11 @@ type Workspace struct {
 	dirty      bool          // True is persistent data has been updated
 }
 
+type WorkspaceExport struct {
+	Value string
+	IsDefault bool
+}
+
 // Init initialize the Workspace object
 func (w *Workspace) Init(non_ws_entries ...string) {
 	if w == nil {
@@ -58,17 +63,51 @@ func (w *Workspace) SetPath(Workspace_path string) error {
 	return nil
 }
 
+// TODO: factorize the following function
+
 // Data provides the list of workspace variables stored.
-func (w *Workspace) Data() (result map[string]string) {
-	result = w.internal.More
-	if result == nil {
-		result = make(map[string]string)
+func (w *Workspace) Data() (result map[string]WorkspaceExport) {
+	result = make(map[string]WorkspaceExport)
+	result["docker-bin-path"] = w.exportData("docker-bin-path")
+	result["contrib-repo-path"] = w.exportData("contrib-repo-path")
+	result["flow-repo-path"] = w.exportData("flow-repo-path")
+	result["repotemplate-repo-path"] = w.exportData("repotemplate-repo-path")
+	for key := range w.internal.More {
+		result[key] = w.exportData(key)
 	}
-	result["docker-bin-path"] = w.internal.DockerBinPath
-	result["contrib-repo-path"] = w.internal.Contrib_repo_path
-	result["flow-repo-path"] = w.internal.Flow_repo_path
-	result["repotemplate-repo-path"] = w.internal.Repotemplate_repo_path
 	return
+}
+
+func (w *Workspace) exportData(field string) (WorkspaceExport) {
+	switch field {
+	case "docker-bin-path":
+		return WorkspaceExport{
+			Value: w.internal.DockerBinPath,
+			IsDefault: (w.internal.DockerBinPath == w.def.DockerBinPath),
+		}
+	case "contrib-repo-path":
+		return WorkspaceExport{
+			Value: w.internal.Contrib_repo_path,
+			IsDefault: (w.internal.Contrib_repo_path == w.def.Contrib_repo_path),
+		}
+	case "flow-repo-path":
+		return WorkspaceExport{
+			Value: w.internal.Flow_repo_path,
+			IsDefault: (w.internal.Flow_repo_path == w.def.Flow_repo_path),
+		}
+	case "repotemplate-repo-path":
+		return WorkspaceExport{
+			Value: w.internal.Repotemplate_repo_path,
+			IsDefault: (w.internal.Repotemplate_repo_path == w.def.Repotemplate_repo_path),
+		}
+	default:
+		value := w.internal.More[field]
+		defValue := w.def.More[field]
+		return WorkspaceExport{
+			Value: value,
+			IsDefault: (value == defValue),
+		}
+	}
 }
 
 // Len provides the numbers of workspace data stored.

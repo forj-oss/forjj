@@ -25,18 +25,20 @@ func (l *wsList) init(parentCmd *kingpin.CmdClause, data *forjfile.Workspace) {
 // Display the list of secrets
 func (l *wsList) showList() {
 	// Create terminal array
-	array := utils.NewTerminalArray(l.data.Len(), 2)
+	array := utils.NewTerminalArray(l.data.Len(), 3)
 
 	// Define Columns
 	array.SetCol(0, "Data")
-	array.SetCol(1, "Value")
+	array.SetCol(1, "Default")
+	array.SetCol(2, "Value")
 
 	// Evaluate Array size
 	data := l.data.Data()
 	for dataPath, dataValue := range data {
 		array.EvalLine(dataPath,
 			len(dataPath),
-			len(dataValue))
+			1, // default Value represented by X or space
+			len(dataValue.Value))
 	}
 
 	fmt.Print("List of forjj workspace data: \n\n")
@@ -53,11 +55,19 @@ func (l *wsList) showList() {
 			iTotal++
 			return []interface{}{
 				key,
-				utils.StringCompress(value, 0, compressedMax),
+				l.isDefault(value.IsDefault),
+				utils.StringCompress(value.Value, 0, compressedMax),
 			}
 		},
 	)
 
 	gotrace.Info("%d workspace data found", iTotal)
 
+}
+
+func (l *wsList) isDefault(value bool) string {
+	if value {
+		return "X"
+	}
+	return " "
 }
