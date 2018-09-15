@@ -18,6 +18,8 @@ type wsUnset struct {
 func (s *wsUnset) init(parent *kingpin.CmdClause, data *forjfile.Workspace) {
 	s.cmd = parent.Command("unset", "remove a credential stored in forjj secrets")
 	s.key = s.cmd.Arg("key", "Key path to remove. Format is <objectType>/<objectInstance>/<key>.)").Required().String()
+
+	s.data = data
 }
 
 // doSet register a password to the path given.

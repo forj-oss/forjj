@@ -61,6 +61,9 @@ func (w *Workspace) SetPath(Workspace_path string) error {
 // Data provides the list of workspace variables stored.
 func (w *Workspace) Data() (result map[string]string) {
 	result = w.internal.More
+	if result == nil {
+		result = make(map[string]string)
+	}
 	result["docker-bin-path"] = w.internal.DockerBinPath
 	result["contrib-repo-path"] = w.internal.Contrib_repo_path
 	result["flow-repo-path"] = w.internal.Flow_repo_path

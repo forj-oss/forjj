@@ -26,7 +26,7 @@ func (s *Context) init(isParsePhase func() bool) {
 }
 
 // Create a cli flag from a kingpin flag (for forjj-modules/cli)
-func (s *Context) flag(name string, flag *kingpin.FlagClause) (cliFlag *kingpinCli.FlagClause) {
+func (s *Context) Flag(name string, flag *kingpin.FlagClause) (cliFlag *kingpinCli.FlagClause) {
 	if s == nil {
 		return nil
 	}
