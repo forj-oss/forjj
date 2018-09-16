@@ -35,7 +35,7 @@ type Workspace struct {
 }
 
 type WorkspaceExport struct {
-	Value string
+	Value     string
 	IsDefault bool
 }
 
@@ -78,35 +78,12 @@ func (w *Workspace) Data() (result map[string]WorkspaceExport) {
 	return
 }
 
-func (w *Workspace) exportData(field string) (WorkspaceExport) {
-	switch field {
-	case "docker-bin-path":
-		return WorkspaceExport{
-			Value: w.internal.DockerBinPath,
-			IsDefault: (w.internal.DockerBinPath == w.def.DockerBinPath),
-		}
-	case "contrib-repo-path":
-		return WorkspaceExport{
-			Value: w.internal.Contrib_repo_path,
-			IsDefault: (w.internal.Contrib_repo_path == w.def.Contrib_repo_path),
-		}
-	case "flow-repo-path":
-		return WorkspaceExport{
-			Value: w.internal.Flow_repo_path,
-			IsDefault: (w.internal.Flow_repo_path == w.def.Flow_repo_path),
-		}
-	case "repotemplate-repo-path":
-		return WorkspaceExport{
-			Value: w.internal.Repotemplate_repo_path,
-			IsDefault: (w.internal.Repotemplate_repo_path == w.def.Repotemplate_repo_path),
-		}
-	default:
-		value := w.internal.More[field]
-		defValue := w.def.More[field]
-		return WorkspaceExport{
-			Value: value,
-			IsDefault: (value == defValue),
-		}
+func (w *Workspace) exportData(field string) WorkspaceExport {
+	value := w.GetString(field)
+	defValue, _ := w.GetDefault(field)
+	return WorkspaceExport{
+		Value:     value,
+		IsDefault: (value == defValue),
 	}
 }
 
@@ -153,13 +130,25 @@ func (w *Workspace) Unset(field string) (updated bool) {
 }
 
 // GetString return the data of the requested field.
+// If not found, it return the default value
 func (w *Workspace) GetString(field string) (value string) {
-	return w.internal.getString(field)
+	if value, _ := w.internal.get(field); value == "" {
+		return w.def.getString(field)
+	} else {
+		return value
+	}
 }
 
 // Get return the value of the requested field and found if was found.
+// Get do not extract the default value if not found
+// to get the Default value, use GetDefault()
 func (w *Workspace) Get(field string) (value string, found bool) {
 	return w.internal.get(field)
+}
+
+// GetDefault return the default value of the requested field and found if was found.
+func (w *Workspace) GetDefault(field string) (value string, found bool) {
+	return w.def.get(field)
 }
 
 // Infra return the Infra data object

@@ -26,7 +26,7 @@ func (s *wsUnset) init(parent *kingpin.CmdClause, data *forjfile.Workspace) {
 // Only supported path are recognized.
 func (s *wsUnset) doUnset() {
 
-	if s.data.Unset(*s.key) {
+	if !s.data.Unset(*s.key) {
 		gotrace.Info("'%s' workspace text not updated.", *s.key)
 		return
 	}

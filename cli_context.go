@@ -406,7 +406,7 @@ func (a *Forj) setFromURLFlag(flag string, Set func(string, string) bool) (u *ur
 
 	if found {
 		if u, e = url.Parse(value); e == nil {
-			Set(flag, u.String())
+			Set(flag, value)
 		}
 		return
 	}

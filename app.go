@@ -215,6 +215,8 @@ func (a *Forj) init() {
 
 		// TODO: Find a way to avoid redefining such common flags option here and re-use cli.Opts
 		// Following flags are parseable by cli, and used by ParseContext (so required), but we do not need them on workspace.
+		
+		// ISSUE: Default() affect only cli after ParseContext. Default value is retrieved thanks to a fix in GetLocalPrefs()
 		context.Flag("contribs-repo",
 			cmd.Flag("contribs-repo", contribs_repo_help).Envar("CONTRIBS_REPO").Default(defaultContribsRepo)).String()
 		context.Flag("flows-repo",

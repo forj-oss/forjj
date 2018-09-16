@@ -33,4 +33,6 @@ func (s *wsSet) doSet() {
 	}
 
 	s.data.Save()
+	gotrace.Info("'%s' workspace text updated.", *s.key)
+
 }

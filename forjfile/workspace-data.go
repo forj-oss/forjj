@@ -47,7 +47,7 @@ func (w *WorkspaceData) get(field string) (value string, found bool) {
 		return
 	}
 	value = w.getString(field)
-	found = (value != "")
+	found = true // predefined field are return found=true even if the data is empty.
 	return
 }
 
