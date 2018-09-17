@@ -8,6 +8,15 @@ import (
 	"github.com/forj-oss/goforjj"
 )
 
+var (
+	stdWsField = [...]string{
+		"docker-bin-path",
+		"contrib-repo-path",
+		"flow-repo-path",
+		"repotemplate-repo-path",
+	}
+)
+
 // WorkspaceData contains the structured data saved as json
 type WorkspaceData struct {
 	Organization    string              // Workspace Organization name
@@ -46,8 +55,17 @@ func (w *WorkspaceData) get(field string) (value string, found bool) {
 	if value, found = w.More[field]; found {
 		return
 	}
+
+	for _, key := range stdWsField {
+		if key == field {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return
+	}
 	value = w.getString(field)
-	found = true // predefined field are return found=true even if the data is empty.
 	return
 }
 
