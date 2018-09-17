@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kingpin"
+	"github.com/forj-oss/forjj-modules/cli/interface"
 )
 
 type secrets struct {
@@ -56,4 +57,15 @@ func (s *secrets) action(action string) {
 		s.unset.doUnset()
 	case "show":
 	}
+}
+
+// DefineContext define cli Context to permit ParseContext to retrieve
+// common variable set.
+func (s *secrets) DefineContext(context clier.ParseContexter) {
+	s.context.defineContext(context)
+}
+
+// GetStringValue Return a field value from the given context (parse time, or after)
+func (s *secrets) GetStringValue(field string) (value string, found, isDefault bool, _ error) {
+	return s.context.GetStringValue(field)
 }

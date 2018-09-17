@@ -66,8 +66,29 @@ func TestWorkspace(t *testing.T) {
 
 	for _, field := range []string{"docker-bin-path", "contrib-repo-path", "flow-repo-path", "repotemplate-repo-path", "field1"} {
 		value, found := workspace.Get(field)
-		test.False(found, "expect to not found %s %s", field, testCase)
+		if field == "field1" {
+			test.Falsef(found, "expect to not be found %s %s", field, testCase)
+		} else {
+			test.Truef(found, "expect to be found %s %s", field, testCase)
+		}
 		test.Emptyf(value, "expect to get an empty string for %s %s", field, testCase)
 	}
 
+	/*********************************/
+	testCase = "when workspace is empty but with a default value."
+
+	workspace.SetDefault("contrib-repo-path", "blabla")
+
+	value, found := workspace.Get("contrib-repo-path")
+	test.Emptyf(value, "expect Get to be empty %s", testCase)
+	test.Truef(found, "expect Get to be found %s", testCase)
+
+	value, found = workspace.GetDefault("contrib-repo-path")
+	test.Equalf("blabla", value, "expect GetDefault to return '%s' %s", "blabla", testCase)
+
+	test.Equalf("blabla", workspace.GetString("contrib-repo-path"), "expect GetString to return '%s' %s", "blabla", testCase)
+
+	test.Equalf(4, workspace.Len(), "expect Len to return '%d' %s", "4", testCase)
+
+	// Todo: Set, Data
 }

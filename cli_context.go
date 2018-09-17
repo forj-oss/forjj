@@ -41,7 +41,12 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		return nil, false
 	}
 
-	a.secrets.context.defineContext(c.GetParseContext())
+	// Transmit context to additionnal cli commands not managed by forjj_module/cli
+	// This ParseContext works on some flags that all other command outside forjj_module/cli
+	// have to define, like FORJJ_INFRA (--infra-path)
+	a.secrets.DefineContext(c.GetParseContext())
+	a.workspace.DefineContext(c.GetParseContext())
+
 	if a.contextAction == cr_act || a.contextAction == val_act {
 		// Detect and load a Forjfile model given.
 		if err := a.LoadForjfile(a.contextAction); err != nil {
@@ -401,7 +406,7 @@ func (a *Forj) setFromURLFlag(flag string, Set func(string, string) bool) (u *ur
 
 	if found {
 		if u, e = url.Parse(value); e == nil {
-			Set(flag, u.String())
+			Set(flag, value)
 		}
 		return
 	}

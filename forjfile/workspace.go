@@ -29,8 +29,14 @@ type Workspace struct {
 	clean_entries  []string // List of keys to ensure removed.
 
 	internal   WorkspaceData
+	def        WorkspaceData // Default values
 	persistent WorkspaceData // Data saved and loaded in forjj.json
 	dirty      bool          // True is persistent data has been updated
+}
+
+type WorkspaceExport struct {
+	Value     string
+	IsDefault bool
 }
 
 // Init initialize the Workspace object
@@ -57,14 +63,33 @@ func (w *Workspace) SetPath(Workspace_path string) error {
 	return nil
 }
 
-// GetString return the data of the requested field.
-func (w *Workspace) GetString(field string) (value string) {
-	return w.internal.getString(field)
+// TODO: factorize the following function
+
+// Data provides the list of workspace variables stored.
+func (w *Workspace) Data() (result map[string]WorkspaceExport) {
+	result = make(map[string]WorkspaceExport)
+	result["docker-bin-path"] = w.exportData("docker-bin-path")
+	result["contrib-repo-path"] = w.exportData("contrib-repo-path")
+	result["flow-repo-path"] = w.exportData("flow-repo-path")
+	result["repotemplate-repo-path"] = w.exportData("repotemplate-repo-path")
+	for key := range w.internal.More {
+		result[key] = w.exportData(key)
+	}
+	return
 }
 
-// Get return the value of the requested field and found if was found.
-func (w *Workspace) Get(field string) (value string, found bool) {
-	return w.internal.get(field)
+func (w *Workspace) exportData(field string) WorkspaceExport {
+	value := w.GetString(field)
+	defValue, _ := w.GetDefault(field)
+	return WorkspaceExport{
+		Value:     value,
+		IsDefault: (value == defValue),
+	}
+}
+
+// Len provides the numbers of workspace data stored.
+func (w *Workspace) Len() int {
+	return 4 + len(w.internal.More)
 }
 
 // Set save field/value pair in the workspace.
@@ -77,7 +102,53 @@ func (w *Workspace) Set(field, value string, persistent bool) (updated bool) {
 			w.dirty = true
 		}
 	}
+
 	return
+}
+
+// SetDefault save field/value pair in the workspace as default value.
+// This value is set to the internal if not set or if unset
+func (w *Workspace) SetDefault(field, value string) {
+	if _, found := w.internal.get(field); !found {
+		w.internal.set(field, value)
+	}
+	w.def.set(field, value)
+}
+
+// Unset remove value of the given field in the workspace.
+// The default value can be restored if it was originally set
+func (w *Workspace) Unset(field string) (updated bool) {
+	w.internal.set(field, "")
+	if w.persistent.set(field, "") {
+		w.dirty = true
+		updated = true
+	}
+	if v, found := w.def.get(field); !found {
+		w.internal.set(field, v)
+	}
+	return
+}
+
+// GetString return the data of the requested field.
+// If not found, it return the default value
+func (w *Workspace) GetString(field string) (value string) {
+	if value, _ := w.internal.get(field); value == "" {
+		return w.def.getString(field)
+	} else {
+		return value
+	}
+}
+
+// Get return the value of the requested field and found if was found.
+// Get do not extract the default value if not found
+// to get the Default value, use GetDefault()
+func (w *Workspace) Get(field string) (value string, found bool) {
+	return w.internal.get(field)
+}
+
+// GetDefault return the default value of the requested field and found if was found.
+func (w *Workspace) GetDefault(field string) (value string, found bool) {
+	return w.def.get(field)
 }
 
 // Infra return the Infra data object
@@ -144,7 +215,7 @@ func (w *Workspace) SocketPath() (socketPath string) {
 	if socketPath == "" {
 		var err error
 		os.MkdirAll(forjjSocketBaseDir, 0755)
-		socketPath, err =  ioutil.TempDir(forjjSocketBaseDir, "forjj-")
+		socketPath, err = ioutil.TempDir(forjjSocketBaseDir, "forjj-")
 		kingpin.FatalIfError(err, "Unable to create temporary dir in '%s'", "/tmp")
 		w.Set("plugins-socket-dirs-path", socketPath, true)
 	}
@@ -230,8 +301,6 @@ func (w *Workspace) Save() {
 		gotrace.Trace("No Workspace updates: File '%s' not saved.'", fjson)
 		return
 	}
-
-	kingpin.FatalIfError(err, "Unable to create/update '%s'", fjson)
 
 	gotrace.Trace("File '%s' saved.", fjson)
 	w.dirty = false

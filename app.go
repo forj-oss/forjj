@@ -8,6 +8,7 @@ import (
 	"forjj/flow"
 	"forjj/forjfile"
 	"forjj/repo"
+	forjjWorkspace "forjj/workspace"
 	"log"
 	"net/url"
 	"os"
@@ -51,7 +52,9 @@ type Forj struct {
 	cli *cli.ForjCli // ForjCli data
 	app *kingpin.Application
 
-	secrets secrets
+	// cli commands modules
+	secrets   secrets
+	workspace forjjWorkspace.Workspace
 
 	contextAction string // Context action defined in ParseContext.
 	// Can be create/update or maintain. But it can be any others, like secrets...
@@ -191,8 +194,11 @@ func (a *Forj) init() {
 	opts_required := cli.Opts().Required()
 	//opts_ssh_dir := cli.Opts().Default(fmt.Sprintf("%s/.ssh", os.Getenv("HOME")))
 	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default(defaultContribsRepo)
+	a.w.SetDefault("contrib-repo-path", defaultContribsRepo)
 	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default(defaultFlowRepo)
+	a.w.SetDefault("flow-repo-path", defaultFlowRepo)
 	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)
+	a.w.SetDefault("repotemplate-repo-path", defaultRepoTemplate)
 	optsDirsPath := cli.Opts().Envar("PLUGINS_SOCKET_DIRS_PATH")
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
@@ -204,6 +210,23 @@ func (a *Forj) init() {
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 
 	a.secrets.init(a.app)
+	a.workspace.Init(a.app, &a.w, a.cli.IsParsePhase, func(context *forjjWorkspace.Context, cmd *kingpin.CmdClause) {
+		// Define Common flags required by ParseContext
+
+		// TODO: Find a way to avoid redefining such common flags option here and re-use cli.Opts
+		// Following flags are parseable by cli, and used by ParseContext (so required), but we do not need them on workspace.
+		
+		// ISSUE: Default() affect only cli after ParseContext. Default value is retrieved thanks to a fix in GetLocalPrefs()
+		context.Flag("contribs-repo",
+			cmd.Flag("contribs-repo", contribs_repo_help).Envar("CONTRIBS_REPO").Default(defaultContribsRepo)).String()
+		context.Flag("flows-repo",
+			cmd.Flag("flows-repo", flows_repo_help).Envar("FLOWS_REPO").Default(defaultFlowRepo)).String()
+		context.Flag("repotemplates-repo",
+			cmd.Flag("repotemplates-repo", repotemplates_repo_help).Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)).String()
+		context.Flag(infra_path_f,
+			cmd.Flag(infra_path_f, infra_path_help)).Envar("FORJJ_INFRA").Short('W').String()
+
+	})
 
 	var version string
 	if PRERELEASE {
@@ -242,6 +265,7 @@ func (a *Forj) init() {
 	a.actionDispatch[maint_act] = a.maintainAction
 	a.actionDispatch[val_act] = a.validateAction
 	a.actionDispatch["secrets"] = a.secrets.action
+	a.actionDispatch["workspace"] = a.workspace.Action
 
 	a.drivers = make(map[string]*drivers.Driver)
 	a.plugins = goforjj.NewPlugins()
@@ -445,16 +469,20 @@ func (a *Forj) init() {
 	a.AddMapFunc("secrets", deployToArg, a.secrets.context.GetStringValue)
 
 	a.AddMap(infra_path_f, workspace, "", infra_path_f, workspace, "", infra_path_f)
-	a.AddMapFunc("secrets", infra_path_f, a.secrets.context.GetStringValue)
+	a.AddMapFunc("secrets", infra_path_f, a.secrets.GetStringValue)
+	a.AddMapFunc("workspace", infra_path_f, a.workspace.GetStringValue)
 
 	a.AddMap("contribs-repo", workspace, "", "contribs-repo", "", "", "contrib-repo-path")
-	a.AddMapFunc("secrets", "contribs-repo", a.secrets.context.GetStringValue)
+	a.AddMapFunc("secrets", "contribs-repo", a.secrets.GetStringValue)
+	a.AddMapFunc("workspace", "contribs-repo", a.workspace.GetStringValue)
 
 	a.AddMap("flows-repo", workspace, "", "flows-repo", "", "", "flow-repo-path")
-	a.AddMapFunc("secrets", "flows-repo", a.secrets.context.GetStringValue)
+	a.AddMapFunc("secrets", "flows-repo", a.secrets.GetStringValue)
+	a.AddMapFunc("workspace", "flows-repo", a.workspace.GetStringValue)
 
 	a.AddMap("repotemplates-repo", workspace, "", "repotemplates-repo", "", "", "repotemplate-repo-path")
-	a.AddMapFunc("secrets", "repotemplates-repo", a.secrets.context.GetStringValue)
+	a.AddMapFunc("secrets", "repotemplates-repo", a.secrets.GetStringValue)
+	a.AddMapFunc("workspace", "repotemplates-repo", a.workspace.GetStringValue)
 	// TODO: Add git-remote cli mapping
 }
 
@@ -475,14 +503,14 @@ func (a *Forj) getInternalData(param string) (result string) {
 	case "organization":
 		result = a.w.GetString(param)
 	case "infra":
-		if infra := a.w.Infra() ; infra != nil {
+		if infra := a.w.Infra(); infra != nil {
 			result = infra.Name
 		}
 	case "infra-upstream", "infra-upstream-url":
-		if instanceName := a.w.GetString("infra-instance-name") ; instanceName == "" || instanceName == "none" {
+		if instanceName := a.w.GetString("infra-instance-name"); instanceName == "" || instanceName == "none" {
 			result = ""
 		} else {
-			if infra := a.w.Infra() ; infra != nil {
+			if infra := a.w.Infra(); infra != nil {
 				result = infra.GetUpstream(param == "infra-upstream")
 			}
 		}
