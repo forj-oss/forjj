@@ -14,6 +14,10 @@ var (
 		"contrib-repo-path",
 		"flow-repo-path",
 		"repotemplate-repo-path",
+		"plugins-socket-dirs-path",
+		"organization",
+		"infra-instance-name",
+		"infra-driver-name",
 	}
 )
 

@@ -132,10 +132,10 @@ func (w *Workspace) Unset(field string) (updated bool) {
 // GetString return the data of the requested field.
 // If not found, it return the default value
 func (w *Workspace) GetString(field string) (value string) {
-	if value, _ := w.internal.get(field); value == "" {
+	if value, _ = w.internal.get(field); value == "" {
 		return w.def.getString(field)
 	} else {
-		return value
+		return
 	}
 }
 
