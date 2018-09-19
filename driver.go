@@ -191,12 +191,6 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	d.Plugin.PluginSetVersion(d.DriverVersion)
 	d.Plugin.PluginSetWorkspace(a.w.Path())
 	d.Plugin.PluginSocketPath(a.w.SocketPath())
-	if v, found, _, _ := a.cli.GetStringValue(workspace, "", "docker-exe-path"); found && v != "" {
-		a.w.Set("docker-bin-path", v, false)
-	}
-	if err := d.Plugin.PluginDockerBin(a.w.GetString("docker-bin-path")); err != nil {
-		return err, false
-	}
 
 	// Set default envs from the forjj process environment.
 	if d.Plugin.Yaml.Runtime.Docker.Env == nil {
@@ -212,7 +206,16 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	if v := os.Getenv("no_proxy"); v != "" {
 		d.Plugin.Yaml.Runtime.Docker.Env["no_proxy"] = v
 	}
+
+	// Treat DooD context to start the plugin container with docker
 	if v, b, _ := d.Plugin.GetDockerDoodParameters(); v != nil {
+		if v, found, _, _ := a.cli.GetStringValue(workspace, "", "docker-exe-path"); found && v != "" {
+			a.w.Set("docker-bin-path", v, false)
+		}
+		if err := d.Plugin.PluginDockerBin(a.w.GetString("docker-bin-path")); err != nil {
+			return err, false
+		}
+
 		d.Plugin.Yaml.Runtime.Docker.Env["DOCKER_DOOD"] = strings.Join(v, " ")
 		d.Plugin.Yaml.Runtime.Docker.Env["DOCKER_DOOD_BECOME"] = strings.Join(b, " ")
 	}
