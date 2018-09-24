@@ -1,5 +1,5 @@
 hash: 96c626ea3b685de3d27336771760c757e1c870bfac2f1f2b838a36b09c940d6f
-updated: 2018-09-14T13:47:01.674960599Z
+updated: 2018-09-24T13:18:51.897086165Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -11,7 +11,7 @@ imports:
 - name: github.com/alecthomas/units
   version: 2efee857e7cfd4f3d0138cc3cbb1b4966962b93a
 - name: github.com/docker/distribution
-  version: b089e91688254eb5aef187f188c8ee0ebe4e4675
+  version: 16128bbac47f75050e82f7e91b04df33775e0c23
   subpackages:
   - digestset
   - reference
@@ -59,7 +59,9 @@ imports:
   - cli/tools
   - trace
 - name: github.com/forj-oss/goforjj
-  version: 88bd6c8b68a005d3d2a8c3652ae853fc9aeda12d
+  version: 22591d6e7dba217af2309558bdab809433eeb5cc
+- name: github.com/konsorten/go-windows-terminal-sequences
+  version: b729f2633dfe35f4d1d8a32385f6685610ce1cb5
 - name: github.com/kr/text
   version: e2ffdb16a802fe2bb95e2e35ff34f0e53aeef34f
 - name: github.com/kvz/logstreamer
@@ -79,7 +81,7 @@ imports:
 - name: github.com/pkg/errors
   version: c059e472caf75dbe73903f6521a20abac245b17f
 - name: github.com/Sirupsen/logrus
-  version: f3df9aeffda7c12bd9f5a03f9251d75d35993165
+  version: 33a1e118e113c7d1dd24a80f80670864cd598519
 - name: github.com/stretchr/testify
   version: f35b8ab0b5a2cef36673838d662e249dd9c94686
   subpackages:
@@ -89,7 +91,7 @@ imports:
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 26e67e76b6c3f6ce91f7c52def5af501b4e0f3a2
+  version: 2f5d2388922f370f4355f327fcf4cfe9f5583908
   subpackages:
   - context
   - context/ctxhttp
@@ -97,7 +99,7 @@ imports:
   - proxy
   - publicsuffix
 - name: golang.org/x/sys
-  version: d0be0721c37eeb5299f245a996a483160fc36940
+  version: d47a0f3392421c5624713c9a19fe781f651f8a50
   subpackages:
   - unix
   - windows
