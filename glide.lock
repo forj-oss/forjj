@@ -1,5 +1,5 @@
 hash: 96c626ea3b685de3d27336771760c757e1c870bfac2f1f2b838a36b09c940d6f
-updated: 2018-09-24T13:46:49.527733602Z
+updated: 2018-09-25T08:51:45.098516607Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -59,7 +59,7 @@ imports:
   - cli/tools
   - trace
 - name: github.com/forj-oss/goforjj
-  version: d70be49b03dfa09b0586444b45d75f0c13d64eaf
+  version: d04d7b9487800f877bb9dca8f69d647d0c3a463c
 - name: github.com/konsorten/go-windows-terminal-sequences
   version: b729f2633dfe35f4d1d8a32385f6685610ce1cb5
 - name: github.com/kr/text
@@ -91,7 +91,7 @@ imports:
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
-  version: 2f5d2388922f370f4355f327fcf4cfe9f5583908
+  version: f04abc6bdfa7a0171a8a0c9fd2ada9391044d056
   subpackages:
   - context
   - context/ctxhttp
@@ -99,7 +99,7 @@ imports:
   - proxy
   - publicsuffix
 - name: golang.org/x/sys
-  version: d47a0f3392421c5624713c9a19fe781f651f8a50
+  version: 90868a75fefd03942536221d7c0e2f84ec62a668
   subpackages:
   - unix
   - windows
