@@ -2,6 +2,8 @@
 
 source lib/build-env.fcts.sh
 
+be_ci_detected
+
 if [[ -f .build-env.def ]]
 then
     for var in $(grep -e '^\(.*=.*\)' .build-env.def)
@@ -28,8 +30,6 @@ if [[ $? -ne 0 ]]
 then
     return
 fi
-
-be_ci_detected
 
 be_setup
 

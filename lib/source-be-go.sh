@@ -28,6 +28,34 @@ function go_check_and_set {
        fi
        echo "$1" > .be-gopath
        echo "$1 added as GOPATH"
+    else # Determine GOPATH from current path
+        local curPath=$(pwd)
+        local parentPath=$(dirname $curPath)
+        local parentName=$(basename $parentPath)
+
+        while [[ $found = false ]]
+        do
+            if [[ $parentName == src ]] 
+            then
+                # Check if curPath has .git 
+                if [[ ! -d "$curPath/.git" ]]
+                then
+                    echo "Unable to determine GOPATH: $curPath is not a valid GIT repository"
+                fi
+                gopath=$(dirname $parentPath)
+                break
+            fi
+            curPath=$parentPath
+            parentPath=$(dirname $curPath)
+            parentName=$(basename $parentPath)
+
+        done
+        if [[ $parentName == src ]] 
+        then
+            local gopath=$(dirname $parentPath)
+            echo "$gopath" > .be-gopath
+            echo "Detected $gopath as GOPATH from $(pwd). If wrong, update .be-gopath"
+        fi
     fi
 
     if [[ -f .be-gopath ]]

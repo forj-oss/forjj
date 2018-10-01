@@ -18,6 +18,7 @@ function be_ci_detected {
     export CI_ENABLED=FALSE
     if [[ "$WORKSPACE" != "" ]]
     then
+        set +xe
         echo "Jenkins environment detected"
         export CI_WORKSPACE="$WORKSPACE"
         export CI_ENABLED=TRUE
@@ -251,6 +252,26 @@ function docker_build_env {
     then
         be_create_${1}_docker_build
     fi
+
+    if [[ $1 = core ]]
+    then
+        _be_gitignore
+    fi
+}
+
+function _be_gitignore {
+    if [[ -f .gitignore ]]
+    then
+       if [[ "$(grep '^.be-\*$' .gitignore)" = "" ]]
+       then
+           echo ".be-*" >> .gitignore
+           echo ".gitignore updated."
+       fi
+    else
+        echo ".be-*" > .gitignore
+        echo ".gitignore created."
+    fi
+
 }
 
 function _be_set_debug {
