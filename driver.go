@@ -211,17 +211,6 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 
 	d.Plugin.ServiceAddEnv("LOGNAME", "$LOGNAME", false)
 	d.Plugin.Yaml.Runtime.Docker.Env["LOGNAME"] = "$LOGNAME"
-	if v := os.Getenv("http_proxy"); v != "" {
-		d.Plugin.Yaml.Runtime.Docker.Env["http_proxy"] = v
-		d.Plugin.Yaml.Runtime.Docker.Env["https_proxy"] = v
-	}
-	if v := os.Getenv("no_proxy"); v != "" {
-		d.Plugin.Yaml.Runtime.Docker.Env["no_proxy"] = v
-	}
-	if v, b, _ := d.Plugin.GetDockerDoodParameters(); v != nil {
-		d.Plugin.Yaml.Runtime.Docker.Env["DOCKER_DOOD"] = strings.Join(v, " ")
-		d.Plugin.Yaml.Runtime.Docker.Env["DOCKER_DOOD_BECOME"] = strings.Join(b, " ")
-	}
 
 	if err := d.Plugin.PluginStartService(); err != nil {
 		return err, false
