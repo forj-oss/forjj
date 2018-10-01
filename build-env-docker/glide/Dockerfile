@@ -5,7 +5,7 @@ MAINTAINER christophe.larsonneur@hpe.com
 ARG UID
 ARG GID
 
-ENV GLIDE_VERSION 0.13.1
+ENV GLIDE_VERSION 0.13.2
 ENV GLIDE_DOWNLOAD_URL=https://github.com/Masterminds/glide/releases/download/v${GLIDE_VERSION}/glide-v${GLIDE_VERSION}-linux-amd64.tar.gz \
     GLIDE_HOME=/go/.glide/${GLIDE_VERSION}
 
