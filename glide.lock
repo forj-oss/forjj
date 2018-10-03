@@ -1,5 +1,5 @@
 hash: 96c626ea3b685de3d27336771760c757e1c870bfac2f1f2b838a36b09c940d6f
-updated: 2018-10-01T20:09:34.778838122Z
+updated: 2018-10-03T09:37:46.281200022Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -59,7 +59,7 @@ imports:
   - cli/tools
   - trace
 - name: github.com/forj-oss/goforjj
-  version: 41f3d1db715632d806c6f4882dfe6c1d9c3d00b9
+  version: 9d8aa3462c32dd553a5d49d8f9e29485d9872832
   subpackages:
   - runcontext
 - name: github.com/konsorten/go-windows-terminal-sequences
@@ -105,8 +105,6 @@ imports:
   subpackages:
   - unix
   - windows
-- name: gopkg.in/alecthomas/kingpin.v2
-  version: 947dcec5ba9c011838740e680966fd7087a71d0d
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 testImports:

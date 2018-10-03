@@ -185,11 +185,14 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		d.Plugin.RunningFromDebugger()
 	}
 
+	// Define container mounts
 	if v := os.Getenv("FORJJ_SOURCE_BASE") ; v != "" {
 		d.Plugin.PluginBase(v)
 		d.Plugin.PluginSetSourceMount(path.Join(a.i.Path(), "apps", d.DriverType))
 		d.Plugin.PluginSetWorkspaceMount(a.w.Path())
 		d.Plugin.PluginSetDeploymentMount(a.d.GetReposPath())
+	} else {
+		d.Plugin.SetDefaultMounts()
 	}
 	d.Plugin.PluginSetSource(path.Join(a.i.Path(), "apps", d.DriverType))
 	d.Plugin.PluginSetDeployment(a.d.GetReposPath())
