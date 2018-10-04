@@ -268,6 +268,7 @@ func (w *Workspace) checkDataExist() (fjson string, found bool, err error) {
 
 	_, err = os.Stat(fjson)
 	found = !os.IsNotExist(err)
+	err = nil
 	return
 }
 
