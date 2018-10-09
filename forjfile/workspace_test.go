@@ -38,14 +38,15 @@ func TestWorkspace(t *testing.T) {
 	testCase = "when workspace path is given empty."
 
 	err := workspace.SetPath("")
+
 	test.EqualErrorf(err, "Workspace path not defined.", "Expect an error %s", testCase)
 
 	/*********************************/
 	testCase = "when workspace path is given absolute."
 
 	err = workspace.SetPath("/home/forjj/infra/.workspace")
-	test.NoErrorf(err, "Expect no error %s", testCase)
 
+	test.NoErrorf(err, "Expect no error %s", testCase)
 	test.Equalf("/home/forjj/infra", workspace.workspace_path, "Expect workspace root path properly set %s", testCase)
 	test.Equalf(".workspace", workspace.workspace, "Expect workspace relative path properly set %s", testCase)
 
@@ -53,6 +54,7 @@ func TestWorkspace(t *testing.T) {
 	testCase = "when workspace path is given relative."
 
 	err = workspace.SetPath("infra/.workspace")
+
 	test.NoErrorf(err, "Expect no error %s", testCase)
 
 	var curPath string
@@ -66,12 +68,14 @@ func TestWorkspace(t *testing.T) {
 
 	for _, field := range stdWsField {
 		value, found := workspace.Get(field)
+
 		test.Truef(found, "expect to be found %s %s", field, testCase)
 		test.Emptyf(value, "expect to get an empty string for %s %s", field, testCase)
 	}
 
 	for _, field := range []string{"field1"} {
 		value, found := workspace.Get(field)
+
 		test.Falsef(found, "expect to not be found %s %s", field, testCase)
 		test.Emptyf(value, "expect to get an empty string for %s %s", field, testCase)
 	}
@@ -92,5 +96,36 @@ func TestWorkspace(t *testing.T) {
 
 	test.Equalf(4, workspace.Len(), "expect Len to return '%d' %s", "4", testCase)
 
-	// Todo: Set, Data
+	/*********************************/
+	testCase = "when workspace is nil and loading."
+
+	workspace = nil
+	err = workspace.Load()
+
+	test.EqualErrorf(err, "Workspace is nil", "Expect an error %s", testCase)
+
+	/*********************************/
+	testCase = "when workspace is intialized and loading."
+	workspace = new(Workspace)
+	workspace.Init("infra-path")
+
+	err = workspace.Load()
+
+	test.EqualErrorf(err, "Invalid workspace. name or path are empty", "Expect an error %s", testCase)
+
+	/*********************************/
+	testCase = "when workspace is intialized and configured then loading."
+
+	workspace.SetPath("/tmp/forjj/infra/workspace")
+	test.Nilf(workspace.persistent.Infra, "Expect persistent Infra to be nil %s", testCase)
+	test.NotNilf(workspace.internal.Infra, "Expect internal Infra to NOT be nil %s", testCase)
+
+	err = workspace.Load()
+
+	test.NotNilf(workspace.persistent.Infra, "Expect persistent Infra to NOT be nil %s", testCase)
+	test.Truef(workspace.dirty, "Expect persistent to be identified as dirty %s", testCase)
+	test.Equalf(workspace.persistent.Infra, workspace.internal.Infra, "Expect persistent infra to be same than internal object.")
+
+
+	// Todo: Set, Data, Save and Load(70%)
 }
