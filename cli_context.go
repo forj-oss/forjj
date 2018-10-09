@@ -305,11 +305,14 @@ func (a *Forj) setInfraName(action string) (err error) {
 	}
 
 	infra := a.w.Infra()
+	if infra == nil {
+		return fmt.Errorf("Workspace data issue: Infra is nil. Removing .forj-workspace/forjj.json as a workaround may work. But please, create an issue in 'https://github.com/forj-oss/forjj/issues/new' to report this error")
+	}
 	if found {
 		// Set the infra repo name to use
 		// Can be set only the first time
 		if infra == nil {
-			return fmt.Errorf("Internal issue: Infra object not found.")
+			return fmt.Errorf("Internal issue: Infra object not found")
 		}
 		if infra.Name == "" {
 			// Get infra name from the flag
