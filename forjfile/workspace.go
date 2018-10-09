@@ -336,16 +336,18 @@ func (w *Workspace) SetError(err error) error {
 // Workspace path is get from forjj and set kept in the workspace as reference for whole forjj thanks to a.w.Path()
 func (w *Workspace) Load() error {
 	if w == nil {
-		return fmt.Errorf("Workspace is nil.")
+		return fmt.Errorf("Workspace is nil")
 	}
 	if w.workspace_path == "" || w.workspace == "" {
-		return fmt.Errorf("Invalid workspace. name or path are empty.")
+		return fmt.Errorf("Invalid workspace. name or path are empty")
 	}
 
 	fjson := path.Join(w.Path(), forjj_workspace_json_file)
 
 	_, err := os.Stat(fjson)
 	if os.IsNotExist(err) {
+		w.persistent = w.internal // Get default information initialized
+		w.dirty = true // Force to save it as workspace file doesn't exist.
 		gotrace.Trace("'%s' not found. Workspace data not loaded.", fjson)
 		return nil
 	}
@@ -361,6 +363,10 @@ func (w *Workspace) Load() error {
 
 	if err := json.Unmarshal(djson, &w.persistent); err != nil {
 		return fmt.Errorf("Unable to load '%s'. %s", fjson, err)
+	}
+
+	if infra := w.persistent.Infra ; infra == nil { // Ensure infra is already set even if not properly defined in the json file.
+		w.persistent.Infra = w.internal.Infra
 	}
 	w.internal = w.persistent
 	gotrace.Trace("Workspace data loaded from '%s'.", fjson)
