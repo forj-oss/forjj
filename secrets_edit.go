@@ -73,7 +73,7 @@ func (s *secretsEdit) doEdit() {
 
 	tmpFile, err := ioutil.TempFile("/tmp", "forjj-")
 	if err != nil {
-		gotrace.Error("Unable to create temporary file in /tmp. Exiting.")
+		gotrace.Error("Unable to create temporary file in /tmp. %s. Exiting.", err)
 		return
 	}
 
