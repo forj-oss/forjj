@@ -86,7 +86,7 @@ func (s *secretsEdit) doEdit() {
 
 	_, err = tmpFile.WriteString(s.password)
 	if err != nil {
-		gotrace.Error("Unable to write temporary file in /tmp. Exiting.")
+		gotrace.Error("Unable to write temporary file in /tmp. %s. Exiting.", err)
 		return
 	}
 	tmpFile.Close()
@@ -109,7 +109,7 @@ func (s *secretsEdit) doEdit() {
 	}
 
 	if data, err := ioutil.ReadFile(fileName); err != nil {
-		gotrace.Error("Unable to read the editor file %s. Exiting.", fileName)
+		gotrace.Error("Unable to read the editor file %s. %s. Exiting.", fileName, err)
 		return
 	} else {
 		s.password = strings.Trim(string(data), " \n")
