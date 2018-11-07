@@ -369,7 +369,13 @@ func (a *Forj) set_organization_name() error {
 // Initialize the workspace environment required by Forjj to work.
 func (a *Forj) setWorkspace() error {
 	// Ask to not save some entries, like 'infra-path' in the workspace file.
-	a.w.Init(infra_path_f)
+	a.w.Init(func(field string) (value string) {
+		// Fields given are defined in forjfile/workspace_data.go
+		// It must match the cli name to retrieve the cli data as defined in app.go#291
+		// TODO: Fix cli/workspaceData match
+		value, _, _, _ = a.cli.GetStringValue("workspace", "", field)
+		return
+	}, infra_path_f)
 
 	infra_path, found, err := a.GetLocalPrefs(infra_path_f)
 

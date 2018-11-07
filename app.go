@@ -256,7 +256,7 @@ func (a *Forj) init() {
 	a.cli.AddFieldListCapture("ft", `[A-Za-z0-9_ !:/.-]+`)
 
 	a.cli.AddAppFlag(cli.String, cred_f, forjj_creds_help, opts_creds_file)
-	a.cli.AddAppFlag(cli.String, debug_instance_f, "List of plugin instances in debug mode, comma separeted.",
+	a.cli.AddAppFlag(cli.String, debug_instance_f, "List of plugin instances in debug mode, comma separated.",
 		nil)
 
 	a.actionDispatch = make(map[string]func(string))

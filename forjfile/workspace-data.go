@@ -73,6 +73,15 @@ func (w *WorkspaceData) get(field string) (value string, found bool) {
 	return
 }
 
+// init initialize the workspace data from an initFunc function given
+func (w *WorkspaceData) init(initFunc func(string)string) {
+	for _, field := range stdWsField {
+		if value := initFunc(field) ; value != "" {
+			w.set(field, value)
+		}
+	}
+}
+
 // set update a field in the Workspace data
 func (w *WorkspaceData) set(field, value string) (updated bool) {
 	switch field {

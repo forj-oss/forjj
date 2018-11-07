@@ -31,6 +31,7 @@ type Workspace struct {
 	internal   WorkspaceData
 	def        WorkspaceData // Default values
 	persistent WorkspaceData // Data saved and loaded in forjj.json
+	cli        WorkspaceData // Data retrieved from cli
 	dirty      bool          // True is persistent data has been updated
 }
 
@@ -40,12 +41,13 @@ type WorkspaceExport struct {
 }
 
 // Init initialize the Workspace object
-func (w *Workspace) Init(non_ws_entries ...string) {
+func (w *Workspace) Init(cliSetup func(string) string, non_ws_entries ...string) {
 	if w == nil {
 		return
 	}
 	w.internal.Infra = goforjj.NewRepo()
 	w.clean_entries = non_ws_entries
+	w.cli.init(cliSetup)
 }
 
 // SetPath define the workspace path.
@@ -132,6 +134,10 @@ func (w *Workspace) Unset(field string) (updated bool) {
 // GetString return the data of the requested field.
 // If not found, it return the default value
 func (w *Workspace) GetString(field string) (value string) {
+	var found bool
+	if value, found = w.cli.get(field) ; found && value != "" {
+		return
+	}
 	if value, _ = w.internal.get(field); value == "" {
 		return w.def.getString(field)
 	} else {
