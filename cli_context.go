@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"forjj/creds"
 	"forjj/utils"
+	"forjj/forjfile"
 	"log"
 	"net/url"
 	"os"
@@ -169,7 +170,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	a.ContribRepoURIs = make([]*url.URL, 0, 1)
 
 	if v, err := a.setFromURLFlag("contribs-repo", func(_, v string) (updated bool) {
-		return a.w.Set("contrib-repo-path", v, false)
+		return a.w.Set(forjfile.ContribRepoPathField, v, false)
 	}); err == nil {
 		a.ContribRepoURIs = append(a.ContribRepoURIs, v)
 		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
