@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"forjj/creds"
 	"forjj/utils"
+	"forjj/forjfile"
 	"log"
 	"net/url"
 	"os"
@@ -169,7 +170,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	a.ContribRepoURIs = make([]*url.URL, 0, 1)
 
 	if v, err := a.setFromURLFlag("contribs-repo", func(_, v string) (updated bool) {
-		return a.w.Set("contrib-repo-path", v, false)
+		return a.w.Set(forjfile.ContribRepoPathField, v, false)
 	}); err == nil {
 		a.ContribRepoURIs = append(a.ContribRepoURIs, v)
 		gotrace.Trace("Using '%s' for '%s'", v, "contribs-repo")
@@ -369,7 +370,13 @@ func (a *Forj) set_organization_name() error {
 // Initialize the workspace environment required by Forjj to work.
 func (a *Forj) setWorkspace() error {
 	// Ask to not save some entries, like 'infra-path' in the workspace file.
-	a.w.Init(infra_path_f)
+	a.w.Init(func(field string) (value string) {
+		// Fields given are defined in forjfile/workspace_data.go
+		// It must match the cli name to retrieve the cli data as defined in app.go#291
+		// TODO: Fix cli/workspaceData match
+		value, _, _, _ = a.cli.GetStringValue("workspace", "", field)
+		return
+	}, infra_path_f)
 
 	infra_path, found, err := a.GetLocalPrefs(infra_path_f)
 

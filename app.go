@@ -194,7 +194,7 @@ func (a *Forj) init() {
 	opts_required := cli.Opts().Required()
 	//opts_ssh_dir := cli.Opts().Default(fmt.Sprintf("%s/.ssh", os.Getenv("HOME")))
 	opts_contribs_repo := cli.Opts().Envar("CONTRIBS_REPO").Default(defaultContribsRepo)
-	a.w.SetDefault("contrib-repo-path", defaultContribsRepo)
+	a.w.SetDefault(forjfile.ContribRepoPathField, defaultContribsRepo)
 	opts_flows_repo := cli.Opts().Envar("FLOWS_REPO").Default(defaultFlowRepo)
 	a.w.SetDefault("flow-repo-path", defaultFlowRepo)
 	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)
@@ -256,7 +256,7 @@ func (a *Forj) init() {
 	a.cli.AddFieldListCapture("ft", `[A-Za-z0-9_ !:/.-]+`)
 
 	a.cli.AddAppFlag(cli.String, cred_f, forjj_creds_help, opts_creds_file)
-	a.cli.AddAppFlag(cli.String, debug_instance_f, "List of plugin instances in debug mode, comma separeted.",
+	a.cli.AddAppFlag(cli.String, debug_instance_f, "List of plugin instances in debug mode, comma separated.",
 		nil)
 
 	a.actionDispatch = make(map[string]func(string))
@@ -472,7 +472,7 @@ func (a *Forj) init() {
 	a.AddMapFunc("secrets", infra_path_f, a.secrets.GetStringValue)
 	a.AddMapFunc("workspace", infra_path_f, a.workspace.GetStringValue)
 
-	a.AddMap("contribs-repo", workspace, "", "contribs-repo", "", "", "contrib-repo-path")
+	a.AddMap("contribs-repo", workspace, "", "contribs-repo", "", "", forjfile.ContribRepoPathField)
 	a.AddMapFunc("secrets", "contribs-repo", a.secrets.GetStringValue)
 	a.AddMapFunc("workspace", "contribs-repo", a.workspace.GetStringValue)
 
