@@ -70,10 +70,10 @@ func (w *Workspace) SetPath(Workspace_path string) error {
 // Data provides the list of workspace variables stored.
 func (w *Workspace) Data() (result map[string]WorkspaceExport) {
 	result = make(map[string]WorkspaceExport)
-	result["docker-bin-path"] = w.exportData("docker-bin-path")
-	result["contrib-repo-path"] = w.exportData("contrib-repo-path")
-	result["flow-repo-path"] = w.exportData("flow-repo-path")
-	result["repotemplate-repo-path"] = w.exportData("repotemplate-repo-path")
+	result[DockerBinPathField] = w.exportData(DockerBinPathField)
+	result[ContribRepoPathField] = w.exportData(ContribRepoPathField)
+	result[FlowRepoPathField] = w.exportData(FlowRepoPathField)
+	result[RepoTemplateRepoPathField] = w.exportData(RepoTemplateRepoPathField)
 	for key := range w.internal.More {
 		result[key] = w.exportData(key)
 	}

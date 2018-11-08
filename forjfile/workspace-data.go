@@ -8,16 +8,27 @@ import (
 	"github.com/forj-oss/goforjj"
 )
 
+const (
+	DockerBinPathField = "docker-bin-path"
+	ContribRepoPathField = "contrib-repo-path"
+	FlowRepoPathField = "flow-repo-path"
+	RepoTemplateRepoPathField = "repotemplate-repo-path"
+	PluginsSocketDirsPathField = "plugins-socket-dirs-path"
+	OrganizationField = "organization"
+	InfraInstanceNameField = "infra-instance-name"
+	InfraDriverNameField = "infra-driver-name"
+)
+
 var (
 	stdWsField = [...]string{
-		"docker-bin-path",
-		"contrib-repo-path",
-		"flow-repo-path",
-		"repotemplate-repo-path",
-		"plugins-socket-dirs-path",
-		"organization",
-		"infra-instance-name",
-		"infra-driver-name",
+		DockerBinPathField,
+		ContribRepoPathField,
+		FlowRepoPathField,
+		RepoTemplateRepoPathField,
+		PluginsSocketDirsPathField,
+		OrganizationField,
+		InfraInstanceNameField,
+		InfraDriverNameField,
 	}
 )
 
@@ -33,21 +44,21 @@ type WorkspaceData struct {
 // getString return the data of the requested field.
 func (w *WorkspaceData) getString(field string) (value string) {
 	switch field {
-	case "docker-bin-path":
+	case DockerBinPathField:
 		return w.DockerBinPath
-	case "contrib-repo-path":
+	case ContribRepoPathField:
 		return w.Contrib_repo_path
-	case "flow-repo-path":
+	case FlowRepoPathField:
 		return w.Flow_repo_path
-	case "repotemplate-repo-path":
+	case RepoTemplateRepoPathField:
 		return w.Repotemplate_repo_path
-	case "plugins-socket-dirs-path":
+	case PluginsSocketDirsPathField:
 		return w.SocketDir
-	case "organization":
+	case OrganizationField:
 		return w.Organization
-	case "infra-instance-name":
+	case InfraInstanceNameField:
 		return w.Instance
-	case "infra-driver-name":
+	case InfraDriverNameField:
 		return w.Driver
 	}
 	value, _ = w.More[field]
@@ -85,35 +96,35 @@ func (w *WorkspaceData) init(initFunc func(string)string) {
 // set update a field in the Workspace data
 func (w *WorkspaceData) set(field, value string) (updated bool) {
 	switch field {
-	case "docker-bin-path":
+	case DockerBinPathField:
 		updated = (w.DockerBinPath != value)
 		w.DockerBinPath = value
 		return
-	case "contrib-repo-path":
+	case ContribRepoPathField:
 		updated = (w.Contrib_repo_path != value)
 		w.Contrib_repo_path = value
 		return
-	case "flow-repo-path":
+	case FlowRepoPathField:
 		updated = (w.Flow_repo_path != value)
 		w.Flow_repo_path = value
 		return
-	case "repotemplate-repo-path":
+	case RepoTemplateRepoPathField:
 		updated = (w.Repotemplate_repo_path != value)
 		w.Repotemplate_repo_path = value
 		return
-	case "plugins-socket-dirs-path":
+	case PluginsSocketDirsPathField:
 		updated = (w.SocketDir != value)
 		w.SocketDir = value
 		return
-	case "organization":
+	case OrganizationField:
 		updated = (w.Organization != value)
 		w.Organization = value
 		return
-	case "infra-instance-name":
+	case InfraInstanceNameField:
 		updated = (w.Instance != value)
 		w.Instance = value
 		return
-	case "infra-driver-name":
+	case InfraDriverNameField:
 		updated = (w.Driver != value)
 		w.Driver = value
 		return
