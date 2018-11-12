@@ -199,7 +199,7 @@ func (a *Forj) init() {
 	a.w.SetDefault("flow-repo-path", defaultFlowRepo)
 	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)
 	a.w.SetDefault("repotemplate-repo-path", defaultRepoTemplate)
-	optsDirsPath := cli.Opts().Envar("PLUGINS_SOCKET_DIRS_PATH")
+	optsDirsPath := cli.Opts().Envar("PLUGINS_SOCKET_DIR_NAME")
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
@@ -215,7 +215,7 @@ func (a *Forj) init() {
 
 		// TODO: Find a way to avoid redefining such common flags option here and re-use cli.Opts
 		// Following flags are parseable by cli, and used by ParseContext (so required), but we do not need them on workspace.
-		
+
 		// ISSUE: Default() affect only cli after ParseContext. Default value is retrieved thanks to a fix in GetLocalPrefs()
 		context.Flag("contribs-repo",
 			cmd.Flag("contribs-repo", contribs_repo_help).Envar("CONTRIBS_REPO").Default(defaultContribsRepo)).String()
@@ -295,7 +295,7 @@ func (a *Forj) init() {
 		AddField(cli.String, "contribs-repo", contribs_repo_help, "#w", opts_contribs_repo).
 		AddField(cli.String, "flows-repo", flows_repo_help, "#w", opts_flows_repo).
 		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w", opts_repotmpl).
-		AddField(cli.String, "plugins-socket-dirs-path", socketDirsPathHelp, "#w", optsDirsPath).
+		AddField(cli.String, forjfile.PluginsSocketDirField, socketDirsPathHelp, "#w", optsDirsPath).
 		AddField(cli.String, orga_f, forjj_orga_name_help, "#w", nil).
 		DefineActions(chg_act, rem_act).OnActions().
 		AddFlag(infra_path_f, nil).
@@ -303,7 +303,7 @@ func (a *Forj) init() {
 		AddFlag("contribs-repo", nil).
 		AddFlag("flows-repo", nil).
 		AddFlag("repotemplates-repo", nil).
-		AddFlag("plugins-socket-dirs-path", nil).
+		AddFlag(forjfile.PluginsSocketDirField, nil).
 		AddFlag(orga_f, opts_orga_name) == nil {
 		log.Printf("Workspace : %s", a.cli.GetObject(workspace).Error())
 	}

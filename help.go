@@ -31,7 +31,7 @@ But FORJJ is not DevOps if you do not help your teams to do DevOps (DevOps Cultu
 	contribs_repo_help      = "Set a local forjj-contribs directory like or a github like url for FORJJ plugins. You can set CONTRIBS_REPO as env."
 	flows_repo_help         = "Set a local forjj-flows directory like or a github like url for FORJJ flows. You can set FLOWS_REPO as env"
 	repotemplates_repo_help = "Set a local forjj-repotemplates directory like or a github like url for FORJJ Repository templates. You can set REPOTEMPLATES_REPO as env."
-	socketDirsPathHelp      = "Set forjj Plugins socket directories path. By defaults, forjj creates a random dir in /tmp/forjj/. If forjj is started from a pipeline managed by CI from Docker DooD, /tmp can be cleaned up by the host. To avoid this, you should set `/run/forjj` instead with this option. You can set it through PLUGINS_SOCKET_DIRS_PATH as well."
+	socketDirsPathHelp      = "Set forjj Plugins sockets parent directory. default: /tmp/forjj. Note that forjj creates a random dir in this path. When forjj is started from a pipeline managed by a Docker DooD CI, the plugins sockets parent directory is mounted from the host . Keeping /tmp imply that the Host can be cleaned it up and breaks the CI docker mount point. To avoid this, the CI must use this flag to use another path, more persistent. Setting PLUGINS_SOCKETS_PARENT_PATH do the same."
 
 	update_action_help = `Update the infra. Used to create/update/remove projects and infrastructure migration
 (for example from local jenkins to a mesos jenkins solution)
