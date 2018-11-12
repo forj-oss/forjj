@@ -1,7 +1,6 @@
 package forjfile
 
 import (
-	"encoding/json"
 	"fmt"
 	"forjj/utils"
 	"io/ioutil"
@@ -47,7 +46,7 @@ func (w *Workspace) Init(cliSetup func(string) string, non_ws_entries ...string)
 	}
 	w.internal.Infra = goforjj.NewRepo()
 	w.clean_entries = non_ws_entries
-	w.cli.init(cliSetup)
+	w.cli.init(cliSetup, w.GetString)
 }
 
 // SetPath define the workspace path.
@@ -98,9 +97,9 @@ func (w *Workspace) Len() int {
 // If persistent is true, this data will be stored in the internal persistent workspace data
 // Save will check this flag to update the .forj-workspace/forjj.json
 func (w *Workspace) Set(field, value string, persistent bool) (updated bool) {
-	updated = w.internal.set(field, value)
+	updated = w.internal.set(field, value, w.GetString)
 	if persistent {
-		if w.persistent.set(field, value) {
+		if w.persistent.set(field, value, w.GetString) {
 			w.dirty = true
 		}
 	}
@@ -112,21 +111,21 @@ func (w *Workspace) Set(field, value string, persistent bool) (updated bool) {
 // This value is set to the internal if not set or if unset
 func (w *Workspace) SetDefault(field, value string) {
 	if _, found := w.internal.get(field); !found {
-		w.internal.set(field, value)
+		w.internal.set(field, value, w.GetString)
 	}
-	w.def.set(field, value)
+	w.def.set(field, value, w.GetString)
 }
 
 // Unset remove value of the given field in the workspace.
 // The default value can be restored if it was originally set
 func (w *Workspace) Unset(field string) (updated bool) {
-	w.internal.set(field, "")
-	if w.persistent.set(field, "") {
+	w.internal.set(field, "", w.GetString)
+	if w.persistent.set(field, "", w.GetString) {
 		w.dirty = true
 		updated = true
 	}
 	if v, found := w.def.get(field); !found {
-		w.internal.set(field, v)
+		w.internal.set(field, v, w.GetString)
 	}
 	return
 }
@@ -135,7 +134,7 @@ func (w *Workspace) Unset(field string) (updated bool) {
 // If not found, it return the default value
 func (w *Workspace) GetString(field string) (value string) {
 	var found bool
-	if value, found = w.cli.get(field) ; found && value != "" {
+	if value, found = w.cli.get(field); found && value != "" {
 		return
 	}
 	if value, _ = w.internal.get(field); value == "" {
@@ -353,7 +352,7 @@ func (w *Workspace) Load() error {
 	_, err := os.Stat(fjson)
 	if os.IsNotExist(err) {
 		w.persistent = w.internal // Get default information initialized
-		w.dirty = true // Force to save it as workspace file doesn't exist.
+		w.dirty = true            // Force to save it as workspace file doesn't exist.
 		gotrace.Trace("'%s' not found. Workspace data not loaded.", fjson)
 		return nil
 	}
@@ -367,14 +366,22 @@ func (w *Workspace) Load() error {
 		return fmt.Errorf("Unable to read '%s'. %s", fjson, err)
 	}
 
-	if err := json.Unmarshal(djson, &w.persistent); err != nil {
+	if err := w.loadData(djson); err != nil {
 		return fmt.Errorf("Unable to load '%s'. %s", fjson, err)
 	}
+	gotrace.Trace("Workspace data loaded from '%s'.", fjson)
+	return nil
+}
 
-	if infra := w.persistent.Infra ; infra == nil { // Ensure infra is already set even if not properly defined in the json file.
+func (w *Workspace) loadData(djson []byte) error {
+	if err := w.persistent.load(djson); err != nil {
+		return err
+	}
+
+	if infra := w.persistent.Infra; infra == nil { // Ensure infra is already set even if not properly defined in the json file.
 		w.persistent.Infra = w.internal.Infra
 	}
 	w.internal = w.persistent
-	gotrace.Trace("Workspace data loaded from '%s'.", fjson)
+	w.cli.computeSocketPath(w.GetString(PluginsSocketDirField), w.GetString(PluginsSocketBaseField))
 	return nil
 }

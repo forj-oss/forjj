@@ -14,7 +14,7 @@ import (
 type DeployForgeYaml struct {
 	forge         *ForgeYaml
 	deployTo      string             // Name of the deployment merged
-	LocalSettings WorkspaceStruct    `yaml:"local-settings,omitempty"` // ignored if Normal Forjfile. Otherwisem this is a template Forjfile.
+	LocalSettings WorkspaceStruct    `yaml:"local-settings,omitempty"` // ignored if Normal Forjfile. Otherwise, this is a template Forjfile.
 	ForjSettings  ForjSettingsStruct `yaml:"forj-settings"`
 	Infra         *RepoStruct
 	Repos         ReposStruct `yaml:"repositories"`
