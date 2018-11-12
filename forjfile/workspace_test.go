@@ -135,7 +135,7 @@ func TestWorkspace(t *testing.T) {
 	// Todo: Set, Data, Save and Load(70%)
 
 	/*********************************/
-	testCase = "when workspace cli part is intialized."
+	testCase = "when workspace cli part is initialized."
 
 	workspace = new(Workspace)
 	workspace.Init(func(field string) string {
@@ -153,4 +153,24 @@ func TestWorkspace(t *testing.T) {
 
 	workspace.cli.DockerBinPath = ""
 	test.Equalf("/tmp/forjj", workspace.GetString(DockerBinPathField), "Expect cli field to be retrieved from workspace %s", testCase)
+
+	/*********************************/
+	testCase = "when workspace cli part and workspace is loaded."
+
+	workspace = new(Workspace)
+	workspace.Init(func(field string) string {
+		if field == PluginsSocketDirField {
+			return "/run/forjj"
+		}
+		return ""
+	}, "infra-path")
+	workspace.loadData([]byte("{\"SocketDir\": \"/tmp/forjj/forjj-865724380\"}"))
+
+	test.Equalf("/tmp/forjj", workspace.internal.SocketDirName, "Expect Socket dir name to be set to %s %s", "/tmp/forjj", testCase)
+	test.Equalf("forjj-865724380", workspace.internal.SocketBaseName, "Expect Socket Base path to be set to %s %s", "forjj-865724380", testCase)
+	test.Equalf("/run/forjj/forjj-865724380", workspace.GetString(PluginsSocketDirsPathField), "Expect Final path to be %s %s", "/run/forjj/forjj-865724380", testCase)
+
+	workspace.cli.set(PluginsSocketDirField, "", workspace.GetString)
+	test.Equalf("/tmp/forjj/forjj-865724380", workspace.GetString(PluginsSocketDirsPathField), "Expect Final path to be %s %s", "/tmp/forjj/forjj-865724380", testCase)
+
 }
