@@ -200,6 +200,7 @@ func (a *Forj) init() {
 	opts_repotmpl := cli.Opts().Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)
 	a.w.SetDefault("repotemplate-repo-path", defaultRepoTemplate)
 	optsDirsPath := cli.Opts().Envar("PLUGINS_SOCKET_DIR_NAME")
+	obsoleteOptsDirsPath := cli.Opts().Envar("PLUGINS_SOCKET_DIRS_PATH") // TODO: Obsolete setup to remove
 	opts_infra_repo := cli.Opts().Short('I').Default("<organization>-infra")
 	opts_creds_file := cli.Opts().Short('C')
 	opts_orga_name := cli.Opts().Short('O')
@@ -296,6 +297,7 @@ func (a *Forj) init() {
 		AddField(cli.String, "flows-repo", flows_repo_help, "#w", opts_flows_repo).
 		AddField(cli.String, "repotemplates-repo", repotemplates_repo_help, "#w", opts_repotmpl).
 		AddField(cli.String, forjfile.PluginsSocketDirField, socketDirsPathHelp, "#w", optsDirsPath).
+		AddField(cli.String, "plugins-sockets-dirs-path", obsoleteSocketPathHelp, "#w", obsoleteOptsDirsPath). // TODO: Obsolete. To remove.
 		AddField(cli.String, orga_f, forjj_orga_name_help, "#w", nil).
 		DefineActions(chg_act, rem_act).OnActions().
 		AddFlag(infra_path_f, nil).
@@ -304,6 +306,7 @@ func (a *Forj) init() {
 		AddFlag("flows-repo", nil).
 		AddFlag("repotemplates-repo", nil).
 		AddFlag(forjfile.PluginsSocketDirField, nil).
+		AddFlag("plugins-sockets-dirs-path", nil). // TODO: Obsolete. To remove.
 		AddFlag(orga_f, opts_orga_name) == nil {
 		log.Printf("Workspace : %s", a.cli.GetObject(workspace).Error())
 	}

@@ -375,6 +375,14 @@ func (a *Forj) setWorkspace() error {
 		// It must match the cli name to retrieve the cli data as defined in app.go#291
 		// TODO: Fix cli/workspaceData match
 		value, _, _, _ = a.cli.GetStringValue("workspace", "", field)
+
+		// Obsolete code to remove when transition is completed. (in one month)
+		if value == "" && field == forjfile.PluginsSocketDirField {
+			value, _, _, _ = a.cli.GetStringValue("workspace", "", "plugins-sockets-dirs-path")
+			if value != "" {
+				gotrace.Warning("--plugins-sockets-dirs-path or PLUGINS_SOCKET_DIRS_PATH are obsolete and will be removed in January 2019. Use --%s or PLUGINS_SOCKET_DIR_NAME instead.", forjfile.PluginsSocketDirField)
+			}
+		}
 		return
 	}, infra_path_f)
 
