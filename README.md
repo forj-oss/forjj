@@ -1,5 +1,7 @@
 # Forjj - Factory as Code
 
+[![Build Status](https://jenkins-forjj.eastus.cloudapp.azure.com/buildStatus/icon?job=forjj/master)](https://jenkins-forjj.eastus.cloudapp.azure.com/job/forjj/master)
+
 ## Introduction
 
 What is `Forjj`?
