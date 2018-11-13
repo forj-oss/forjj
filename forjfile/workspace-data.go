@@ -68,13 +68,13 @@ type WorkspaceData struct {
 // WorkspaceStruct represents the yaml structure of a workspace.
 type WorkspaceStruct struct {
 	updated                bool
-	DockerBinPath          string            `yaml:"docker-exe-path"`          // Docker static binary path
-	Contrib_repo_path      string            `yaml:"contribs-repo"`            // Contrib Repo path used.
-	Flow_repo_path         string            `yaml:"flows-repo"`               // Flow repo path used.
-	Repotemplate_repo_path string            `yaml:"repotemplates-repo"`       // Repotemplate Path used.
-	SocketDir              string            `yaml:"-"`                        // Calculated field. Full path to forjj plugins sockets dir - Shared with plugins containers. Composed by `SocketBaseName`/`SocketDirName`.
-	SocketDirName          string            `yaml:"-"`                        // Random dir name containing plugins sockets - Not stored in yaml
-	SocketBaseName         string            `yaml:"socket-base-path"`         // Base path containing the sockets directory - Shared in DooD CI context - Not stored in yaml
+	DockerBinPath          string            `yaml:"docker-exe-path"`    // Docker static binary path
+	Contrib_repo_path      string            `yaml:"contribs-repo"`      // Contrib Repo path used.
+	Flow_repo_path         string            `yaml:"flows-repo"`         // Flow repo path used.
+	Repotemplate_repo_path string            `yaml:"repotemplates-repo"` // Repotemplate Path used.
+	SocketDir              string            `yaml:"-"`                  // Calculated field. Full path to forjj plugins sockets dir - Shared with plugins containers. Composed by `SocketDirName`/`SocketBaseName`.
+	SocketDirName          string            `yaml:"socker-dir-name"`    // Base path containing the sockets directory - Shared in DooD CI context - Can be defined in Yaml by a Forjfile model.
+	socketBaseName         string            // Random dir name containing plugins sockets
 	More                   map[string]string `yaml:",inline"`
 }
 
@@ -94,7 +94,7 @@ func (w *WorkspaceData) getString(field string) (value string) {
 	case PluginsSocketDirField:
 		return w.SocketDirName
 	case PluginsSocketBaseField:
-		return w.SocketBaseName
+		return w.socketBaseName
 	case OrganizationField:
 		return w.Organization
 	case InfraInstanceNameField:
@@ -108,10 +108,6 @@ func (w *WorkspaceData) getString(field string) (value string) {
 
 // get return the value of the requested field and found if was found.
 func (w *WorkspaceData) get(field string) (value string, found bool) {
-	if value, found = w.More[field]; found {
-		return
-	}
-
 	for _, key := range stdWsField {
 		if key == field {
 			found = true
@@ -119,6 +115,7 @@ func (w *WorkspaceData) get(field string) (value string, found bool) {
 		}
 	}
 	if !found {
+		value, found = w.More[field]
 		return
 	}
 	value = w.getString(field)
@@ -126,7 +123,7 @@ func (w *WorkspaceData) get(field string) (value string, found bool) {
 }
 
 // init initialize the workspace data from an initFunc function given
-func (w *WorkspaceData) init(initFunc func(string) string, getString func(string)string) {
+func (w *WorkspaceData) init(initFunc func(string) string, getString func(string) string) {
 	for _, field := range stdWsField {
 		if value := initFunc(field); value != "" {
 			w.set(field, value, getString)
@@ -136,7 +133,7 @@ func (w *WorkspaceData) init(initFunc func(string) string, getString func(string
 
 // set update a field in the Workspace data
 // SocketDir is computed field from the workspace.GetString data and value given thanks to computeSocketPath()
-func (w *WorkspaceData) set(field, value string, getString func(string)string) (updated bool) {
+func (w *WorkspaceData) set(field, value string, getString func(string) string) (updated bool) {
 	switch field {
 	case DockerBinPathField:
 		updated = (w.DockerBinPath != value)
@@ -155,14 +152,14 @@ func (w *WorkspaceData) set(field, value string, getString func(string)string) (
 		w.Repotemplate_repo_path = value
 		return
 	case PluginsSocketBaseField:
-		updated = (w.SocketBaseName != value)
-		w.SocketBaseName = value
-		w.computeSocketPath(value,getString(PluginsSocketDirField) )
+		updated = (w.socketBaseName != value)
+		w.socketBaseName = value
+		w.computeSocketPath(getString(PluginsSocketDirField), value)
 		return
 	case PluginsSocketDirField:
 		updated = (w.SocketDirName != value)
 		w.SocketDirName = value
-		w.computeSocketPath(getString(PluginsSocketBaseField), value)
+		w.computeSocketPath(value, getString(PluginsSocketBaseField))
 		return
 	case OrganizationField:
 		updated = (w.Organization != value)
@@ -193,14 +190,13 @@ func (w *WorkspaceData) set(field, value string, getString func(string)string) (
 // computeSocketPath build if possible the DockerDir field
 // It is possible if both Base and Dir are set
 //
-func  (w *WorkspaceData) computeSocketPath(dir, basename string) {
+func (w *WorkspaceData) computeSocketPath(dir, basename string) {
 	if basename != "" && dir != "" {
 		w.SocketDir = path.Join(dir, basename)
 	} else {
 		w.SocketDir = ""
 	}
 }
-
 
 // save
 func (w *WorkspaceData) save(fjson string) error {
@@ -240,7 +236,7 @@ func (w *WorkspaceData) expandPaths() {
 		return
 	}
 	if w.SocketDir != "" {
-		w.SocketBaseName = path.Base(w.SocketDir)
+		w.socketBaseName = path.Base(w.SocketDir)
 		w.SocketDirName = path.Dir(w.SocketDir)
 	}
 }
