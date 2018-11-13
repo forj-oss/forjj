@@ -101,6 +101,45 @@ func TestWorkspace(t *testing.T) {
 	test.Equalf(4, workspace.Len(), "expect Len to return '%d' %s", "4", testCase)
 
 	/*********************************/
+	testCase = "when workspace is loaded with forced internal data."
+
+	workspace = new(Workspace)
+	workspace.Init(func(field string) string {
+		if field == PluginsSocketDirField {
+			return "/run/forjj"
+		}
+		return ""
+	}, "infra-path")
+	workspace.loadData([]byte("{\"more\": { \"plugins-socket-dirs-path\": \"/tmp/forjj/forjj-552981505\" }}"))
+
+	test.Equalf("", workspace.GetString(PluginsSocketDirsPathField), "Expect no data")
+
+	/*********************************/
+	testCase = "when workspace is loaded with normal data and cli setup."
+
+	workspace = new(Workspace)
+	workspace.Init(func(field string) string {
+		if field == PluginsSocketDirField {
+			return "/run/forjj"
+		}
+		return ""
+	}, "infra-path")
+	workspace.loadData([]byte("{\"SocketDir\": \"/tmp/forjj/forjj-552981505\" }"))
+
+	test.Equalf("/run/forjj/forjj-552981505", workspace.GetString(PluginsSocketDirsPathField), "Expect no data")
+
+	/*********************************/
+	testCase = "when workspace is loaded with normal data and cli setup."
+
+	workspace = new(Workspace)
+	workspace.Init(func(field string) string {
+		return ""
+	}, "infra-path")
+	workspace.loadData([]byte("{\"SocketDir\": \"/tmp/forjj/forjj-552981505\" }"))
+
+	test.Equalf("/tmp/forjj/forjj-552981505", workspace.GetString(PluginsSocketDirsPathField), "Expect no data")
+
+	/*********************************/
 	testCase = "when workspace is nil and loading."
 
 	workspace = nil
@@ -167,7 +206,7 @@ func TestWorkspace(t *testing.T) {
 	workspace.loadData([]byte("{\"SocketDir\": \"/tmp/forjj/forjj-865724380\"}"))
 
 	test.Equalf("/tmp/forjj", workspace.internal.SocketDirName, "Expect Socket dir name to be set to %s %s", "/tmp/forjj", testCase)
-	test.Equalf("forjj-865724380", workspace.internal.SocketBaseName, "Expect Socket Base path to be set to %s %s", "forjj-865724380", testCase)
+	test.Equalf("forjj-865724380", workspace.internal.socketBaseName, "Expect Socket Base path to be set to %s %s", "forjj-865724380", testCase)
 	test.Equalf("/run/forjj/forjj-865724380", workspace.GetString(PluginsSocketDirsPathField), "Expect Final path to be %s %s", "/run/forjj/forjj-865724380", testCase)
 
 	workspace.cli.set(PluginsSocketDirField, "", workspace.GetString)

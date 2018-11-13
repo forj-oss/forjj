@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/trace"
@@ -96,10 +97,14 @@ func (w *Workspace) Len() int {
 // Set save field/value pair in the workspace.
 // If persistent is true, this data will be stored in the internal persistent workspace data
 // Save will check this flag to update the .forj-workspace/forjj.json
-func (w *Workspace) Set(field, value string, persistent bool) (updated bool) {
-	updated = w.internal.set(field, value, w.GetString)
+func (w *Workspace) Set(field, value string, persistent bool) bool {
+	return w.set(field, value, persistent, w.GetString)
+}
+
+func (w *Workspace) set(field, value string, persistent bool, getString func(string) string) (updated bool) {
+	updated = w.internal.set(field, value, getString)
 	if persistent {
-		if w.persistent.set(field, value, w.GetString) {
+		if w.persistent.set(field, value, getString) {
 			w.dirty = true
 		}
 	}
@@ -216,14 +221,52 @@ func (w *Workspace) Path() string {
 // SocketPath creates a socket path if it doesn't exist.
 // This information is stored in the workspace forjj.json file
 func (w *Workspace) SocketPath() (socketPath string) {
-	socketPath = w.GetString("plugins-socket-dirs-path")
+	socketPath = w.GetString(PluginsSocketDirsPathField)
 	if socketPath == "" {
 		var err error
-		os.MkdirAll(forjjSocketBaseDir, 0755)
-		socketPath, err = ioutil.TempDir(forjjSocketBaseDir, "forjj-")
-		kingpin.FatalIfError(err, "Unable to create temporary dir in '%s'", "/tmp")
-		w.Set("plugins-socket-dirs-path", socketPath, true)
+		socketPath, err = w.createSocketDir()
+		kingpin.FatalIfError(err, "%s", err)
+	} else {
+		gotrace.Info("Using saved Socket Path: %s", socketPath)
 	}
+	return
+}
+
+// createSocketDir is called when the socket Dir was not created and saved in the workspace.
+// It will create the base dir if this one is in /tmp
+// Then it will create the Base Name directory under SockerDirName
+func (w *Workspace) createSocketDir() (socketPath string, _ error) {
+	baseDir := forjjSocketBaseDir
+	status := "Using default Socket Path: %s"
+
+	if w.internal.getString(PluginsSocketDirField) == "" {
+		w.set(PluginsSocketDirField, baseDir, true, w.internal.getString)
+	}
+	if value := w.GetString(PluginsSocketDirField); value != "" {
+		// Get SocketDirName from workspace or cli.
+		baseDir = value
+		status = "Using Socket Path: %s"
+	}
+
+	if strings.Contains(baseDir, "/tmp") {
+		if err := os.MkdirAll(baseDir, 0755); err != nil {
+			return "", fmt.Errorf("Unable to create the Socket Dir Name %s. %s", baseDir, err)
+		}
+	} else {
+		if info, err := os.Stat(baseDir); err != nil {
+			return "", fmt.Errorf("Unable to use the Socket Dir Name %s. %s", baseDir, err)
+		} else if state := info.Mode(); !state.IsDir() {
+			return "", fmt.Errorf("Unable to use the Socket Dir Name %s. It must be a directory", baseDir)
+		}
+	}
+
+	socketPath, err := ioutil.TempDir(baseDir, "forjj-")
+	if err != nil {
+		return "", fmt.Errorf("Unable to create temporary dir in '%s'", "/tmp")
+	}
+	w.set(PluginsSocketBaseField, path.Base(socketPath), true, w.internal.getString) // Store default in workspace. ie SocketDir calculated from dir and base.
+	w.Set(PluginsSocketBaseField, path.Base(socketPath), false)                      // but use the cli setup if defined internally. ie SocketDir calculated from dir/base defined by cli or workspace if set.
+	gotrace.Info(status, socketPath)
 	return
 }
 
