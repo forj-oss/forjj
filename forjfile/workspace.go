@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/trace"
@@ -224,18 +223,20 @@ func (w *Workspace) SocketPath() (socketPath string) {
 	socketPath = w.GetString(PluginsSocketDirsPathField)
 	if socketPath == "" {
 		var err error
-		socketPath, err = w.createSocketDir()
+		socketPath, err = w.createNewSocketDir()
 		kingpin.FatalIfError(err, "%s", err)
 	} else {
+		err := utils.EnsureDir(socketPath, "Socket directory")
+		kingpin.FatalIfError(err, "%s", err)
 		gotrace.Info("Using saved Socket Path: %s", socketPath)
 	}
 	return
 }
 
-// createSocketDir is called when the socket Dir was not created and saved in the workspace.
+// createNewSocketDir is called when the socket Dir was not created and saved in the workspace.
 // It will create the base dir if this one is in /tmp
 // Then it will create the Base Name directory under SockerDirName
-func (w *Workspace) createSocketDir() (socketPath string, _ error) {
+func (w *Workspace) createNewSocketDir() (socketPath string, _ error) {
 	baseDir := forjjSocketBaseDir
 	status := "Using default Socket Path: %s"
 
@@ -248,16 +249,8 @@ func (w *Workspace) createSocketDir() (socketPath string, _ error) {
 		status = "Using Socket Path: %s"
 	}
 
-	if strings.Contains(baseDir, "/tmp") {
-		if err := os.MkdirAll(baseDir, 0755); err != nil {
-			return "", fmt.Errorf("Unable to create the Socket Dir Name %s. %s", baseDir, err)
-		}
-	} else {
-		if info, err := os.Stat(baseDir); err != nil {
-			return "", fmt.Errorf("Unable to use the Socket Dir Name %s. %s", baseDir, err)
-		} else if state := info.Mode(); !state.IsDir() {
-			return "", fmt.Errorf("Unable to use the Socket Dir Name %s. It must be a directory", baseDir)
-		}
+	if err := utils.EnsureDir(baseDir, "Socket base directory"); err != nil {
+		return "", err
 	}
 
 	socketPath, err := ioutil.TempDir(baseDir, "forjj-")
@@ -279,22 +272,19 @@ func (w *Workspace) Name() string {
 	return w.workspace
 }
 
-// Ensure_exist Ensure workspace path exists. So, if missing, it will be created.
+// EnsureExist Ensure workspace path exists. So, if missing, it will be created.
 // The current path (pwd) is moved to the existing workspace path.
-func (w *Workspace) Ensure_exist() (string, error) {
+func (w *Workspace) EnsureExist() (wPath string, err error) {
 	if w == nil {
-		return "", fmt.Errorf("Workspace is nil.")
+		return "", fmt.Errorf("Workspace object is nil")
 	}
 
-	w_path := w.Path()
-	_, err := os.Stat(w_path)
-	if os.IsNotExist(err) {
-		if err := os.MkdirAll(w_path, 0755); err != nil {
-			return "", fmt.Errorf("Unable to create initial workspace tree '%s'. %s", w_path, err)
-		}
+	wPath = w.Path()
+	if err = utils.EnsureDir(wPath, "initial workspace tree"); err != nil {
+		return
 	}
-	os.Chdir(w_path)
-	return w_path, nil
+	os.Chdir(wPath)
+	return
 }
 
 // checkDataExist create missing workspace path

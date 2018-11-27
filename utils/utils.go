@@ -1,9 +1,10 @@
 package utils
 
 import (
+	"fmt"
 	"os"
-	"path"
 	"os/user"
+	"path"
 	"path/filepath"
 )
 
@@ -14,7 +15,7 @@ import (
 //	If the path is relative, it adds current directory to create it as absolute path
 func Abs(name string) (string, error) {
 	// Check in case of paths like "/something/~/something/"
-	if len(name) >2 && name[:2] == "~/" {
+	if len(name) > 2 && name[:2] == "~/" {
 		usr, err := user.Current()
 		if err != nil {
 			return "", err
@@ -59,7 +60,7 @@ const StringCompressMin = 7
 
 // StringCompress compress a string to display to a maximum given
 // if the str is higher, it will be cut in the middle with "..."
-// min must be higher than 7 bytes. 
+// min must be higher than 7 bytes.
 // If max is lower than min, max will be set to min to ensure the size returned is never
 // under min or 7 bytes
 func StringCompress(str string, min, max int) (ret string) {
@@ -74,8 +75,20 @@ func StringCompress(str string, min, max int) (ret string) {
 	if size <= max {
 		return str
 	}
-	midMin := max/2-2
-	midMax := max/2-1
+	midMin := max/2 - 2
+	midMax := max/2 - 1
 	ret = str[0:midMin] + "..." + str[size-midMax:]
+	return
+}
+
+// EnsureDir ensure the given dir exist and recreate it if needed.
+func EnsureDir(dir, mess string) (_ error) {
+	if info, err := os.Stat(dir); err != nil {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("Unable to create the %s %s. %s", mess, dir, err)
+		}
+	} else if !info.Mode().IsDir() {
+		return fmt.Errorf("Unable to use the %s %s. It exists but not as a directory", mess, dir)
+	}
 	return
 }
