@@ -22,7 +22,7 @@ func (a *Forj) updateAction(string) {
 // Workspace data has been initialized or loaded.
 // forjj-options has been initialized or loaded
 func (a *Forj) Update() error {
-	if _, err := a.w.Ensure_exist(); err != nil {
+	if _, err := a.w.EnsureExist(); err != nil {
 		return fmt.Errorf("Invalid workspace. %s. Please create it with 'forjj create'", err)
 	}
 
