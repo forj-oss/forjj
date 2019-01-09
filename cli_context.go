@@ -74,6 +74,9 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 		return nil, false
 	}
 
+	// Initialize the forjj cache
+	a.f.InitCache(a.w.Path())
+
 	// Load Forjfile from infra repo, if found.
 	if err := a.LoadForge(); err != nil {
 		if utils.InStringList(a.contextAction, upd_act, maint_act, add_act, rem_act, ren_act, chg_act, list_act) != "" {

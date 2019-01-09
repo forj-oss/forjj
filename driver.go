@@ -186,7 +186,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	}
 
 	// Define container mounts
-	if v := os.Getenv("FORJJ_SOURCE_BASE") ; v != "" {
+	if v := os.Getenv("FORJJ_SOURCE_BASE"); v != "" {
 		d.Plugin.PluginBase(v)
 		d.Plugin.PluginSetSourceMount(path.Join(a.i.Path(), "apps", d.DriverType))
 		d.Plugin.PluginSetWorkspaceMount(a.w.Path())
@@ -215,10 +215,6 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	d.Plugin.ServiceAddEnv("LOGNAME", "$LOGNAME", false)
 	d.Plugin.Yaml.Runtime.Docker.Env["LOGNAME"] = "$LOGNAME"
 
-	if err := d.Plugin.PluginStartService(); err != nil {
-		return err, false
-	}
-
 	plugin_payload := goforjj.NewReqData()
 
 	// Load all internal Forjj data, identified by 'forjj-*'
@@ -233,12 +229,35 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		return fmt.Errorf("Unable to %s. %s. You may need to execute a forjj update to a deployment environment", action, err), false
 	}
 
+	defer func() {
+		// Collect application API if published by the driver.
+		if result := d.Plugin.Result; result != nil {
+			if u, found := result.Data.Services.Urls["api_url"]; found {
+				d.DriverAPIUrl = u
+			}
+		}
+	}()
+
+	cacheUpdated := false
+	cacheName := ""
+	if cacheUpdated, err = a.f.RegisterRequestMD5(cacheName, plugin_payload); err != nil {
+		return err, false
+	} else if !cacheUpdated {
+		a.f.RestoreCache()
+		log.Printf("Using cache '%s'.", cacheName)
+		return
+	}
+
+	if err := d.Plugin.PluginStartService(); err != nil {
+		return err, false
+	}
+
 	d.Plugin.Result, err = d.Plugin.PluginRunAction(action, plugin_payload)
 	if err != nil {
 		return fmt.Errorf("Internal Error: %s", err), false
 	}
 	if d.Plugin.Result == nil {
-		return fmt.Errorf("An error occured in '%s' plugin. No data has been returned. Please check plugin logs.", instance_name), false
+		return fmt.Errorf("An error occured in '%s' plugin. No data has been returned. Please check plugin logs", instance_name), false
 	}
 
 	termBrown, termReset := utils.DefColor(33)
@@ -312,11 +331,10 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 		if err := a.scanAndSetDefaults(a.f.InMemForjfile(), creds.Global); err != nil {
 			return err, false
 		}
+
 	}
-	// Collect application API if published by the driver.
-	if u, found := d.Plugin.Result.Data.Services.Urls["api_url"]; found {
-		d.DriverAPIUrl = u
-	}
+	// Cache the Forjfile in Mem
+	a.f.SaveCache()
 
 	return
 }

@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// ForjfileTmpl is the Memory expansion of an external Forjfile (used to create a Forge)
+// ForjfileTmpl is the representation of Forjfile model (used to create a Forge)
 type ForjfileTmpl struct {
 	file_loaded string
 	Workspace   WorkspaceStruct // See workspace.go
@@ -28,8 +28,10 @@ type Forge struct {
 	updated_msg      string
 	infra_path       string // Infra path used to create/save/load Forjfile
 	file_name        string // Relative path to the Forjfile.
+	cacheDir         string // Cache path used to load or save cache and the md5sum of the request.
 	yaml             *ForgeYaml
 	inMem            *DeployForgeYaml
+	cache            Cache
 }
 
 // WorkspaceStruct represents the yaml structure of a workspace.
@@ -52,7 +54,9 @@ const (
 
 // TODO: Load multiple templates that will be merged.
 
-// LoadTmpl Search for Forjfile in `aPath` and load it.
+// LoadTmpl is designed to load a Forjfile model to create a new Forge
+// Forjj will use the content of this file to create the initial infra repositories with minima colelction of files like Forjfiles.
+//
 // This file combines the Forjfile in the infra repository and the Workspace
 func LoadTmpl(aPath string) (f *ForjfileTmpl, loaded bool, err error) {
 	var (
@@ -315,6 +319,7 @@ func (f *Forge) load(deployData interface{}, aPath string) (loaded bool, err err
 // BuildForjfileInMem return a merge of the Master forjfile with the current deployment.
 func (f *Forge) BuildForjfileInMem() (err error) {
 	f.inMem, err = f.MergeFromDeployment(f.GetDeployment())
+	f.cache.Data = f.inMem
 	return
 }
 
@@ -437,6 +442,7 @@ func (f *Forge) CheckInfraPath(infraAbsPath string) error {
 	return nil
 }
 
+// SetInfraPath define the Infra repository path
 func (f *Forge) SetInfraPath(infraPath string, create_request bool) error {
 	aPath, err := utils.Abs(infraPath)
 	if err != nil {
@@ -992,3 +998,48 @@ func (f *Forge) Model(instance string) (fModel ForgeModel) {
 	fModel.Application.app = f.inMem.Apps[instance]
 	return
 }
+
+// ---- Cache management ----
+
+// RestoreCache will update the inMem Forjfile from the cache data.
+func (f *Forge) RestoreCache() {
+
+}
+
+// InitCache Define the Cache required information
+func (f *Forge) InitCache(cachePath string) error {
+	if f == nil {
+		return nil
+	}
+	return f.cache.SetCacheDir(cachePath)
+}
+
+// RegisterRequestMD5 keep the request MD5sum in the Cache at step `name` 
+// if the Request MD5 has changed, the updated value will return true
+func (f *Forge) RegisterRequestMD5(name string, data []byte) (updated bool, err error){
+	f.cache.SetName(name)
+	err = f.cache.LoadCache()
+	if err != nil {
+		return
+	}
+
+	var requestMD5 [16]byte
+	requestMD5, err = f.cache.BuildMD5(data)
+	if err != nil {
+		return
+	}
+
+	updated = requestMD5 != f.cache.RequestMD5
+	return 
+}
+
+// SaveCache save the Forjfile in mem to the cache dir under the `name` given
+// The request md5 is saved at the same time
+func (f *Forge) SaveCache() error {
+	if f == nil {
+		return nil
+	}
+
+	return f.cache.SaveCache()
+}
+
