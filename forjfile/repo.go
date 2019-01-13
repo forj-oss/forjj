@@ -444,7 +444,7 @@ func (r *RepoStruct) set_forge(f *ForgeYaml) {
 }
 
 // HasApps return a bool if rules are all true on at least one application.
-// a rule is a string formatted as '<key>:<value>'
+// a rule is a string formatted as '<key>:<value>' or '<key>:*' for any value.
 // a rule is true on an application if it has the key value set to <value>
 //
 // If the rule is not well formatted, an error is returned.
@@ -479,9 +479,13 @@ func (r *RepoStruct) HasApps(rules ...string) (found bool, err error) {
 				}
 				found = false
 				break
-			} else if found2 && v.GetString() != ruleToCheck[1] {
+			} else if found2 {
+				 if v.GetString() != ruleToCheck[1] {
+					found = false
+					break
+				}
+			} else {
 				found = false
-				break
 			}
 		}
 		if found {
