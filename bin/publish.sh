@@ -119,18 +119,18 @@ echo "Deploying $BE_PROJECT to github..."
 export GITHUB_REPO=$BE_PROJECT
 # Removing the release everytime and ignore error.
 set +e
-gothub delete -t $TAG
+gothub delete -u forj-oss -t $TAG
 set -ex
 if [ "$TAG" = latest ]
 then
-   gothub release --tag $TAG --name $BE_PROJECT --description "Latest version of $BE_PROJECT." -p
+   gothub release --tag $TAG -u forj-oss --name $BE_PROJECT --description "Latest version of $BE_PROJECT." -p
 else
     GOTHUB_PARS=""
    if [ "$PRE_RELEASE" = true ]
    then
       GOTHUB_PARS="-p"
    fi
-   gothub release --tag $TAG --name $BE_PROJECT --description "$BE_PROJECT version $TAG." $GOTHUB_PARS
+   gothub release --tag $TAG -u forj-oss --name $BE_PROJECT --description "$BE_PROJECT version $TAG." $GOTHUB_PARS
 fi
 
 # Checking binary build info
