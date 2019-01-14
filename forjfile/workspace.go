@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"regexp"
 
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/trace"
@@ -226,11 +227,28 @@ func (w *Workspace) SocketPath(subdirs string) (socketPath string) {
 		socketPath, err = w.createNewSocketDir(subdirs)
 		kingpin.FatalIfError(err, "%s", err)
 	} else {
+		// check if socket path has been upgraded
+		socketPath = w.updateSocketDir(socketPath, subdirs)
+
 		err := utils.EnsureDir(socketPath, "Socket directory")
 		kingpin.FatalIfError(err, "%s", err)
 		gotrace.Info("Using saved Socket Path: %s", socketPath)
 	}
 	return
+}
+
+// updateocketDir check if the path is standard or not to create a new one if changed.
+func (w *Workspace) updateSocketDir(socketPath, subdirs string) string {
+	if matched, err := regexp.MatchString(path.Join(forjjSocketBaseDir, "forjj-[0-9]*", subdirs), socketPath); err != nil {
+		gotrace.Error("Issue on regexp: %s.", err)
+		return ""
+	} else if !matched {
+		socketPath, err = w.createNewSocketDir(subdirs)
+		if err != nil {
+			return ""
+		}
+	}
+	return socketPath
 }
 
 // createNewSocketDir is called when the socket Dir was not created and saved in the workspace.
