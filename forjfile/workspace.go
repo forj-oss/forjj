@@ -221,25 +221,26 @@ func (w *Workspace) Path() string {
 // SocketPath creates a socket path if it doesn't exist.
 // This information is stored in the workspace forjj.json file
 func (w *Workspace) SocketPath(subdirs string) (socketPath string) {
-	socketPath = w.GetString(PluginsSocketDirsPathField)
-	if socketPath == "" {
+	socketBasePath := w.GetString(PluginsSocketDirsPathField)
+	if socketBasePath == "" {
 		var err error
 		socketPath, err = w.createNewSocketDir(subdirs)
 		kingpin.FatalIfError(err, "%s", err)
-	} else {
-		// check if socket path has been upgraded
-		socketPath = w.updateSocketDir(socketPath, subdirs)
+		return
+	} 
 
-		err := utils.EnsureDir(socketPath, "Socket directory")
-		kingpin.FatalIfError(err, "%s", err)
-		gotrace.Info("Using saved Socket Path: %s", socketPath)
-	}
+	// check if socket path has been upgraded. subdirs are not part of the saved socketBasePath
+	socketPath = w.updateSocketDir(socketBasePath, subdirs)
+
+	err := utils.EnsureDir(socketPath, "Socket directory")
+	kingpin.FatalIfError(err, "%s", err)
+	gotrace.Info("Using saved Base Socket Path: %s. Session Socket path is %s.", socketBasePath, socketPath)
 	return
 }
 
-// updateocketDir check if the path is standard or not to create a new one if changed.
+// updateSocketDir check if the path is standard or not to create a new one if changed.
 func (w *Workspace) updateSocketDir(socketPath, subdirs string) string {
-	if matched, err := regexp.MatchString(path.Join(forjjSocketBaseDir, "forjj-[0-9]*", subdirs), socketPath); err != nil {
+	if matched, err := regexp.MatchString(path.Join(w.GetString(PluginsSocketDirField), "forjj-[0-9]+"), socketPath); err != nil {
 		gotrace.Error("Issue on regexp: %s.", err)
 		return ""
 	} else if !matched {
@@ -248,7 +249,7 @@ func (w *Workspace) updateSocketDir(socketPath, subdirs string) string {
 			return ""
 		}
 	}
-	return socketPath
+	return path.Join(socketPath, subdirs)
 }
 
 // createNewSocketDir is called when the socket Dir was not created and saved in the workspace.
@@ -271,18 +272,18 @@ func (w *Workspace) createNewSocketDir(subdirs string) (socketPath string, _ err
 		return "", err
 	}
 
-	socketTmpPath, err := ioutil.TempDir(baseDir, "forjj-")
+	socketBasePath, err := ioutil.TempDir(baseDir, "forjj-")
 	if err != nil {
 		return "", fmt.Errorf("Unable to create temporary dir in '%s'", "/tmp")
 	}
 
-	socketPath = path.Join(socketTmpPath, subdirs)
+	socketPath = path.Join(socketBasePath, subdirs)
 	if err := utils.EnsureDir(socketPath, "Socket directory"); err != nil {
 		return "", err
 	}
 
-	w.set(PluginsSocketBaseField, path.Base(socketPath), true, w.internal.getString) // Store default in workspace. ie SocketDir calculated from dir and base.
-	w.Set(PluginsSocketBaseField, path.Base(socketPath), false)                      // but use the cli setup if defined internally. ie SocketDir calculated from dir/base defined by cli or workspace if set.
+	w.set(PluginsSocketBaseField, path.Base(socketBasePath), true, w.internal.getString) // Store default in workspace. ie SocketDir calculated from dir and base.
+	w.Set(PluginsSocketBaseField, path.Base(socketBasePath), false)                      // but use the cli setup if defined internally. ie SocketDir calculated from dir/base defined by cli or workspace if set.
 	gotrace.Info(status, socketPath)
 	return
 }
