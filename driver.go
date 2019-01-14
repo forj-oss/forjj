@@ -199,7 +199,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	d.Plugin.PluginSetDeploymentName(a.d.Name())
 	d.Plugin.PluginSetVersion(d.DriverVersion)
 	d.Plugin.PluginSetWorkspace(a.w.Path())
-	d.Plugin.PluginSocketPath(a.w.SocketPath())
+	d.Plugin.PluginSocketPath(a.w.SocketPath(a.f.GetDeployment()))
 	if v, found, _, _ := a.cli.GetStringValue(workspace, "", "docker-exe-path"); found && v != "" {
 		a.w.Set(forjfile.DockerBinPathField, v, false)
 	}
