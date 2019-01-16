@@ -1,5 +1,5 @@
 hash: 96c626ea3b685de3d27336771760c757e1c870bfac2f1f2b838a36b09c940d6f
-updated: 2019-01-14T12:13:49.315833436Z
+updated: 2019-01-16T20:49:12.311494145Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -11,7 +11,7 @@ imports:
 - name: github.com/alecthomas/units
   version: 2efee857e7cfd4f3d0138cc3cbb1b4966962b93a
 - name: github.com/docker/distribution
-  version: 91b0f0559eb6710c574451049f8c71eb9c3952a7
+  version: b1fd12d0c173a11f402cdf3ed725fc7e7b2a2553
   subpackages:
   - digestset
   - reference
@@ -51,7 +51,7 @@ imports:
 - name: github.com/fatih/color
   version: 3f9d52f7176a6927daacff70a3e8d1dc2025c53e
 - name: github.com/forj-oss/forjj-modules
-  version: 1770110eaca9e2aea0b43f6d49fc103aaaf02f8b
+  version: 90b2970dbe4ef6ae310cb30378b975a8fc83ba15
   subpackages:
   - cli
   - cli/interface
@@ -73,7 +73,7 @@ imports:
 - name: github.com/mattn/go-isatty
   version: 3fb116b820352b7f0c281308a4d6250c22d94e27
 - name: github.com/Microsoft/go-winio
-  version: 6c8aa416ae893afe5671c38161833ff14ae6d6c0
+  version: 16cfc975803886a5e47c4257a24c8d8c52e178b2
 - name: github.com/moul/http2curl
   version: faeffb3553568c6ecaa9c103c09dea941ca9c570
 - name: github.com/opencontainers/go-digest
@@ -101,7 +101,7 @@ imports:
   - proxy
   - publicsuffix
 - name: golang.org/x/sys
-  version: 48ac38b7c8cbedd50b1613c0fccacfc7d88dfcdf
+  version: 11f53e03133963fb11ae0588e08b5e0b85be8be5
   subpackages:
   - unix
   - windows
