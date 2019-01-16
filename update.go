@@ -17,7 +17,7 @@ func (a *Forj) updateAction(string) {
 
 }
 
-// Execute an update on the workspace given.
+// Update execute an update on the workspace given.
 //
 // Workspace data has been initialized or loaded.
 // forjj-options has been initialized or loaded
