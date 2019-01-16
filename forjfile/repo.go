@@ -3,6 +3,7 @@ package forjfile
 import (
 	"fmt"
 	"forjj/drivers"
+	"forjj/rules"
 	"forjj/sources_info"
 	"strings"
 
@@ -443,8 +444,28 @@ func (r *RepoStruct) set_forge(f *ForgeYaml) {
 	r.forge = f
 }
 
+// ruleCheck implements a simple rule checker.
+// It checks the rule for a key and a value. The value is returned by a get function.
+//
+// a rule is a string formatted with following syntax and meaning:
+// - '<key>:<value>' or '<key>=<value>' - True if key has value equal to <value>. '<key>:<value>' is kept for compatibility but is obsolete.
+// - '<key>!=<value>' - True if key has a value NOT equal to <value>
+// - '<key>=/<regexp>/' - True if key has value respecting <regexp>.
+// - '<key>!=/<regexp>/' - True if key has a value NOT respecting <regexp>
+func ruleCheck(get func(string) (string, bool), rule []string) (found bool, err error) {
+
+	return
+}
+
 // HasApps return a bool if rules are all true on at least one application.
-// a rule is a string formatted as '<key>:<value>' or '<key>:*' for any value.
+//
+// Supported rules syntax are defined by rules module
+// a rule is a string formatted with following syntax and meaning:
+// - '<key>:<value>' or '<key>=<value>' - True if key has value equal to <value>. '<key>:<value>' is kept for compatibility but is obsolete.
+// - '<key>!=<value>' - True if key has a value NOT equal to <value>
+// - '<key>=/<regexp>/' - True if key has value respecting <regexp>.
+// - '<key>!=/<regexp>/' - True if key has a value NOT respecting <regexp>
+//
 // a rule is true on an application if it has the key value set to <value>
 //
 // If the rule is not well formatted, an error is returned.
@@ -453,47 +474,58 @@ func (r *RepoStruct) set_forge(f *ForgeYaml) {
 // If all rules are true, HasApps return true
 //
 // TODO: Write Unit test of HasApps
-func (r *RepoStruct) HasApps(rules ...string) (found bool, err error) {
+func (r *RepoStruct) HasApps(rulesList ...string) (found bool, err error) {
 	if r.apps == nil {
 		return
 	}
+
+	ruleChecker := rules.NewRuleChecker()
+
 	for appRelName, app := range r.apps {
 		found = true
-		for _, rule := range rules {
-			ruleToCheck := strings.Split(rule, ":")
-			if len(ruleToCheck) != 2 {
-				err = fmt.Errorf("rule '%s' is invalid. Format supported is '<key>:<value>'.", rule)
+		for _, rule := range rulesList {
+			var key string
+			if key, _, _, err = ruleChecker.Validate(rule); err != nil {
 				return
 			}
-			if ruleToCheck[0] == "appRelName" {
-				if appRelName == ruleToCheck[0] {
+
+			var ruleOk bool
+			if key == "appRelName" {
+				ruleOk, err = ruleChecker.Check(func(string) (string, bool) {
+					return appRelName, true
+				})
+				if err != nil {
+					return
+				}
+				if ruleOk {
 					continue
 				}
 				found = false
 				break
 			}
-			v, found2, _ := app.Get(ruleToCheck[0])
-			if ruleToCheck[1] == "*" {
-				if found2 {
-					continue
+			ruleOk, err = ruleChecker.Check(func(key string) (value string, isFound bool) {
+				v, found, _ := app.Get(key)
+				if !found {
+					return
 				}
-				found = false
-				break
-			} else if found2 {
-				 if v.GetString() != ruleToCheck[1] {
-					found = false
-					break
-				}
-			} else {
-				found = false
+				return v.GetString(), found
+			})
+			if err != nil {
+				return
 			}
+			if ruleOk {
+				continue
+			}
+
+			found = false
+			break
 		}
 		if found {
-			gotrace.Trace("Found an application which meets '%s'", rules)
+			gotrace.Trace("Found an application which meets '%s'", rulesList)
 			return
 		}
 	}
-	gotrace.Trace("NO application found which meets '%s'", rules)
+	gotrace.Trace("NO application found which meets '%s'", rulesList)
 	return
 }
 
