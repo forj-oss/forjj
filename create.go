@@ -225,6 +225,7 @@ func (a *Forj) createDeployment(deploy string) error {
 	for _, instance := range instances {
 		d := a.drivers[instance]
 		if err, aborted := a.do_driver_task("create", instance); err != nil {
+			a.doDriverClean(d)
 			if !aborted {
 				return fmt.Errorf("Failed to create '%s' source files. %s", instance, err)
 			}

@@ -96,6 +96,12 @@ func (a *Forj) Update() error {
 	for _, instance := range instances {
 		d := a.drivers[instance]
 		if err, aborted := a.do_driver_task("update", instance); err != nil {
+			d.HasNoFiles()
+
+			// Clean identified source code.
+			if err := a.doDriverClean(d); err != nil {
+				return fmt.Errorf("Failed to Add '%s' source files. %s", instance, err)
+			}
 			if !aborted {
 				return fmt.Errorf("Failed to update '%s' source files. %s", instance, err)
 			}
@@ -108,7 +114,7 @@ func (a *Forj) Update() error {
 			continue
 		}
 
-		// Committing source code.
+		// Adding source code to GIT.
 		if err := a.do_driver_add(d); err != nil {
 			return fmt.Errorf("Failed to Add '%s' source files. %s", instance, err)
 		}

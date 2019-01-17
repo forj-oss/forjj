@@ -41,6 +41,33 @@ func (d *Driver) GitAddPluginFiles(moveTo func(string) (string, error)) error {
 	return nil
 }
 
+// GitCleanPluginFiles revert updates to original data.
+func (d *Driver) GitCleanPluginFiles(moveTo func(string) (string, error)) error {
+	if d.Plugin.Result == nil {
+		return fmt.Errorf("Strange... The plugin as no result (plugin.Result is nil). Did the plugin '%s' executed?", d.Name)
+	}
+
+	if len(d.Plugin.Result.Data.Files) == 0 {
+		return fmt.Errorf("Nothing to commit")
+	}
+
+	if d.Plugin.Result.Data.CommitMessage == "" {
+		return fmt.Errorf("Unable to commit without a commit message")
+	}
+
+	for where, files := range d.Plugin.Result.Data.Files {
+		if err := RunInPath(where, moveTo, func() error {
+			gotrace.Trace("GIT: Restoring %s %d files related to '%s'", where, len(files), d.Plugin.Result.Data.CommitMessage)
+
+			return d.gitCleanPluginFiles(where, files)
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // RunInPath run a function in a specificDirectory and restore the current Path.
 func RunInPath(where string, moveTo func(string) (string, error), runIn func() error) error {
 	if where != goforjj.FilesDeploy && where != goforjj.FilesSource { // Supports only 2 kind of repository from the plugin.
@@ -82,6 +109,20 @@ func (d *Driver) gitAddPluginFiles(where string, files []string) error {
 	}
 	if i := git.Add(fileToAdd); i > 0 {
 		return fmt.Errorf("Issue while adding code to git. RC=%d", i)
+	}
+	return nil
+}
+
+func (d *Driver) gitCleanPluginFiles(where string, files []string) error {
+	if files == nil {
+		return nil
+	}
+	for _, file := range files {
+		fileToCleanUp := file
+		if where == goforjj.FilesSource {
+			fileToCleanUp = path.Join("apps", d.DriverType, file)
+		} 
+		git.Do("reset", "--hard", fileToCleanUp)
 	}
 	return nil
 }
