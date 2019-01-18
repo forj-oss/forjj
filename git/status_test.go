@@ -56,8 +56,8 @@ func TestInit(t *testing.T) {
 	g.init(false)
 
 	// Test the result
-	if v := len(g); v != 3 {
-		t.Errorf("Expected gitFiles to contains 1 element. Got %d.", v)
+	if v := len(g); v != 4 {
+		t.Errorf("Expected gitFiles to contains 4 elements. Got %d.", v)
 	}
 	if _, found := g["A"]; !found {
 		t.Errorf("Expected gitFiles to contains the 'A' element. Not found.")
@@ -65,5 +65,7 @@ func TestInit(t *testing.T) {
 		t.Errorf("Expected gitFiles to contains the 'M' element. Not found.")
 	} else if _, found = g["D"]; !found {
 		t.Errorf("Expected gitFiles to contains the 'D' element. Not found.")
+	} else if _, found = g["R"]; !found {
+		t.Errorf("Expected gitFiles to contains the 'R' element. Not found.")
 	}
 }
