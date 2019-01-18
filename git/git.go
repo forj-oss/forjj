@@ -19,12 +19,6 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
-type gitContext struct {
-	end    string
-	indent string
-}
-
-var context gitContext
 var logFunc func(string)
 
 func init() {
