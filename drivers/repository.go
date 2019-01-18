@@ -77,14 +77,14 @@ func RunInPath(where string, moveTo func(string) (string, error), runIn func() e
 	restore, err := moveTo(where)
 	if err != nil {
 		return err
-	} 
+	}
 
-	defer func () {
+	defer func() {
 		git.UnIndent()
 		os.Chdir(restore)
 	}()
 
-	git.Indent("---- GIT" + git.ShowGitPath(), " - ", "--------")
+	git.Indent("---- GIT"+git.ShowGitPath(), " - ", "--------")
 
 	if err = runIn(); err != nil {
 		return err
@@ -117,12 +117,30 @@ func (d *Driver) gitCleanPluginFiles(where string, files []string) error {
 	if files == nil {
 		return nil
 	}
+
+	status := git.GetStatus()
+
 	for _, file := range files {
 		fileToCleanUp := file
 		if where == goforjj.FilesSource {
 			fileToCleanUp = path.Join("apps", d.DriverType, file)
-		} 
-		git.Do("reset", "--hard", fileToCleanUp)
+		}
+		statusFile, _ := status.GetFile(fileToCleanUp)
+		index := statusFile.Index()
+		workTree := statusFile.WorkTree()
+		if index != ' ' && index != '?' {
+			git.Do("reset", "HEAD", fileToCleanUp)
+			if index == 'A' {
+				os.Remove(fileToCleanUp)
+			} else {
+				git.Do("checkout", fileToCleanUp)
+			}
+		} else if workTree == '?' {
+			os.Remove(fileToCleanUp)
+		} else {
+			git.Do("checkout", fileToCleanUp)
+		}
+
 	}
 	return nil
 }

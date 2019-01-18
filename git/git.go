@@ -1,5 +1,11 @@
 package git
 
+// This package is a basic GIT wrapper.
+// Everything is not supported. Like git status use cases.
+// If needed, we can improve this package or use a natif GOLANG GIT module
+// like https://github.com/src-d/go-git
+// The native version will remove GIT cli/lib dependency.
+
 import (
 	"fmt"
 	"forjj/utils"
@@ -29,7 +35,7 @@ func logOut(text string) {
 	log.Print(text)
 }
 
-// Define the internal Log system. By default it uses log.Print
+// SetLogFunc Define the internal Log system. By default it uses log.Print
 func SetLogFunc(aLogFunc func(string)) {
 	logFunc = aLogFunc
 }
@@ -66,7 +72,10 @@ func ShowGitPath() (msg string) {
 	return
 }
 
-// GetStatus return an GitStatus struct with the list of files, added, updated and
+// GetStatus return an GitStatus struct with the list of files, added, updated and renamed
+//
+// It currently do not follow strictly all status use case as described in man git status
+//
 func GetStatus() (gs *Status) {
 	gs = new(Status)
 
@@ -75,8 +84,9 @@ func GetStatus() (gs *Status) {
 	gs.NotReady = make(map[string][]string)
 	gs.NotReady.init(true)
 
-	ReadyRE, _ := regexp.Compile("^([ADM])  (.*)$")
-	NotReadyRE, _ := regexp.Compile("^ ([?ADM]) (.*)$")
+	ReadyRE, _ := regexp.Compile("^([ADMR])  (.*)$")
+	NotReadyRE, _ := regexp.Compile("^ ([?ADMR]) (.*)$")
+	statusRE, _ := regexp.Compile("^ ([?ADMR]){2} (.*)$")
 
 	var s string
 
@@ -88,8 +98,13 @@ func GetStatus() (gs *Status) {
 	lines := strings.Split(s, "\n")
 
 	for _, line := range lines {
+		if m := statusRE.FindStringSubmatch(line); m != nil {
+			statusFile := []rune(m[1])
+			gs.files[m[2]] = FileStatus{statusFile[0], statusFile[1]}
+		}
 		if m := ReadyRE.FindStringSubmatch(line); m != nil {
 			gs.Ready.add(m[1], m[2])
+			continue
 		}
 		if m := NotReadyRE.FindStringSubmatch(line); m != nil {
 			gs.Ready.add(m[1], m[2])

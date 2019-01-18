@@ -234,7 +234,7 @@ func (a *Forj) createDeployment(deploy string) error {
 		}
 
 		if d.HasNoFiles() {
-			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' %s requires to commit at least one file.", a.w.GetString("infra-instance-name"), d.DriverType)
+			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' %s requires to commit at least one file", a.w.GetString("infra-instance-name"), d.DriverType)
 		}
 
 		// Committing source code.
