@@ -1,15 +1,13 @@
 package git
 
 import (
-	"fmt"
 	"testing"
+	"reflect"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func logOutTest(string) {
-
-}
+func logOutTest(string) {}
 
 
 func TestSetLogFunc(t *testing.T) {
@@ -18,12 +16,17 @@ func TestSetLogFunc(t *testing.T) {
 	t.Log("Expect Log Func to properly store the logFunc")
 
 	assert.NotNil(logFunc, "Expected logFunc to be set. Is nil.")
-	assert.Equal(fmt.Sprintf("%v", logFunc), fmt.Sprintf("%v", logOut), "Expected default function to be registered by default.")
+	sflogFunc := reflect.ValueOf(logFunc).Pointer()
+    sflogOut := reflect.ValueOf(logOut).Pointer()
+
+	assert.Equal(sflogFunc, sflogOut, "Expected default function to be registered by default.")
 
 	SetLogFunc(logOutTest)
 
+	sflogFunc = reflect.ValueOf(logFunc).Pointer()
+	sflogOutTest := reflect.ValueOf(logOutTest).Pointer()
 	assert.NotNil(logFunc, "Expected logFunc to be set. Is nil.")
-	assert.NotEqual(fmt.Sprintf("%v", logFunc), fmt.Sprintf("%v", logOut), "Expected default function to be UNregistered.")
-	assert.Equal(fmt.Sprintf("%v", logFunc), fmt.Sprintf("%v", logOutTest), "Expected new function to be registered.")
+	assert.NotEqual(sflogFunc, sflogOut, "Expected default function to be UNregistered.")
+	assert.Equal(sflogFunc, sflogOutTest, "Expected new function to be registered.")
 
 }

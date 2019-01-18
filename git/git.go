@@ -11,7 +11,6 @@ import (
 	"forjj/utils"
 	"log"
 	"os"
-	"os/exec"
 	"path"
 	"regexp"
 	"strings"
@@ -32,13 +31,6 @@ func logOut(text string) {
 // SetLogFunc Define the internal Log system. By default it uses log.Print
 func SetLogFunc(aLogFunc func(string)) {
 	logFunc = aLogFunc
-}
-
-// Do Call git command with arguments. All print out displayed. It returns git Return code.
-func Do(opts ...string) int {
-	colorCyan, colorReset := utils.DefColor(36)
-	logFunc(fmt.Sprintf("%s%sgit %s%s\n", colorCyan, context.indent, strings.Join(opts, " "), colorReset))
-	return utils.RunCmd("git", opts...)
 }
 
 // Indent permit to display several command indented within a section tag.
@@ -105,20 +97,6 @@ func GetStatus() (gs *Status) {
 		}
 	}
 	return
-}
-
-// Get Call a git command and get the output as string output.
-func Get(opts ...string) (string, error) {
-	gotrace.Trace("RUNNING: git %s", strings.Join(opts, " "))
-	out, err := exec.Command("git", opts...).Output()
-	return strings.Trim(string(out), " \n"), err
-}
-
-// GetWithStatusCode Call a git command and get the output as string output.
-func GetWithStatusCode(opts ...string) (string, int) {
-	colorCyan, colorReset := utils.DefColor(36)
-	logFunc(fmt.Sprintf("%s%sgit %s%s\n", colorCyan, context.indent, strings.Join(opts, " "), colorReset))
-	return utils.RunCmdOutput("git", opts...)
 }
 
 // Commit Do a git commit

@@ -1,7 +1,7 @@
 package git
 
 type GitCmdInterface interface {
-	Get(opts ...string) (string, error)
-	GetWithStatusCode(opts ...string) (string, int)
-	Do(opts ...string) int
+	get(opts ...string) (string, error)
+	getWithStatusCode(opts ...string) (string, int)
+	do(opts ...string) int
 }
