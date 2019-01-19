@@ -2,6 +2,8 @@ package git
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAdd(t *testing.T) {
@@ -48,7 +50,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestInit(t *testing.T) {
-	t.Log("Expecting init .")
+	t.Log("Expecting init to initialize git struct.")
 	g := make(gitFiles)
 
 	// Run the function
@@ -68,4 +70,41 @@ func TestInit(t *testing.T) {
 	} else if _, found = g["R"]; !found {
 		t.Errorf("Expected gitFiles to contains the 'R' element. Not found.")
 	}
+}
+
+func TestGetStatus(t *testing.T) {
+	t.Log("Expecting GetStatus to fill appropriate data in struct.")
+	assert := assert.New(t)
+
+	cmdMock := gitCmdMock{
+		combined: " M git/git_cmd_test.go\n",
+	}
+	defaultCmd = &cmdMock
+	var statusFile FileStatus
+	statusFile.set(" M")
+
+	status := GetStatus()
+
+	assert.Len(status.files, 1, "Expected one file identified.")
+	assert.Equal(statusFile, status.files["git/git_cmd_test.go"], "Expected identified file to have proper status.")
+	assert.Len(status.NotReady["M"], 1, "Expected one file identified as not ready.")
+	assert.Len(status.Ready["M"], 0, "Expected no file identified as ready.")
+
+	// --------------------
+	cmdMock.combined = "M  git/git_cmd_test.go"
+
+	status = GetStatus()
+
+	assert.Len(status.files, 1, "Expected one file identified.")
+	assert.Len(status.NotReady["M"], 0, "Expected one file identified as not ready.")
+	assert.Len(status.Ready["M"], 1, "Expected no file identified as ready.")
+
+	// --------------------
+	cmdMock.combined = "?? git/git_cmd_test.go"
+
+	status = GetStatus()
+
+	assert.Len(status.files, 1, "Expected one file identified.")
+	assert.Len(status.NotReady["?"], 1, "Expected one file identified as not ready.")
+	assert.Len(status.Ready["M"], 0, "Expected no file identified as ready.")
 }

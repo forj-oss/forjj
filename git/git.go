@@ -69,10 +69,9 @@ func GetStatus() (gs *Status) {
 	gs.Ready.init(false)
 	gs.NotReady = make(map[string][]string)
 	gs.NotReady.init(true)
+	gs.files = make(gitFilesStatus)
 
-	ReadyRE, _ := regexp.Compile("^([ADMR])  (.*)$")
-	NotReadyRE, _ := regexp.Compile("^ ([?ADMR]) (.*)$")
-	statusRE, _ := regexp.Compile("^ ([?ADMR]){2} (.*)$")
+	statusRE, _ := regexp.Compile("^([ ?ADMR]{2}) (.*)$")
 
 	var s string
 
@@ -84,16 +83,27 @@ func GetStatus() (gs *Status) {
 	lines := strings.Split(s, "\n")
 
 	for _, line := range lines {
-		if m := statusRE.FindStringSubmatch(line); m != nil {
-			statusFile := []rune(m[1])
-			gs.files[m[2]] = FileStatus{statusFile[0], statusFile[1]}
-		}
-		if m := ReadyRE.FindStringSubmatch(line); m != nil {
-			gs.Ready.add(m[1], m[2])
+		if line == "" {
 			continue
 		}
-		if m := NotReadyRE.FindStringSubmatch(line); m != nil {
-			gs.Ready.add(m[1], m[2])
+		m := statusRE.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+
+		var status FileStatus
+		status.set(m[1])
+		file := m[2]
+
+		gs.files[file] = status
+
+		if v := status.workTree ; v == ' ' {
+			gs.Ready.add(string(status.index), file)
+			continue
+		}
+
+		if v := status.index ; v == ' ' || v == '?' {
+			gs.NotReady.add(string(status.workTree), file)
 		}
 	}
 	return

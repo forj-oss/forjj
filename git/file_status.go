@@ -15,3 +15,12 @@ func (s FileStatus) Index() rune {
 func (s FileStatus) WorkTree() rune {
 	return s.workTree
 }
+
+func (s *FileStatus) set(value string) {
+	if s == nil {
+		return
+	}
+	statusFile := []rune(value)
+	s.index = statusFile[0]
+	s.workTree = statusFile[1]
+}
