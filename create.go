@@ -225,6 +225,7 @@ func (a *Forj) createDeployment(deploy string) error {
 	for _, instance := range instances {
 		d := a.drivers[instance]
 		if err, aborted := a.do_driver_task("create", instance); err != nil {
+			a.doDriverClean(d)
 			if !aborted {
 				return fmt.Errorf("Failed to create '%s' source files. %s", instance, err)
 			}
@@ -233,7 +234,7 @@ func (a *Forj) createDeployment(deploy string) error {
 		}
 
 		if d.HasNoFiles() {
-			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' %s requires to commit at least one file.", a.w.GetString("infra-instance-name"), d.DriverType)
+			return fmt.Errorf("Plugin issue: No files to add/commit returned. Creating '%s' %s requires to commit at least one file", a.w.GetString("infra-instance-name"), d.DriverType)
 		}
 
 		// Committing source code.

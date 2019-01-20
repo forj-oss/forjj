@@ -102,6 +102,35 @@ func (a *Forj) moveTo(where string) (cur_dir string, _ error) {
 	return
 }
 
+// do driver clean files
+func (a *Forj) doDriverClean(d *drivers.Driver) error {
+	if d.Plugin.Result == nil {
+		return fmt.Errorf("No driver data to cleanup. Result is empty")
+	}
+	if len(d.Plugin.Result.Data.Files) == 0 {
+		gotrace.Trace("No files to add/commit returned by the driver.")
+		return nil
+	}
+	gotrace.Trace("----- Do GIT tasks in the INFRA repository.")
+
+	// Add source files
+	if err := d.GitCleanPluginFiles(a.moveTo); err != nil {
+		return fmt.Errorf("Issue to add driver '%s' generated files. %s", a.CurrentPluginDriver.Name, err)
+	}
+
+	// Check about uncontrolled files. Existing if one uncontrolled file is found
+	if status := git.GetStatus(); status.Err != nil {
+		return fmt.Errorf("Issue to check git status. %s", status.Err)
+	} else {
+		if num := status.CountUntracked(); num > 0 {
+			log.Print("Following files created by the plugin are not controlled by the plugin. You must fix it manually and contact the plugin maintainer to fix this issue.")
+			log.Printf("files: %s", strings.Join(status.Untracked(), ", "))
+			return fmt.Errorf("Unable to complete commit process. '%d' Uncontrolled files found", num)
+		}
+	}
+	return nil
+}
+
 // do driver add files
 func (a *Forj) do_driver_add(d *drivers.Driver) error {
 	if len(d.Plugin.Result.Data.Files) == 0 {
@@ -186,7 +215,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 	}
 
 	// Define container mounts
-	if v := os.Getenv("FORJJ_SOURCE_BASE") ; v != "" {
+	if v := os.Getenv("FORJJ_SOURCE_BASE"); v != "" {
 		d.Plugin.PluginBase(v)
 		d.Plugin.PluginSetSourceMount(path.Join(a.i.Path(), "apps", d.DriverType))
 		d.Plugin.PluginSetWorkspaceMount(a.w.Path())

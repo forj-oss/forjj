@@ -41,6 +41,29 @@ func (d *Driver) GitAddPluginFiles(moveTo func(string) (string, error)) error {
 	return nil
 }
 
+// GitCleanPluginFiles revert updates to original data.
+func (d *Driver) GitCleanPluginFiles(moveTo func(string) (string, error)) error {
+	if d.Plugin.Result == nil {
+		return fmt.Errorf("Strange... The plugin as no result (plugin.Result is nil). Did the plugin '%s' executed?", d.Name)
+	}
+
+	if len(d.Plugin.Result.Data.Files) == 0 {
+		return fmt.Errorf("Nothing to commit")
+	}
+
+	for where, files := range d.Plugin.Result.Data.Files {
+		if err := RunInPath(where, moveTo, func() error {
+			gotrace.Trace("GIT: Restoring %s %d files related to '%s'", where, len(files), d.Plugin.Result.Data.CommitMessage)
+
+			return d.gitCleanPluginFiles(where, files)
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // RunInPath run a function in a specificDirectory and restore the current Path.
 func RunInPath(where string, moveTo func(string) (string, error), runIn func() error) error {
 	if where != goforjj.FilesDeploy && where != goforjj.FilesSource { // Supports only 2 kind of repository from the plugin.
@@ -50,14 +73,14 @@ func RunInPath(where string, moveTo func(string) (string, error), runIn func() e
 	restore, err := moveTo(where)
 	if err != nil {
 		return err
-	} 
+	}
 
-	defer func () {
+	defer func() {
 		git.UnIndent()
 		os.Chdir(restore)
 	}()
 
-	git.Indent("---- GIT" + git.ShowGitPath(), " - ", "--------")
+	git.Indent("---- GIT"+git.ShowGitPath(), " - ", "--------")
 
 	if err = runIn(); err != nil {
 		return err
@@ -82,6 +105,42 @@ func (d *Driver) gitAddPluginFiles(where string, files []string) error {
 	}
 	if i := git.Add(fileToAdd); i > 0 {
 		return fmt.Errorf("Issue while adding code to git. RC=%d", i)
+	}
+	return nil
+}
+
+func (d *Driver) gitCleanPluginFiles(where string, files []string) error {
+	if files == nil {
+		return nil
+	}
+
+	status := git.GetStatus()
+
+	for _, file := range files {
+		fileToCleanUp := file
+		if where == goforjj.FilesSource {
+			fileToCleanUp = path.Join("apps", d.DriverType, file)
+		}
+		statusFile, found, _ := status.GetFile(fileToCleanUp)
+		if ! found {
+			gotrace.Trace("%s not restored. It was not updated.", fileToCleanUp)
+			continue
+		}
+		index := statusFile.Index()
+		workTree := statusFile.WorkTree()
+		if index != ' ' && index != '?' {
+			git.Do("reset", "HEAD", fileToCleanUp)
+			if index == 'A' {
+				os.Remove(fileToCleanUp)
+			} else {
+				git.Do("checkout", fileToCleanUp)
+			}
+		} else if workTree == '?' {
+			os.Remove(fileToCleanUp)
+		} else {
+			git.Do("checkout", fileToCleanUp)
+		}
+
 	}
 	return nil
 }

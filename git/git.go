@@ -1,11 +1,16 @@
 package git
 
+// This package is a basic GIT wrapper.
+// Everything is not supported. Like git status use cases.
+// If needed, we can improve this package or use a natif GOLANG GIT module
+// like https://github.com/src-d/go-git
+// The native version will remove GIT cli/lib dependency.
+
 import (
 	"fmt"
 	"forjj/utils"
 	"log"
 	"os"
-	"os/exec"
 	"path"
 	"regexp"
 	"strings"
@@ -13,12 +18,6 @@ import (
 	"github.com/forj-oss/forjj-modules/trace"
 )
 
-type gitContext struct {
-	end    string
-	indent string
-}
-
-var context gitContext
 var logFunc func(string)
 
 func init() {
@@ -29,16 +28,9 @@ func logOut(text string) {
 	log.Print(text)
 }
 
-// Define the internal Log system. By default it uses log.Print
+// SetLogFunc Define the internal Log system. By default it uses log.Print
 func SetLogFunc(aLogFunc func(string)) {
 	logFunc = aLogFunc
-}
-
-// Do Call git command with arguments. All print out displayed. It returns git Return code.
-func Do(opts ...string) int {
-	colorCyan, colorReset := utils.DefColor(36)
-	logFunc(fmt.Sprintf("%s%sgit %s%s\n", colorCyan, context.indent, strings.Join(opts, " "), colorReset))
-	return utils.RunCmd("git", opts...)
 }
 
 // Indent permit to display several command indented within a section tag.
@@ -66,7 +58,10 @@ func ShowGitPath() (msg string) {
 	return
 }
 
-// GetStatus return an GitStatus struct with the list of files, added, updated and
+// GetStatus return an GitStatus struct with the list of files, added, updated and renamed
+//
+// It currently do not follow strictly all status use case as described in man git status
+//
 func GetStatus() (gs *Status) {
 	gs = new(Status)
 
@@ -74,9 +69,9 @@ func GetStatus() (gs *Status) {
 	gs.Ready.init(false)
 	gs.NotReady = make(map[string][]string)
 	gs.NotReady.init(true)
+	gs.files = make(gitFilesStatus)
 
-	ReadyRE, _ := regexp.Compile("^([ADM])  (.*)$")
-	NotReadyRE, _ := regexp.Compile("^ ([?ADM]) (.*)$")
+	statusRE, _ := regexp.Compile("^([ ?ADMR]{2}) (.*)$")
 
 	var s string
 
@@ -88,28 +83,30 @@ func GetStatus() (gs *Status) {
 	lines := strings.Split(s, "\n")
 
 	for _, line := range lines {
-		if m := ReadyRE.FindStringSubmatch(line); m != nil {
-			gs.Ready.add(m[1], m[2])
+		if line == "" {
+			continue
 		}
-		if m := NotReadyRE.FindStringSubmatch(line); m != nil {
-			gs.Ready.add(m[1], m[2])
+		m := statusRE.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+
+		var status FileStatus
+		status.set(m[1])
+		file := m[2]
+
+		gs.files[file] = status
+
+		if v := status.workTree ; v == ' ' {
+			gs.Ready.add(string(status.index), file)
+			continue
+		}
+
+		if v := status.index ; v == ' ' || v == '?' {
+			gs.NotReady.add(string(status.workTree), file)
 		}
 	}
 	return
-}
-
-// Get Call a git command and get the output as string output.
-func Get(opts ...string) (string, error) {
-	gotrace.Trace("RUNNING: git %s", strings.Join(opts, " "))
-	out, err := exec.Command("git", opts...).Output()
-	return strings.Trim(string(out), " \n"), err
-}
-
-// GetWithStatusCode Call a git command and get the output as string output.
-func GetWithStatusCode(opts ...string) (string, int) {
-	colorCyan, colorReset := utils.DefColor(36)
-	logFunc(fmt.Sprintf("%s%sgit %s%s\n", colorCyan, context.indent, strings.Join(opts, " "), colorReset))
-	return utils.RunCmdOutput("git", opts...)
 }
 
 // Commit Do a git commit
