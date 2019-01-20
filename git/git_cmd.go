@@ -38,7 +38,7 @@ func (c gitCmd) getWithStatusCode(opts ...string) (string, int) {
 func (c gitCmd) get(opts ...string) (string, error) {
 	gotrace.Trace("RUNNING: git %s", strings.Join(opts, " "))
 	out, err := exec.Command("git", opts...).Output()
-	return strings.Trim(string(out), " \n"), err
+	return strings.Trim(string(out), "\n"), err
 }
 
 func (c gitCmd) do(opts ...string) int {
