@@ -2,7 +2,6 @@ package git
 
 import (
 	"errors"
-	"fmt"
 )
 
 // Status contains a representation of GIT status in porcelain mode.
@@ -56,15 +55,11 @@ func (gs *Status) CountUntracked() int {
 }
 
 // GetFile return a status file object
-func (gs *Status) GetFile(file string) (statusFile FileStatus, err error) {
+func (gs *Status) GetFile(file string) (statusFile FileStatus, found bool, err error) {
 	if gs == nil {
 		err = errors.New("Status object is nil")
 		return
 	}
-	if s, found := gs.files[file]; found {
-		statusFile = s
-	} else {
-		err = fmt.Errorf("%s not found in GIT status", file)
-	}
+	statusFile, found = gs.files[file]
 	return
 }

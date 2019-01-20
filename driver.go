@@ -104,6 +104,9 @@ func (a *Forj) moveTo(where string) (cur_dir string, _ error) {
 
 // do driver clean files
 func (a *Forj) doDriverClean(d *drivers.Driver) error {
+	if d.Plugin.Result == nil {
+		return fmt.Errorf("No driver data to cleanup. Result is empty")
+	}
 	if len(d.Plugin.Result.Data.Files) == 0 {
 		gotrace.Trace("No files to add/commit returned by the driver.")
 		return nil

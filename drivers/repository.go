@@ -51,10 +51,6 @@ func (d *Driver) GitCleanPluginFiles(moveTo func(string) (string, error)) error 
 		return fmt.Errorf("Nothing to commit")
 	}
 
-	if d.Plugin.Result.Data.CommitMessage == "" {
-		return fmt.Errorf("Unable to commit without a commit message")
-	}
-
 	for where, files := range d.Plugin.Result.Data.Files {
 		if err := RunInPath(where, moveTo, func() error {
 			gotrace.Trace("GIT: Restoring %s %d files related to '%s'", where, len(files), d.Plugin.Result.Data.CommitMessage)
@@ -125,7 +121,11 @@ func (d *Driver) gitCleanPluginFiles(where string, files []string) error {
 		if where == goforjj.FilesSource {
 			fileToCleanUp = path.Join("apps", d.DriverType, file)
 		}
-		statusFile, _ := status.GetFile(fileToCleanUp)
+		statusFile, found, _ := status.GetFile(fileToCleanUp)
+		if ! found {
+			gotrace.Trace("%s not restored. It was not updated.", fileToCleanUp)
+			continue
+		}
 		index := statusFile.Index()
 		workTree := statusFile.WorkTree()
 		if index != ' ' && index != '?' {
