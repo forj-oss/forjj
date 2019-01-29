@@ -1,4 +1,4 @@
-package main
+package secrets
 
 type secretInfo struct {
 	keyPath string

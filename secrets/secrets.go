@@ -1,4 +1,4 @@
-package main
+package secrets
 
 import (
 	"strings"
@@ -7,7 +7,7 @@ import (
 	"github.com/forj-oss/forjj-modules/cli/clier"
 )
 
-type secrets struct {
+type Secrets struct {
 	secrets *kingpin.CmdClause
 	context secretsContext
 	common  secretsCommon
@@ -26,7 +26,7 @@ type secrets struct {
 	unset secretsUnset
 }
 
-func (s *secrets) init(app *kingpin.Application) {
+func (s *Secrets) Init(app *kingpin.Application, data *forjfile.Workspace, isParsePhase func() bool, initCommon func(context *Context, cmd *kingpin.CmdClause)) {
 	if s == nil || app == nil {
 		return
 	}
@@ -44,7 +44,7 @@ func (s *secrets) init(app *kingpin.Application) {
 	s.unset.init(s.secrets, &s.common)
 }
 
-func (s *secrets) action(action string) {
+func (s *Secrets) action(action string) {
 	actions := strings.Split(action, " ")
 	switch actions[1] {
 	case "list":
@@ -61,11 +61,11 @@ func (s *secrets) action(action string) {
 
 // DefineContext define cli Context to permit ParseContext to retrieve
 // common variable set.
-func (s *secrets) DefineContext(context clier.ParseContexter) {
+func (s *Secrets) DefineContext(context clier.ParseContexter) {
 	s.context.defineContext(context)
 }
 
 // GetStringValue Return a field value from the given context (parse time, or after)
-func (s *secrets) GetStringValue(field string) (value string, found, isDefault bool, _ error) {
+func (s *Secrets) GetStringValue(field string) (value string, found, isDefault bool, _ error) {
 	return s.context.GetStringValue(field)
 }

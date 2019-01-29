@@ -9,6 +9,7 @@ import (
 	"forjj/forjfile"
 	"forjj/repo"
 	forjjWorkspace "forjj/workspace"
+	"forjj/secrets"
 	"log"
 	"net/url"
 	"os"
@@ -53,7 +54,7 @@ type Forj struct {
 	app *kingpin.Application
 
 	// cli commands modules
-	secrets   secrets
+	secrets   secrets.Secrets
 	workspace forjjWorkspace.Workspace
 
 	contextAction string // Context action defined in ParseContext.
@@ -210,7 +211,22 @@ func (a *Forj) init() {
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 
-	a.secrets.init(a.app)
+	a.secrets.Init(a.app, &a.w, a.cli.IsParsePhase, func(context *forjjWorkspace.Context, cmd *kingpin.CmdClause) {
+		// Define Common flags required by ParseContext
+
+		// TODO: Find a way to avoid redefining such common flags option here and re-use cli.Opts
+		// Following flags are parseable by cli, and used by ParseContext (so required), but we do not need them on workspace.
+
+		// ISSUE: Default() affect only cli after ParseContext. Default value is retrieved thanks to a fix in GetLocalPrefs()
+		context.Flag("contribs-repo",
+			cmd.Flag("contribs-repo", contribs_repo_help).Envar("CONTRIBS_REPO").Default(defaultContribsRepo)).String()
+		context.Flag("flows-repo",
+			cmd.Flag("flows-repo", flows_repo_help).Envar("FLOWS_REPO").Default(defaultFlowRepo)).String()
+		context.Flag("repotemplates-repo",
+			cmd.Flag("repotemplates-repo", repotemplates_repo_help).Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)).String()
+		context.Flag(infra_path_f,
+			cmd.Flag(infra_path_f, infra_path_help)).Envar("FORJJ_INFRA").Short('W').String()
+	})
 	a.workspace.Init(a.app, &a.w, a.cli.IsParsePhase, func(context *forjjWorkspace.Context, cmd *kingpin.CmdClause) {
 		// Define Common flags required by ParseContext
 

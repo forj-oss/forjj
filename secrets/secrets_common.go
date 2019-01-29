@@ -1,4 +1,4 @@
-package main
+package secrets
 
 import (
 	"github.com/alecthomas/kingpin"
