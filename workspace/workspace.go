@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kingpin"
-	"github.com/forj-oss/forjj-modules/cli/interface"
+	"github.com/forj-oss/forjj-modules/cli/clier"
 )
 
 // Workspace represents cli subcommand actions and options

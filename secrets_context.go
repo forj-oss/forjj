@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/cli"
-	"github.com/forj-oss/forjj-modules/cli/interface"
+	"github.com/forj-oss/forjj-modules/cli/clier"
 	"github.com/forj-oss/forjj-modules/cli/kingpinCli"
 )
 
