@@ -1,5 +1,5 @@
 hash: 96c626ea3b685de3d27336771760c757e1c870bfac2f1f2b838a36b09c940d6f
-updated: 2019-01-26T21:25:54.562160516Z
+updated: 2019-01-30T17:19:13.916222085Z
 imports:
 - name: github.com/alecthomas/kingpin
   version: a328427ab7d619fe3c8d16a0da66899d03d5afae
@@ -51,10 +51,10 @@ imports:
 - name: github.com/fatih/color
   version: 3f9d52f7176a6927daacff70a3e8d1dc2025c53e
 - name: github.com/forj-oss/forjj-modules
-  version: 90b2970dbe4ef6ae310cb30378b975a8fc83ba15
+  version: 803570931ca95493a6f1e0f5f325687220a4dba9
   subpackages:
   - cli
-  - cli/interface
+  - cli/clier
   - cli/kingpinCli
   - cli/tools
   - trace
@@ -77,19 +77,19 @@ imports:
 - name: github.com/moul/http2curl
   version: faeffb3553568c6ecaa9c103c09dea941ca9c570
 - name: github.com/opencontainers/go-digest
-  version: c9281466c8b2f606084ac71339773efd177436e7
+  version: 4eb64ca734023ea9a10c70ff11dc0e3f69d38482
 - name: github.com/parnurzeal/gorequest
   version: a578a48e8d6ca8b01a3b18314c43c6716bb5f5a3
 - name: github.com/pkg/errors
   version: ffb6e22f01932bf7ac35e0bad9be11f01d1c8685
 - name: github.com/Sirupsen/logrus
-  version: 7d8d63893b994a654b3bc8d16ffd7fb6b9f884a4
+  version: 4ea4861398d99a2d05be29675c5b74caf7bea95e
 - name: github.com/stretchr/testify
   version: ffdc059bfe9ce6a4e144ba849dbedead332c6053
   subpackages:
   - assert
 - name: golang.org/x/crypto
-  version: 057139ce5d2bdbe6fe73c53679e24e9cf007f637
+  version: b01c7a72566457eb1420261cdafef86638fc3861
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
@@ -101,7 +101,7 @@ imports:
   - proxy
   - publicsuffix
 - name: golang.org/x/sys
-  version: b90733256f2e882e81d52f9126de08df5615afd9
+  version: aca44879d5644da7c5b8ec6a1115e9b6ea6c40d9
   subpackages:
   - unix
   - windows

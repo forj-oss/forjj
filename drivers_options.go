@@ -198,31 +198,50 @@ func (a *Forj) init_driver_flags(instance_name string) error {
 		// Determine which actions can be configured for drivers object flags.
 		id.prepare_actions_list()
 
+		// Determining Object/Flags to configure in forjj cli
+		objectToExport := false
+		for _, flagDet := range object_det.Flags {
+			if flagDet.CliExport || len(flagDet.CliCmdActions) > 0 {
+				objectToExport = true
+				break
+			}
+		}
+		if !objectToExport {
+			gotrace.Trace("Object '%s': Not exported to forjj cli.", object_name)
+			continue
+		}
+
 		gotrace.Trace("Object '%s': Adding fields", object_name)
 		// Adding fields to the object.
-		for flag_name, flag_det := range object_det.Flags {
-			if flag_det.FormatRegexp == "" { // Default flag regexp to eliminate cli warning.
-				flag_det.FormatRegexp = ".*"
+		for flagName, flagDet := range object_det.Flags {
+			if flagDet.FormatRegexp == "" { // Default flag regexp to eliminate cli warning.
+				flagDet.FormatRegexp = ".*"
+			}
+			if !flagDet.CliExport && len(flagDet.CliCmdActions) == 0 {
+				continue
 			}
 
-			if id.add_object_fields(flag_name, &flag_det, id.validActions) {
-				object_det.Flags[flag_name] = flag_det
+			if id.add_object_fields(flagName, &flagDet, id.validActions) {
+				object_det.Flags[flagName] = flagDet
 			}
 
-			id.add_object_field_to_cmds(flag_name, &flag_det)
+			id.add_object_field_to_cmds(flagName, &flagDet)
 		}
 
 		gotrace.Trace("Object '%s': Adding groups fields", object_name)
-		for group_name, group_det := range object_det.Groups {
-			default_actions := id.validActions
-			if group_det.Actions != nil && len(group_det.Actions) > 0 {
-				default_actions = group_det.Actions
-				gotrace.Trace("Object '%s' - Group '%s': Default group actions defined to '%s'", default_actions)
+		for groupName, groupDet := range object_det.Groups {
+			defaultActions := id.validActions
+			if groupDet.Actions != nil && len(groupDet.Actions) > 0 {
+				defaultActions = groupDet.Actions
+				gotrace.Trace("Object '%s' - Group '%s': Default group actions defined to '%s'", defaultActions)
 			}
 
-			for flag_name, flag_det := range group_det.Flags {
-				if id.add_object_fields(group_name+"-"+flag_name, &flag_det, default_actions) {
-					object_det.Groups[group_name].Flags[flag_name] = flag_det
+			for flagName, flagDet := range groupDet.Flags {
+				if !flagDet.CliExport && len(flagDet.CliCmdActions) == 0 {
+					continue
+				}
+				if id.add_object_fields(groupName+"-"+flagName, &flagDet, defaultActions) {
+					object_det.Groups[groupName].Flags[flagName] = flagDet
 				}
 			}
 		}
@@ -345,7 +364,7 @@ func (a *Forj) moveSecureObjectData(ffd *forjfile.DeployForgeYaml, deploy, objec
 	if v, found, source := ffd.Get(object_name, instance, "secret_"+flag_name); found {
 		// each key can have a secret_<key> value defined, stored in secret and can be refered in the Forjfile
 		// with {{ Current.Creds.<flag_name> }}
-		a.s.SetObjectValue(deploy, source , object_name, instance, flag_name, v)
+		a.s.SetObjectValue(deploy, source, object_name, instance, flag_name, v)
 		ffd.Remove(object_name, instance, flag_name)
 
 		gotrace.Trace("Removing and setting secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
