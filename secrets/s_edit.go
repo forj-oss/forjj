@@ -129,8 +129,11 @@ func (e *sEdit) doEdit() {
 		gotrace.Info("File is empty. Update ignored.")
 		return
 	}
-	v := goforjj.ValueStruct{}
-	v.Set(e.password)
+	v := creds.ObjectsValue{}
+	value := goforjj.ValueStruct{}
+
+	v.Set("forjj", &value)
+	value.Set(e.password)
 	env := e.forjfile.GetDeployment()
 	if *e.common.common {
 		env = creds.Global

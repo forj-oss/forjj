@@ -159,7 +159,7 @@ type ForjCurrentModel struct {
 	Name       string
 	Deployment string
 	Data       interface{}
-	Creds      map[string]*goforjj.ValueStruct
+	Creds      map[string]*creds.ObjectsValue
 }
 
 // Model is used to build a Model to use by text/templates

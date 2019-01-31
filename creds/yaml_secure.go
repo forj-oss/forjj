@@ -22,8 +22,8 @@ type yamlSecure struct {
 	file_path  string
 	loaded     bool
 	Version    string
-	Forj       map[string]string
-	Objects    map[string]map[string]map[string]*goforjj.ValueStruct
+	Forj       map[string]*ForjValue
+	Objects    map[string]map[string]map[string]*ObjectsValue
 	sources    *sourcesinfo.Sources
 	s          *Secrets
 }
@@ -111,20 +111,20 @@ func (d *yamlSecure) save(secretFile bool) (err error) {
 	return
 }
 
-func (d *yamlSecure) SetForjValue(source, key, value string) (updated bool) {
+func (d *yamlSecure) SetForjValue(source, key string, value *ForjValue) (updated bool) {
 
-	d.sources = d.sources.Set(source, key, value)
+	d.sources = d.sources.Set(source, key, value.value)
 	if d.Forj == nil {
-		d.Forj = make(map[string]string)
+		d.Forj = make(map[string]*ForjValue)
 	}
-	if v, found := d.Forj[key]; !found || v != value {
+	if v, found := d.Forj[key]; !found || v.value != value.value {
 		d.Forj[key] = value
 		updated = true
 	}
 	return
 }
 
-func (d *yamlSecure) GetForjValue(key string) (ret string, found bool) {
+func (d *yamlSecure) GetForjValue(key string) (ret *ForjValue, found bool) {
 	ret, found = d.Forj[key]
 	return
 }
@@ -148,54 +148,52 @@ func (d *yamlSecure) unsetObjectValue(source, obj_name, instance_name, key_name 
 	return
 }
 
-func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (updated bool) {
+func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name string, value *ObjectsValue) (updated bool) {
 	if d.Objects == nil {
-		d.Objects = make(map[string]map[string]map[string]*goforjj.ValueStruct)
+		d.Objects = make(map[string]map[string]map[string]*ObjectsValue)
 	}
-	var instances map[string]map[string]*goforjj.ValueStruct
-	var keys map[string]*goforjj.ValueStruct
+	var instances map[string]map[string]*ObjectsValue
+	var keys map[string]*ObjectsValue
 	if i, found := d.Objects[obj_name]; !found {
-		keys = make(map[string]*goforjj.ValueStruct)
-		instances = make(map[string]map[string]*goforjj.ValueStruct)
-		newValue := new(goforjj.ValueStruct)
-		*newValue = *value
-		keys[key_name] = newValue
+		keys = make(map[string]*ObjectsValue)
+		instances = make(map[string]map[string]*ObjectsValue)
+
+		keys[key_name] = value
 		instances[instance_name] = keys
 		d.Objects[obj_name] = instances
 		updated = true
 	} else if k, found := i[instance_name]; !found {
-		keys = make(map[string]*goforjj.ValueStruct)
-		newValue := new(goforjj.ValueStruct)
-		*newValue = *value
-		keys[key_name] = newValue
+		keys = make(map[string]*ObjectsValue)
+
+		keys[key_name] = value
 		d.Objects[obj_name][instance_name] = keys
 		updated = true
-	} else if v, found := k[key_name]; found && v != nil {
-		if !value.Equal(v) {
-			*v = *value
+	} else if v, found := k[key_name]; found {
+		if v.value != nil && !value.value.Equal(v.value) {
+			*v.value = *value.value
+			v.source = value.source
+			v.resource = value.resource
 			updated = true
 		}
 	} else {
-		newValue := new(goforjj.ValueStruct)
-		*newValue = *value
-		k[key_name] = newValue
+		k[key_name] = value
 		updated = true
 	}
-	d.sources = d.sources.Set(source, obj_name+"/"+instance_name+"/"+key_name, value.GetString())
+	d.sources = d.sources.Set(source, obj_name+"/"+instance_name+"/"+key_name, value.value.GetString())
 	return
 }
 
 func (d *yamlSecure) getString(obj_name, instance_name, key_name string) (string, bool, string) {
 	v, found, source := d.get(obj_name, instance_name, key_name)
-	return v.GetString(), found, source
+	return v.value.GetString(), found, source
 }
 
-func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *goforjj.ValueStruct, found bool, source string) {
+func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *ObjectsValue, found bool, source string) {
 	if i, isFound := d.Objects[obj_name]; isFound {
 		if k, isFound := i[instance_name]; isFound {
-			if v, isFound := k[key_name]; isFound && v != nil {
-				ret = new(goforjj.ValueStruct)
-				*ret = *v
+			if v, isFound := k[key_name]; isFound && v.value != nil {
+				ret.value = new(goforjj.ValueStruct)
+				*ret.value = *v.value
 				found = true
 				source = d.sources.Get(obj_name + "/" + instance_name + "/" + key_name)
 				return
@@ -205,7 +203,7 @@ func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *goforjj
 	return
 }
 
-func (d *yamlSecure) getObjectInstance(obj_name, instance_name string) map[string]*goforjj.ValueStruct {
+func (d *yamlSecure) getObjectInstance(obj_name, instance_name string) map[string]*ObjectsValue {
 	if i, found := d.Objects[obj_name]; found {
 		if k, found := i[instance_name]; found {
 			return k

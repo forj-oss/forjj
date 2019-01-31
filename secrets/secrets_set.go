@@ -90,8 +90,10 @@ func (s *sSet) doSet() {
 
 	keyPath := strings.Split(*s.key, "/")
 
-	v := goforjj.ValueStruct{}
-	v.Set(*s.password)
+	v := creds.ObjectsValue{}
+	value := goforjj.ValueStruct{}
+	value.Set(*s.password)
+	v.Set("forjj", &value)
 	env := s.forjfile.GetDeployment()
 	if *s.common.common {
 		env = creds.Global

@@ -6,7 +6,6 @@ import (
 	"path"
 
 	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
 )
 
 const (
@@ -250,7 +249,7 @@ func (d *Secure) SetFile(filePath, env string) {
 }
 
 // SetForjValue set a value in Forj section.
-func (d *Secure) SetForjValue(env, source, key, value string) (_ bool, _ error) {
+func (d *Secure) SetForjValue(env, source, key string, value *ForjValue) (_ bool, _ error) {
 	if d == nil {
 		return
 	}
@@ -270,13 +269,14 @@ func (d *Secure) GetForjValue(env, key string) (_ string, _ bool) {
 		return
 	}
 	if v, found := d.secrets.Envs[env]; found {
-		return v.GetForjValue(key)
+		value, foundValue := v.GetForjValue(key)
+		return value.value, foundValue
 	}
 	return
 }
 
 // SetObjectValue set object value
-func (d *Secure) SetObjectValue(env, source, obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (_ bool) {
+func (d *Secure) SetObjectValue(env, source, obj_name, instance_name, key_name string, value *ObjectsValue) (_ bool) {
 	if d == nil {
 		return
 	}
@@ -320,7 +320,7 @@ func (d *Secure) GetGlobalString(objName, instanceName, keyName string) (value s
 	return "", false, "", ""
 }
 
-// GetString return a string representation of the value.
+// GetString return a string representation of the value whatever resource is providing the data (forjj data, files, ...)
 func (d *Secure) GetString(objName, instanceName, keyName string) (value string, found bool, source, env string) {
 	if d == nil {
 		return
@@ -336,7 +336,7 @@ func (d *Secure) GetString(objName, instanceName, keyName string) (value string,
 }
 
 // Get value of the object instance key...
-func (d *Secure) Get(objName, instanceName, keyName string) (value *goforjj.ValueStruct, found bool, source, env string) {
+func (d *Secure) Get(objName, instanceName, keyName string) (value *ObjectsValue, found bool, source, env string) {
 	if d == nil {
 		return
 	}
@@ -351,7 +351,7 @@ func (d *Secure) Get(objName, instanceName, keyName string) (value *goforjj.Valu
 }
 
 // GetObjectInstance return the instance data
-func (d *Secure) GetObjectInstance(objName, instanceName string) (values map[string]*goforjj.ValueStruct) {
+func (d *Secure) GetObjectInstance(objName, instanceName string) (values map[string]*ObjectsValue) {
 	if d == nil {
 		return
 	}
