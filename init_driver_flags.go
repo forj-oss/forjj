@@ -4,6 +4,7 @@ import (
 	"forjj/drivers"
 	"forjj/utils"
 	"log"
+	"os"
 	"regexp"
 	"sort"
 
@@ -39,9 +40,14 @@ type initDriverObjectFlags struct {
 func (id *initDriverObjectFlags) set_task_flags(command string, flags map[string]goforjj.YamlFlag) {
 	service_type := id.d.DriverType
 
-	if ok := id.a.drivers[id.instance_name].IsValidCommand(command); !ok {
-		log.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.",
-			service_type, command)
+	if driver, found := id.a.drivers.Get(id.instance_name); found {
+		if ok := driver.IsValidCommand(command); !ok {
+			log.Printf("FORJJ Driver '%s': Invalid tag '%s'. valid one are 'common', 'create', 'update', 'maintain'. Ignored.",
+				service_type, command)
+		}
+	} else {
+		log.Fatalf("Internal error. Unable to find %s in loaded drivers.", id.instance_name)
+		os.Exit(1)
 	}
 
 	// Sort Flags for readability:

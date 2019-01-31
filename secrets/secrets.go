@@ -1,6 +1,9 @@
 package secrets
 
 import (
+	"forjj/creds"
+	"forjj/drivers"
+	"forjj/forjfile"
 	"strings"
 
 	"github.com/alecthomas/kingpin"
@@ -9,42 +12,43 @@ import (
 
 type Secrets struct {
 	secrets *kingpin.CmdClause
-	context secretsContext
-	common  secretsCommon
+	Context Context
+	common  common
 
-	list secretsList
+	list sList
 
 	get struct {
 		cmd *kingpin.CmdClause
 		key *string
 	}
 
-	set secretsSet
+	set sSet
 
-	edit secretsEdit
+	edit sEdit
 
-	unset secretsUnset
+	unset sUnset
 }
 
-func (s *Secrets) Init(app *kingpin.Application, data *forjfile.Workspace, isParsePhase func() bool, initCommon func(context *Context, cmd *kingpin.CmdClause)) {
+// Init initialize the secrets cli commands
+func (s *Secrets) Init(app *kingpin.Application, forjfile *forjfile.Forge, drivers *drivers.Drivers, secrets *creds.Secure, isParsePhase func() bool, initCommon func(context *Context, cmd *kingpin.CmdClause)) {
 	if s == nil || app == nil {
 		return
 	}
 
 	s.secrets = app.Command("secrets", "Manage forjj secrets")
-	s.context.init()
-	s.common.init(&s.context, s.secrets)
-	s.list.init(s.secrets, &s.common)
-	s.set.init(s.secrets, &s.common)
-	s.edit.init(s.secrets, &s.common)
+	s.Context.init(isParsePhase)
+	s.common.init(&s.Context, s.secrets, initCommon)
+	s.list.init(s.secrets, &s.common, forjfile, drivers, secrets)
+	s.set.init(s.secrets, &s.common, forjfile, drivers, secrets)
+	s.edit.init(s.secrets, &s.common, forjfile, drivers, secrets)
 
 	s.get.cmd = s.secrets.Command("get", "Get value of a credential unencrypted")
 	s.get.key = s.get.cmd.Arg("key", "Full key path").Required().String()
 
-	s.unset.init(s.secrets, &s.common)
+	s.unset.init(s.secrets, &s.common, forjfile, drivers, secrets)
 }
 
-func (s *Secrets) action(action string) {
+func (s *Secrets) Action(action string) {
 	actions := strings.Split(action, " ")
 	switch actions[1] {
 	case "list":
@@ -62,10 +66,10 @@ func (s *Secrets) action(action string) {
 // DefineContext define cli Context to permit ParseContext to retrieve
 // common variable set.
 func (s *Secrets) DefineContext(context clier.ParseContexter) {
-	s.context.defineContext(context)
+	s.Context.defineContext(context)
 }
 
 // GetStringValue Return a field value from the given context (parse time, or after)
 func (s *Secrets) GetStringValue(field string) (value string, found, isDefault bool, _ error) {
-	return s.context.GetStringValue(field)
+	return s.Context.GetStringValue(field)
 }

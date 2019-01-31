@@ -238,7 +238,7 @@ func (a *Forj) ParseContext(c *cli.ForjCli, _ interface{}) (error, bool) {
 	// TODO: Provide a caching feature if we keep loading from internet.
 	gotrace.Trace("Loading drivers...")
 	// Add drivers listed by the cli.
-	for instance, d := range a.drivers {
+	for instance, d := range a.drivers.List() {
 		gotrace.Trace("Loading '%s'", instance)
 		if err := a.load_driver_options(instance); err != nil {
 			log.Printf("Unable to load plugin information for instance '%s'. %s", instance, err)

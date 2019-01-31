@@ -94,7 +94,7 @@ func (a *Forj) Update() error {
 
 	// Loop on drivers requested like github or jenkins
 	for _, instance := range instances {
-		d := a.drivers[instance]
+		d, _ := a.drivers.Get(instance)
 		if err, aborted := a.do_driver_task("update", instance); err != nil {
 			// Clean identified source code.
 			if err2 := a.doDriverClean(d); err2 != nil {

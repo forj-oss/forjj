@@ -2,6 +2,8 @@ package secrets
 
 import (
 	"forjj/creds"
+	"forjj/drivers"
+	"forjj/forjfile"
 	"forjj/scandrivers"
 	"strings"
 
@@ -11,32 +13,40 @@ import (
 	"github.com/forj-oss/goforjj"
 )
 
-type secretsUnset struct {
+type sUnset struct {
 	cmd    *kingpin.CmdClause
 	key    *string
-	common *secretsCommon
+	common *common
 
-	elements map[string]secretInfo
+	elements map[string]sInfo
+
+	forjfile *forjfile.Forge
+	drivers  *drivers.Drivers
+	secrets  *creds.Secure
 }
 
-func (s *secretsUnset) init(parent *kingpin.CmdClause, common *secretsCommon) {
+func (s *sUnset) init(parent *kingpin.CmdClause, common *common, forjfile *forjfile.Forge, drivers *drivers.Drivers, secrets *creds.Secure) {
 	s.cmd = parent.Command("unset", "remove a credential stored in forjj secrets")
 	s.key = s.cmd.Arg("key", "Key path to remove. Format is <objectType>/<objectInstance>/<key>.)").Required().String()
 	s.common = common
+
+	s.forjfile = forjfile
+	s.drivers = drivers
+	s.secrets = secrets
 }
 
 // doSet register a password to the path given.
 // Only supported path are recognized.
-func (s *secretsUnset) doUnset() {
-	ffd := forj_app.f.InMemForjfile()
+func (s *sUnset) doUnset() {
+	ffd := s.forjfile.InMemForjfile()
 
-	scan := scandrivers.NewScanDrivers(ffd, forj_app.drivers)
-	s.elements = make(map[string]secretInfo)
+	scan := scandrivers.NewScanDrivers(ffd, s.drivers)
+	s.elements = make(map[string]sInfo)
 
 	// Retrieve secrets path
 	scan.SetScanObjFlag(func(objectName, instanceName, flagPrefix, name string, flag goforjj.YamlFlag) error {
 		if flag.Options.Secure {
-			info := secretInfo{}
+			info := sInfo{}
 			info.keyPath = objectName + "/" + instanceName + "/"
 			keyName := name
 			if flagPrefix != "" {
@@ -44,7 +54,7 @@ func (s *secretsUnset) doUnset() {
 			}
 			info.keyPath += keyName
 
-			info.value, info.found, info.source, info.env = forj_app.s.GetString(objectName, instanceName, keyName)
+			info.value, info.found, info.source, info.env = s.secrets.GetString(objectName, instanceName, keyName)
 
 			s.elements[info.keyPath] = info
 		}
@@ -59,15 +69,15 @@ func (s *secretsUnset) doUnset() {
 
 	keyPath := strings.Split(*s.key, "/")
 
-	env := forj_app.f.GetDeployment()
+	env := s.forjfile.GetDeployment()
 	if *s.common.common {
 		env = creds.Global
 	}
-	if !forj_app.s.UnsetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2]) {
+	if !s.secrets.UnsetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2]) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)
 		return
 	}
 
-	forj_app.s.SaveEnv(env)
+	s.secrets.SaveEnv(env)
 	gotrace.Info("'%s' secret text removed from '%s' deployment environment.", *s.key, env)
 }

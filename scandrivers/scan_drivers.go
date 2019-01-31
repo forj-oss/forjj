@@ -11,7 +11,7 @@ import (
 type ScanDrivers struct {
 	ffd                *forjfile.DeployForgeYaml
 	missing            bool
-	drivers            map[string]*drivers.Driver
+	drivers            *drivers.Drivers
 	taskFlag           func(name string, flag goforjj.YamlFlag) error
 	objectGetInstances func(object_name string) (ret []string)
 	objectFlag         func(object_name, instance_name, flag_prefix, name string, flag goforjj.YamlFlag) error
@@ -28,7 +28,7 @@ func (s *ScanDrivers) objectFlagDefault(object_name, instance_name, flag_prefix,
 }
 
 // NewScanDrivers creates a ScanDrivers object to scan Forjfile, creds or anything through drivers flags (tasks or objects)
-func NewScanDrivers(ffd *forjfile.DeployForgeYaml, drivers map[string]*drivers.Driver) (ret *ScanDrivers) {
+func NewScanDrivers(ffd *forjfile.DeployForgeYaml, drivers *drivers.Drivers) (ret *ScanDrivers) {
 	if ffd == nil {
 		return nil
 	}
@@ -48,7 +48,7 @@ func (s *ScanDrivers) ResetHandlers() {
 	s.taskFlag = s.taskFlagDefault
 	s.objectFlag = s.objectFlagDefault
 	return
-	
+
 }
 
 // SetScanTaskFlagsFunc regsiter the taskFlag function to the scanDrivers
@@ -94,7 +94,7 @@ func (s *ScanDrivers) DoScanDriversObject() (err error) {
 		return nil
 	}
 
-	for _, driver := range s.drivers {
+	for _, driver := range s.drivers.List() {
 		// Tasks flags
 		for _, task := range driver.Plugin.Yaml.Tasks {
 			for flagName, flag := range task {

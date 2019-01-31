@@ -1,8 +1,10 @@
 package secrets
 
 import (
-	"forjj/creds"
 	"fmt"
+	"forjj/creds"
+	"forjj/drivers"
+	"forjj/forjfile"
 	"forjj/scandrivers"
 	"os"
 	"strings"
@@ -14,34 +16,43 @@ import (
 	"github.com/forj-oss/goforjj"
 )
 
-type secretsSet struct {
+type sSet struct {
 	cmd      *kingpin.CmdClause
 	key      *string
 	password *string
-	common   *secretsCommon
+	common   *common
 
-	elements map[string]secretInfo
+	elements map[string]sInfo
+
+	forjfile *forjfile.Forge
+	drivers  *drivers.Drivers
+	secrets  *creds.Secure
 }
 
-func (s *secretsSet) init(parent *kingpin.CmdClause, common *secretsCommon) {
+func (s *sSet) init(parent *kingpin.CmdClause, common *common, forjfile *forjfile.Forge, drivers *drivers.Drivers, secrets  *creds.Secure) {
 	s.cmd = parent.Command("set", "store a new credential in forjj secrets")
 	s.key = s.cmd.Arg("key", "Key path. Format is <objectType>/<objectInstance>/<key>.)").Required().String()
 	s.password = s.cmd.Flag("password", "Secret key value").Short('P').String()
 	s.common = common
+
+	s.forjfile = forjfile
+	s.drivers = drivers
+	s.secrets = secrets
+
 }
 
 // doSet register a password to the path given.
 // Only supported path are recognized.
-func (s *secretsSet) doSet() {
-	ffd := forj_app.f.InMemForjfile()
+func (s *sSet) doSet() {
+	ffd := s.forjfile.InMemForjfile()
 
-	scan := scandrivers.NewScanDrivers(ffd, forj_app.drivers)
-	s.elements = make(map[string]secretInfo)
+	scan := scandrivers.NewScanDrivers(ffd, s.drivers)
+	s.elements = make(map[string]sInfo)
 
 	// Retrieve secrets path
 	scan.SetScanObjFlag(func(objectName, instanceName, flagPrefix, name string, flag goforjj.YamlFlag) error {
 		if flag.Options.Secure {
-			info := secretInfo{}
+			info := sInfo{}
 			info.keyPath = objectName + "/" + instanceName + "/"
 			keyName := name
 			if flagPrefix != "" {
@@ -50,9 +61,9 @@ func (s *secretsSet) doSet() {
 			info.keyPath += keyName
 
 			if *s.common.common {
-				info.value, info.found, info.source, info.env = forj_app.s.GetGlobalString(objectName, instanceName, keyName)
+				info.value, info.found, info.source, info.env = s.secrets.GetGlobalString(objectName, instanceName, keyName)
 			} else {
-				info.value, info.found, info.source, info.env = forj_app.s.GetString(objectName, instanceName, keyName)
+				info.value, info.found, info.source, info.env = s.secrets.GetString(objectName, instanceName, keyName)
 			}
 
 			s.elements[info.keyPath] = info
@@ -81,15 +92,15 @@ func (s *secretsSet) doSet() {
 
 	v := goforjj.ValueStruct{}
 	v.Set(*s.password)
-	env := forj_app.f.GetDeployment()
+	env := s.forjfile.GetDeployment()
 	if *s.common.common {
 		env = creds.Global
 	}
-	if !forj_app.s.SetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2], &v) {
+	if !s.secrets.SetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2], &v) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)
 		return
 	}
 
-	forj_app.s.SaveEnv(env)
+	s.secrets.SaveEnv(env)
 	gotrace.Info("'%s' secret text saved in '%s' deployment environment.", *s.key, env)
 }

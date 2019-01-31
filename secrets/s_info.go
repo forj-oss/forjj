@@ -1,6 +1,6 @@
 package secrets
 
-type secretInfo struct {
+type sInfo struct {
 	keyPath string
 	value string
 	source string

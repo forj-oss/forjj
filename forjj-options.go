@@ -17,7 +17,7 @@ type ForjjOptions struct {
 func (a *Forj) GetUniqDriverName(driverType string) (od string) {
 	var found_one_driver *string
 
-	for instance, d := range a.drivers {
+	for instance, d := range a.drivers.List() {
 		if d.DriverType == driverType {
 			switch {
 			case found_one_driver == nil:

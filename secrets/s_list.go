@@ -2,6 +2,9 @@ package secrets
 
 import (
 	"fmt"
+	"forjj/creds"
+	"forjj/drivers"
+	"forjj/forjfile"
 	"forjj/scandrivers"
 	"forjj/utils"
 	"strings"
@@ -11,30 +14,38 @@ import (
 	"github.com/forj-oss/goforjj"
 )
 
-type secretsList struct {
+type sList struct {
 	cmd      *kingpin.CmdClause
 	show     *bool
-	elements map[string]secretInfo
-	common   *secretsCommon
+	elements map[string]sInfo
+	common   *common
+
+	forjfile *forjfile.Forge
+	drivers  *drivers.Drivers
+	secrets  *creds.Secure
 }
 
-func (l *secretsList) init(parentCmd *kingpin.CmdClause, common *secretsCommon) {
+func (l *sList) init(parentCmd *kingpin.CmdClause, common *common, forjfile *forjfile.Forge, drivers *drivers.Drivers, secrets  *creds.Secure) {
 	l.cmd = parentCmd.Command("list", "Show all credentials of the factory").Default()
 	l.show = l.cmd.Flag("show", "Show password unencrypted.").Bool()
 	l.common = common
+
+	l.forjfile = forjfile
+	l.drivers = drivers
+	l.secrets = secrets
 }
 
 // Display the list of secrets
-func (l *secretsList) showList() {
-	ffd := forj_app.f.InMemForjfile()
+func (l *sList) showList() {
+	ffd := l.forjfile.InMemForjfile()
 
-	scan := scandrivers.NewScanDrivers(ffd, forj_app.drivers)
-	l.elements = make(map[string]secretInfo)
+	scan := scandrivers.NewScanDrivers(ffd, l.drivers)
+	l.elements = make(map[string]sInfo)
 
 	// Retrieve secrets
 	scan.SetScanObjFlag(func(objectName, instanceName, flagPrefix, name string, flag goforjj.YamlFlag) error {
 		if flag.Options.Secure {
-			info := secretInfo{}
+			info := sInfo{}
 			info.keyPath = objectName + "/" + instanceName + "/"
 			keyName := name
 			if flagPrefix != "" {
@@ -43,9 +54,9 @@ func (l *secretsList) showList() {
 			info.keyPath += keyName
 
 			if *l.common.common {
-				info.value, info.found, info.source, info.env = forj_app.s.GetGlobalString(objectName, instanceName, keyName)
+				info.value, info.found, info.source, info.env = l.secrets.GetGlobalString(objectName, instanceName, keyName)
 			} else {
-				info.value, info.found, info.source, info.env = forj_app.s.GetString(objectName, instanceName, keyName)
+				info.value, info.found, info.source, info.env = l.secrets.GetString(objectName, instanceName, keyName)
 			}
 
 			l.elements[info.keyPath] = info
@@ -76,7 +87,7 @@ func (l *secretsList) showList() {
 			len(value))
 	}
 
-	fmt.Printf("List of secrets in forjj: (Deployment environment = '%s')\n\n", forj_app.f.GetDeployment())
+	fmt.Printf("List of secrets in forjj: (Deployment environment = '%s')\n\n", l.forjfile.GetDeployment())
 
 	// Print the array
 	iFound := 0

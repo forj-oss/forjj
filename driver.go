@@ -161,7 +161,7 @@ func (a *Forj) do_driver_add(d *drivers.Driver) error {
 // Forj.CurrentPluginDriver set
 func (a *Forj) driver_init(instance string) error {
 
-	d, found := a.drivers[instance]
+	d, found := a.drivers.Get(instance)
 	if !found {
 		return fmt.Errorf("Internal error: Unable to find %s from drivers.", instance)
 	}
@@ -171,7 +171,7 @@ func (a *Forj) driver_init(instance string) error {
 
 func (a *Forj) driver_cleanup_all() {
 	gotrace.Trace("Stopping all running loaded services...")
-	for instance, d := range a.drivers {
+	for instance, d := range a.drivers.List() {
 		gotrace.Trace("- %s", instance)
 		d.Plugin.PluginStopService()
 	}
@@ -353,7 +353,7 @@ func (a *Forj) driver_do(d *drivers.Driver, instance_name, action string, args .
 func (a *Forj) DriverGet(instance string) (d *drivers.Driver) {
 	var found bool
 
-	if d, found = a.drivers[instance]; found {
+	if d, found = a.drivers.Get(instance); found {
 		return
 	}
 
