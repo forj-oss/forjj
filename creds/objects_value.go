@@ -26,11 +26,13 @@ func (v *ObjectsValue) Set(source string, value *goforjj.ValueStruct) {
 		return
 	}
 	if v.value == nil {
-		v.value = value
-	} else {
-		*v.value = *value
+		v.value = goforjj.NewValueStruct(nil)
 	}
+	*v.value = *value
 	v.source = source
+	if v.resource == nil {
+		v.resource = make(map[string]string)
+	}
 }
 
 // GetString source andvalue of a ForjValue instance

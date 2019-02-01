@@ -3,14 +3,13 @@ package creds
 import (
 	"bufio"
 	"fmt"
-	"forjj/sources_info"
+	sourcesinfo "forjj/sources_info"
 	"io"
 	"io/ioutil"
 	"os"
 
-	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
-	"gopkg.in/yaml.v2"
+	gotrace "github.com/forj-oss/forjj-modules/trace"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type yamlSecure struct {
@@ -192,8 +191,8 @@ func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *Objects
 	if i, isFound := d.Objects[obj_name]; isFound {
 		if k, isFound := i[instance_name]; isFound {
 			if v, isFound := k[key_name]; isFound && v.value != nil {
-				ret.value = new(goforjj.ValueStruct)
-				*ret.value = *v.value
+				ret = NewObjectsValue(v.source, v.value)
+				ret.resource = v.resource
 				found = true
 				source = d.sources.Get(obj_name + "/" + instance_name + "/" + key_name)
 				return
