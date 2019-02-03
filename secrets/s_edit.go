@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/alecthomas/kingpin"
-	"github.com/forj-oss/forjj-modules/trace"
+	gotrace "github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
 )
 
@@ -129,16 +129,13 @@ func (e *sEdit) doEdit() {
 		gotrace.Info("File is empty. Update ignored.")
 		return
 	}
-	v := creds.ObjectsValue{}
-	value := goforjj.ValueStruct{}
 
-	v.Set("forjj", &value)
-	value.Set(e.password)
+	v := creds.NewObjectsValue("forjj", goforjj.NewValueStruct(e.password))
 	env := e.forjfile.GetDeployment()
 	if *e.common.common {
 		env = creds.Global
 	}
-	if !e.secrets.SetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2], &v) {
+	if !e.secrets.SetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2], v) {
 		gotrace.Info("'%s' secret text not updated.", *e.key)
 		return
 	}
