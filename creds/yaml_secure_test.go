@@ -355,7 +355,7 @@ objects:
     jenkins:
       aws-iam-arn-slave:
 `
-	// update context
+	// ------------- update context
 	r = strings.NewReader(yamlData)
 	err = s.iLoad(r)
 

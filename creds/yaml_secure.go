@@ -190,7 +190,7 @@ func (d *yamlSecure) getString(obj_name, instance_name, key_name string) (string
 func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *ObjectsValue, found bool, source string) {
 	if i, isFound := d.Objects[obj_name]; isFound {
 		if k, isFound := i[instance_name]; isFound {
-			if v, isFound := k[key_name]; isFound && v.value != nil {
+			if v, isFound := k[key_name]; isFound && v != nil && v.value != nil {
 				ret = NewObjectsValue(v.source, v.value)
 				ret.resource = v.resource
 				found = true
