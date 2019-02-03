@@ -184,6 +184,9 @@ func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name st
 
 func (d *yamlSecure) getString(obj_name, instance_name, key_name string) (string, bool, string) {
 	v, found, source := d.get(obj_name, instance_name, key_name)
+	if !found || v == nil || v.value == nil {
+		return "", found, source
+	}
 	return v.value.GetString(), found, source
 }
 
