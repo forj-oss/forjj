@@ -13,6 +13,11 @@ type ObjectsValue struct {
 	source   string            // Source of the data. Can be `forjj`, `file` or an external service like `plugin:vault`
 }
 
+type yamlObjectsValue struct {
+	Value    *goforjj.ValueStruct
+	Resource map[string]string
+	Source   string
+}
 
 func NewObjectsValue(source string, value *goforjj.ValueStruct) (ret *ObjectsValue) {
 	ret = new(ObjectsValue)
@@ -57,13 +62,30 @@ func (v *ObjectsValue) AddResource(key, value string) {
 
 // MarshalYAML encode the object in ValueStruct output
 func (v ObjectsValue) MarshalYAML() (interface{}, error) {
-	return v.value.MarshalYAML()
+	// Version 0.2
+	value := yamlObjectsValue{
+		Value:    v.value,
+		Resource: v.resource,
+		Source:   v.source,
+	}
+	return value, nil
 }
 
 // UnmarshalYAML decode the flow as a ValueStruct
-func (v *ObjectsValue) UnmarshalYAML(unmarchal func(interface{}) error) error {
+func (v *ObjectsValue) UnmarshalYAML(unmarchal func(interface{}) error) (err error) {
 	if v.value == nil {
 		v.value = new(goforjj.ValueStruct)
 	}
-	return v.value.UnmarshalYAML(unmarchal)
+
+	if data.Version == "0.1" {
+		return v.value.UnmarshalYAML(unmarchal)
+	}
+
+	// Version 0.2
+	data := new(yamlObjectsValue)
+	err = unmarchal(data)
+	v.value = data.Value
+	v.resource = data.Resource
+	v.source = data.Source
+	return
 }

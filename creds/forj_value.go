@@ -10,6 +10,12 @@ type ForjValue struct {
 	source   string            // Source of the data. Can be `forjj`, `file` or an external service like `plugin:vault`
 }
 
+type yamlForjValue struct {
+	Value    string
+	Resource map[string]string
+	Source   string
+}
+
 func NewForjValue(source, value string) (ret *ForjValue) {
 	ret = new(ForjValue)
 	ret.Set(source, value)
@@ -42,10 +48,28 @@ func (v *ForjValue) AddResource(key, value string) {
 
 // MarshalYAML encode the object in ValueStruct output
 func (v ForjValue) MarshalYAML() (interface{}, error) {
-	return v.value, nil
+	// Version 0.2
+	value := yamlForjValue{
+		Value:    v.value,
+		Resource: v.resource,
+		Source:   v.source,
+	}
+
+	return value, nil
 }
 
 // UnmarshalYAML decode the flow as a ValueStruct
-func (v *ForjValue) UnmarshalYAML(unmarchal func(interface{}) error) error {
-	return unmarchal(&v.value)
+func (v *ForjValue) UnmarshalYAML(unmarchal func(interface{}) error) (err error) {
+	if data.Version == "0.1" {
+		return unmarchal(&v.value)
+	}
+
+	// Version 0.2
+	data := new(yamlForjValue)
+	err = unmarchal(data)
+	v.resource = data.Resource
+	v.source = data.Source
+	v.value = data.Value
+	return
+
 }

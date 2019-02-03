@@ -7,10 +7,22 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sync"
 
 	gotrace "github.com/forj-oss/forjj-modules/trace"
 	yaml "gopkg.in/yaml.v2"
 )
+
+var data *yamlSecureData
+
+// creds is a module to manage secrets data of forjj.
+// It is NOT possible to read secrets recursively, as secret data version is managed through a shared variable
+// used at load time (See UnmarshalYAML)
+//
+// But the module is threadsafe. We can load multiple secrets in parallel but finally will be loaded one by one in series.
+// So there is no sense to do it all in parallel.
+//
+// The version management is made like that, today. If there is a better way to do it, suggest a PR! Until I found a better way to do it.
 
 type yamlSecure struct {
 	file       string
@@ -20,11 +32,38 @@ type yamlSecure struct {
 	secretFile bool
 	file_path  string
 	loaded     bool
-	Version    string
-	Forj       map[string]*ForjValue
-	Objects    map[string]map[string]map[string]*ObjectsValue
-	sources    *sourcesinfo.Sources
-	s          *Secrets
+
+	Version string
+	Forj    map[string]*ForjValue
+	Objects map[string]map[string]map[string]*ObjectsValue
+	sources *sourcesinfo.Sources
+	s       *Secrets
+}
+
+type yamlSecureData struct {
+	Version string
+	Forj    map[string]*ForjValue
+	Objects map[string]map[string]map[string]*ObjectsValue
+}
+
+func (d *yamlSecure) UnmarshalYAML(unmarchal func(interface{}) error) (err error) {
+	mutex := new(sync.Mutex)
+
+	mutex.Lock()
+	defer func() {
+		mutex.Unlock()
+	}()
+
+	data = new(yamlSecureData)
+	err = unmarchal(data)
+	d.Version = data.Version
+	if d.Version != CredsVersion {
+		gotrace.Trace("Old secret file version loaded: '%s'", d.Version)
+	}
+	d.Forj = data.Forj
+	d.Objects = data.Objects
+	data = nil
+	return
 }
 
 func (d *yamlSecure) isLoaded() bool {
@@ -91,6 +130,7 @@ func (d *yamlSecure) save(secretFile bool) (err error) {
 	var (
 		yamlData []byte
 	)
+	d.Version = CredsVersion
 	file := d.credFile
 	if !secretFile {
 		file = d.file

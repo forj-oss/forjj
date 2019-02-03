@@ -11,7 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 // Secrets is internal secret structured shared with ci to run forjj jobs

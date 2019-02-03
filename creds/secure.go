@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	CredsVersion = "0.1"
+	// CredsVersion is the latest supported version of Forjj secrets files.
+	CredsVersion = "0.2"
 )
 
 // Secure is the master object to control Forjj security information.
