@@ -76,7 +76,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to exist. Not found", object1, instance1, key1)
 	} else if v3 == nil {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to be set. Got nil", object1, instance1, key1)
-	} else if v4 := v3.GetString(); v4 != value1 {
+	} else if v4, _ := v3.GetString(); v4 != value1 {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to be '%s'. Got '%s'", object1, instance1, key1, v4, value1)
 	} else if !result {
 		t.Error("Expected setObjectValue to return true. got false.")
@@ -137,7 +137,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to exist. Not found", object1, instance1, key1)
 	} else if v3 == nil {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to be set. Got nil", object1, instance1, key1)
-	} else if v4 := v3.GetString(); v4 != value2 {
+	} else if v4, _ := v3.GetString(); v4 != value2 {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to be '%s'. Got '%s'", object1, instance1, key1, v4, value2)
 	} else if !result {
 		t.Error("Expected setObjectValue to return true. got false.")
@@ -165,7 +165,7 @@ func Test_YamlSecure_unsetObjectValue(t *testing.T) {
 	objectsValue := NewObjectsValue("forjj", value)
 	result := s.setObjectValue(src1, object1, instance1, key1, objectsValue)
 	// ------------- call the function
-	result = s.unsetObjectValue(src1, object1, instance1, key1)
+	result = s.unsetObjectValue(object1, instance1, key1)
 
 	// -------------- testing
 	if s.Objects == nil {
@@ -191,7 +191,7 @@ func Test_YamlSecure_unsetObjectValue(t *testing.T) {
 	}
 
 	// ------------- call the function
-	result = s.unsetObjectValue(src1, object1, instance2, key1)
+	result = s.unsetObjectValue(object1, instance2, key1)
 	// -------------- testing
 	if s.Objects == nil {
 		t.Error("Expected s.Objects to be set. Got nil")
