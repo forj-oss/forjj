@@ -90,15 +90,13 @@ func (s *sSet) doSet() {
 
 	keyPath := strings.Split(*s.key, "/")
 
-	v := creds.ObjectsValue{}
-	value := goforjj.ValueStruct{}
-	value.Set(*s.password)
-	v.Set("forjj", &value)
+	v := creds.NewObjectsValue("internal", goforjj.NewValueStruct(*s.password))
+
 	env := s.forjfile.GetDeployment()
 	if *s.common.common {
 		env = creds.Global
 	}
-	if !s.secrets.SetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2], &v) {
+	if !s.secrets.SetObjectValue(env, "internal", keyPath[0], keyPath[1], keyPath[2], v) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)
 		return
 	}

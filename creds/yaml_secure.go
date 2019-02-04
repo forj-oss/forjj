@@ -168,7 +168,7 @@ func (d *yamlSecure) GetForjValue(key string) (ret *ForjValue, found bool) {
 	return
 }
 
-func (d *yamlSecure) unsetObjectValue(source, obj_name, instance_name, key_name string) (updated bool) {
+func (d *yamlSecure) unsetObjectValue(obj_name, instance_name, key_name string) (updated bool) {
 	if d.Objects == nil {
 		return
 	}

@@ -13,31 +13,83 @@ type ObjectsValue struct {
 	source   string            // Source of the data. Can be `forjj`, `file` or an external service like `plugin:vault`
 }
 
-type yamlObjectsValue struct {
-	Value    *goforjj.ValueStruct
-	Resource map[string]string
-	Source   string
-}
+const (
+	internal = "internal"
+)
 
+// NewObjectsValue creates a new ObjectValue object, initialized with a ValueStruct if needed.
 func NewObjectsValue(source string, value *goforjj.ValueStruct) (ret *ObjectsValue) {
 	ret = new(ObjectsValue)
 	ret.Set(source, value)
 	return
 }
 
-// Set source andvalue of a ForjValue instance
+func (v *ObjectsValue) init() {
+	if v == nil {
+		return
+	}
+	if v.resource == nil {
+		v.resource = make(map[string]string)
+	}
+}
+
+// Set source andvalue of a ObjectsValue instance
 func (v *ObjectsValue) Set(source string, value *goforjj.ValueStruct) {
+	if v == nil {
+		return
+	}
+
+	v.init()
+
+	v.SetValue(value)
+	v.source = source
+}
+
+// SetValue set the value of a ObjectsValue instance
+func (v *ObjectsValue) SetValue(value interface{}) {
+	if v == nil {
+		return
+	}
+
+	v.init()
+
+	if v.value == nil {
+		v.value = goforjj.NewValueStruct(nil)
+		v.source = internal
+	}
+	v.value.Set(value)
+	if v.resource == nil {
+		v.resource = make(map[string]string)
+	}
+}
+
+// SetSource set the source information of a ObjectsValue instance
+func (v *ObjectsValue) SetSource(source string) {
 	if v == nil {
 		return
 	}
 	if v.value == nil {
 		v.value = goforjj.NewValueStruct(nil)
 	}
-	*v.value = *value
 	v.source = source
 	if v.resource == nil {
 		v.resource = make(map[string]string)
 	}
+}
+
+// GetSource get the source information of a ObjectsValue instance
+func (v *ObjectsValue) GetSource() string {
+	if v == nil {
+		return ""
+	}
+	if v.value == nil {
+		return ""
+	}
+	if v.source == "" {
+		return internal
+	}
+
+	return v.source
 }
 
 // GetString source andvalue of a ForjValue instance
@@ -47,6 +99,20 @@ func (v *ObjectsValue) GetString() (_ string) {
 	}
 	return v.value.GetString()
 }
+
+// GetResource return the resource value
+func (v *ObjectsValue) GetResource(key string) (value string, found bool) {
+	if v == nil {
+		return
+	}
+	if v.resource == nil {
+		v.resource = make(map[string]string)
+	}
+
+	value, found = v.resource[key]
+	return
+}
+
 
 // AddResource adds resources information to the data given
 func (v *ObjectsValue) AddResource(key, value string) {

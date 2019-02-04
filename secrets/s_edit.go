@@ -92,7 +92,8 @@ func (e *sEdit) doEdit() {
 
 	keyPath := strings.Split(*e.key, "/")
 
-	e.password, _, _, _ = e.secrets.GetString(keyPath[0], keyPath[1], keyPath[2])
+	v, _, _, _ := e.secrets.Get(keyPath[0], keyPath[1], keyPath[2])
+	e.password = v.GetString()
 
 	_, err = tmpFile.WriteString(e.password)
 	if err != nil {
@@ -130,7 +131,7 @@ func (e *sEdit) doEdit() {
 		return
 	}
 
-	v := creds.NewObjectsValue("forjj", goforjj.NewValueStruct(e.password))
+	v.SetValue(e.password)
 	env := e.forjfile.GetDeployment()
 	if *e.common.common {
 		env = creds.Global

@@ -53,11 +53,15 @@ func (l *sList) showList() {
 			}
 			info.keyPath += keyName
 
+			var value *creds.ObjectsValue
 			if *l.common.common {
-				info.value, info.found, info.source, info.env = l.secrets.GetGlobalString(objectName, instanceName, keyName)
+				value, info.found, _, info.env = l.secrets.GetGlobal(objectName, instanceName, keyName)
 			} else {
-				info.value, info.found, info.source, info.env = l.secrets.GetString(objectName, instanceName, keyName)
+				value, info.found, _, info.env = l.secrets.Get(objectName, instanceName, keyName)
 			}
+
+			info.value = value.GetString()
+			info.source = value.GetSource()
 
 			l.elements[info.keyPath] = info
 		}
@@ -82,8 +86,8 @@ func (l *sList) showList() {
 		}
 		array.EvalLine(secretPath,
 			len(secretPath),
-			len(secretValue.source),
 			len(secretValue.env),
+			len(secretValue.source),
 			len(value))
 	}
 

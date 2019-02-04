@@ -73,7 +73,7 @@ func (s *sUnset) doUnset() {
 	if *s.common.common {
 		env = creds.Global
 	}
-	if !s.secrets.UnsetObjectValue(env, "forjj", keyPath[0], keyPath[1], keyPath[2]) {
+	if !s.secrets.UnsetObjectValue(env, keyPath[0], keyPath[1], keyPath[2]) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)
 		return
 	}

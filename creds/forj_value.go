@@ -10,12 +10,6 @@ type ForjValue struct {
 	source   string            // Source of the data. Can be `forjj`, `file` or an external service like `plugin:vault`
 }
 
-type yamlForjValue struct {
-	Value    string
-	Resource map[string]string
-	Source   string
-}
-
 func NewForjValue(source, value string) (ret *ForjValue) {
 	ret = new(ForjValue)
 	ret.Set(source, value)

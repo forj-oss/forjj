@@ -292,12 +292,12 @@ func (d *Secure) SetObjectValue(env, source, obj_name, instance_name, key_name s
 }
 
 // UnsetObjectValue remove the object value
-func (d *Secure) UnsetObjectValue(env, source, objName, instanceName, keyName string) (_ bool) {
+func (d *Secure) UnsetObjectValue(env, objName, instanceName, keyName string) (_ bool) {
 	if d == nil {
 		return
 	}
 	if v, found := d.secrets.Envs[env]; found {
-		if v.unsetObjectValue(source, objName, instanceName, keyName) {
+		if v.unsetObjectValue(objName, instanceName, keyName) {
 			d.updated = true
 			d.secrets.Envs[env] = v
 			return true
@@ -334,6 +334,21 @@ func (d *Secure) GetString(objName, instanceName, keyName string) (value string,
 		}
 	}
 	return "", false, "", ""
+}
+
+// Get value of the object instance key...
+func (d *Secure) GetGlobal(objName, instanceName, keyName string) (value *ObjectsValue, found bool, source, env string) {
+	if d == nil {
+		return
+	}
+	for _, env = range []string{Global} {
+		if v, isFound := d.secrets.Envs[env]; isFound {
+			if value, found, source = v.get(objName, instanceName, keyName); found {
+				return
+			}
+		}
+	}
+	return nil, false, "", ""
 }
 
 // Get value of the object instance key...
