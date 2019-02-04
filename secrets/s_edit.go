@@ -93,7 +93,11 @@ func (e *sEdit) doEdit() {
 	keyPath := strings.Split(*e.key, "/")
 
 	v, _, _, _ := e.secrets.Get(keyPath[0], keyPath[1], keyPath[2])
-	e.password = v.GetString()
+	e.password, err = v.GetString()
+	if err != nil {
+		gotrace.Error("Unable to get %s data. %s", keyPath, err)
+		return
+	}
 
 	_, err = tmpFile.WriteString(e.password)
 	if err != nil {

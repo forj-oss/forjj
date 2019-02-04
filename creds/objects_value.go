@@ -1,6 +1,12 @@
 package creds
 
-import "github.com/forj-oss/goforjj"
+import (
+	"fmt"
+	"io/ioutil"
+
+	gotrace "github.com/forj-oss/forjj-modules/trace"
+	"github.com/forj-oss/goforjj"
+)
 
 // ObjectValue describe the Objects keys value
 type ObjectsValue struct {
@@ -15,6 +21,7 @@ type ObjectsValue struct {
 
 const (
 	internal = "internal"
+	link     = "link"
 )
 
 // NewObjectsValue creates a new ObjectValue object, initialized with a ValueStruct if needed.
@@ -93,11 +100,26 @@ func (v *ObjectsValue) GetSource() string {
 }
 
 // GetString source andvalue of a ForjValue instance
-func (v *ObjectsValue) GetString() (_ string) {
+func (v *ObjectsValue) GetString() (_ string, err error) {
 	if v == nil {
 		return
 	}
-	return v.value.GetString()
+
+	if v.source == link {
+		file, found := v.resource["linked-to"]
+		if  !found {
+			gotrace.Error("Invalid link secret. Missing 'linked-to' resource")
+			return
+		}
+
+		if d, err := ioutil.ReadFile(file) ; err != nil {
+			return "", fmt.Errorf("Unable to read file %s. %s", file, err)
+		} else {
+			return string(d), nil
+		}
+
+	}
+	return v.value.GetString(), nil
 }
 
 // GetResource return the resource value
@@ -112,7 +134,6 @@ func (v *ObjectsValue) GetResource(key string) (value string, found bool) {
 	value, found = v.resource[key]
 	return
 }
-
 
 // AddResource adds resources information to the data given
 func (v *ObjectsValue) AddResource(key, value string) {

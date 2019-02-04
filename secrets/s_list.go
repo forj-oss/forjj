@@ -25,7 +25,7 @@ type sList struct {
 	secrets  *creds.Secure
 }
 
-func (l *sList) init(parentCmd *kingpin.CmdClause, common *common, forjfile *forjfile.Forge, drivers *drivers.Drivers, secrets  *creds.Secure) {
+func (l *sList) init(parentCmd *kingpin.CmdClause, common *common, forjfile *forjfile.Forge, drivers *drivers.Drivers, secrets *creds.Secure) {
 	l.cmd = parentCmd.Command("list", "Show all credentials of the factory").Default()
 	l.show = l.cmd.Flag("show", "Show password unencrypted.").Bool()
 	l.common = common
@@ -60,7 +60,11 @@ func (l *sList) showList() {
 				value, info.found, _, info.env = l.secrets.Get(objectName, instanceName, keyName)
 			}
 
-			info.value = value.GetString()
+			if v, err := value.GetString(); err != nil {
+				info.value = fmt.Sprintf("Warning! %s", err)
+			} else {
+				info.value = v
+			}
 			info.source = value.GetSource()
 
 			l.elements[info.keyPath] = info

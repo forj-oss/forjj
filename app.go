@@ -8,8 +8,8 @@ import (
 	"forjj/flow"
 	"forjj/forjfile"
 	"forjj/repo"
-	forjjWorkspace "forjj/workspace"
 	"forjj/secrets"
+	forjjWorkspace "forjj/workspace"
 	"log"
 	"net/url"
 	"os"
@@ -46,9 +46,9 @@ type Forj struct {
 
 	//flags_loaded map[string]string // key/values for flags loaded. Used when doing a create AND maintain at the same time (create case)
 
-	drivers         drivers.Drivers // List of drivers data/flags/... per instance name (key)
-	plugins         *goforjj.Plugins           // List of plugins loaded
-	drivers_options drivers.DriversOptions     // forjj-maintain.yml See infra-maintain.go
+	drivers         drivers.Drivers        // List of drivers data/flags/... per instance name (key)
+	plugins         *goforjj.Plugins       // List of plugins loaded
+	drivers_options drivers.DriversOptions // forjj-maintain.yml See infra-maintain.go
 
 	cli *cli.ForjCli // ForjCli data
 	app *kingpin.Application
@@ -179,7 +179,7 @@ func (a *Forj) Model(object_name, instance_name, key string) *ForjModel {
 	}
 	data.Secret = ""
 	if v, found := data.Current.Creds[key]; found {
-		data.Secret = v.GetString()
+		data.Secret, _ = v.GetString()
 	}
 	return &data
 }
