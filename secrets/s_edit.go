@@ -93,6 +93,10 @@ func (e *sEdit) doEdit() {
 	keyPath := strings.Split(*e.key, "/")
 
 	v, _, _, _ := e.secrets.Get(keyPath[0], keyPath[1], keyPath[2])
+	if source:= v.GetSource() ; source != creds.Internal {
+		gotrace.Error("Unable to edit %s %s data. Only %s data can be edited.", keyPath, source, creds.Internal)
+		return
+	}
 	e.password, err = v.GetString()
 	if err != nil {
 		gotrace.Error("Unable to get %s data. %s", keyPath, err)

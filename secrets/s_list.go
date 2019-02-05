@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/kingpin"
-	"github.com/forj-oss/forjj-modules/trace"
+	gotrace "github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
 )
 
@@ -63,7 +63,11 @@ func (l *sList) showList() {
 			if v, err := value.GetString(); err != nil {
 				info.value = fmt.Sprintf("Warning! %s", err)
 			} else {
-				info.value = v
+				if !*l.show && value.GetSource() == link {
+					info.value, _ = value.GetResource("linked-to")
+				} else {
+					info.value = v
+				}
 			}
 			info.source = value.GetSource()
 
@@ -86,7 +90,9 @@ func (l *sList) showList() {
 	value := "***"
 	for secretPath, secretValue := range l.elements {
 		if *l.show {
-			value = strings.Replace(secretValue.value, "\n", "", -1)
+			value = strings.Replace(secretValue.value, "\n", "\\n", -1)
+		} else if secretValue.source == link {
+			value = secretValue.value
 		}
 		array.EvalLine(secretPath,
 			len(secretPath),
@@ -112,7 +118,9 @@ func (l *sList) showList() {
 			if secretValue.found {
 				value = "***"
 				if *l.show {
-					value = strings.Replace(secretValue.value, "\n", "", -1)
+					value = strings.Replace(secretValue.value, "\n", "\\n", -1)
+				} else if secretValue.source == link {
+					value = secretValue.value
 				}
 
 				iFound++
