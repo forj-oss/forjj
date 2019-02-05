@@ -58,8 +58,8 @@ func (s *sSet) doSet() {
 		return
 	}
 
-	if *s.copyFile != "" && *s.linkFile != "" {
-		gotrace.Error("You can set flags --copy-file and --link-file. Choose the proper one", *s.key)
+	if (*s.copyFile != "" && *s.linkFile != "") || (*s.password != "" && (*s.copyFile != "" || *s.linkFile != "")) {
+		gotrace.Error("Incorrect flags combination. flags --copy-file, --link-file and --password are exclusive. Choose the proper one and retry.")
 		return
 	} else if *s.copyFile != "" {
 		s.copyFromFile(env)
