@@ -138,7 +138,7 @@ func TestSetForjValue(t *testing.T) {
 		source = "source"
 	)
 	s.InitEnvDefaults(myPath, prod)
-	forjValue1 := NewForjValue("forjj", value1)
+	forjValue1 := NewValue("forjj", goforjj.NewValueStruct(value1))
 
 	// ------------- call the function
 	updated, err := s.SetForjValue(prod, source, key1, forjValue1)
@@ -175,9 +175,9 @@ func TestSetObjectValue(t *testing.T) {
 	s.InitEnvDefaults(myPath, prod)
 
 	// ------------- call the function
-	value := goforjj.NewValueStruct(value1)
-	forjValue := NewObjectsValue("forjj", value)
-	updated := s.SetObjectValue(prod, source, object1, instance1, key1, forjValue)
+	updated := s.SetObjectValue(prod, source, object1, instance1, key1,
+		NewValue("forjj",
+			goforjj.NewValueStruct(value1)))
 
 	// -------------- testing
 	if !updated {
@@ -212,9 +212,9 @@ func TestGetObjectInstance(t *testing.T) {
 		source    = "source"
 	)
 	s.InitEnvDefaults(myPath, prod)
-	value := new(goforjj.ValueStruct)
-	value.Set(value1)
-	objectsValue := NewObjectsValue("forjj", value)
+	value := goforjj.NewValueStruct(value1)
+	objectsValue := NewValue("forjj", value)
+
 	s.SetObjectValue(prod, source, object1, instance1, key1, objectsValue)
 
 	// ------------- call the function

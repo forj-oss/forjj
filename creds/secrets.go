@@ -11,6 +11,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/forj-oss/goforjj"
+
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -20,6 +22,10 @@ type Secrets struct {
 	key       []byte
 	key64     string
 	Envs      map[string]*yamlSecure `yaml:";inline"`
+
+	// handlers to set or get
+	setter map[string]func(v *Value, value *goforjj.ValueStruct) error
+	getter map[string]func(v *YamlValue) (string, error)
 }
 
 const KeySize = 32
@@ -27,8 +33,23 @@ const KeySize = 32
 // NewSecrets creates the internal secret object to shared with CI running infra/deploy repositories.
 func NewSecrets() (ret *Secrets) {
 	ret = new(Secrets)
-	ret.Envs = make(map[string]*yamlSecure)
+	ret.init()
 	return
+}
+
+func (s *Secrets) init() {
+	if s == nil {
+		return
+	}
+
+	if s.Envs == nil {
+		s.Envs = make(map[string]*yamlSecure)
+	}
+
+	if s.setter == nil {
+		s.setter = make(map[string]func(*Value, *goforjj.ValueStruct) error)
+		s.getter = make(map[string]func(*YamlValue) (string, error))
+	}
 }
 
 // GenerateKey help to create a random key for the encryption
@@ -114,6 +135,9 @@ func (s *Secrets) Export() (_ []byte, err error) {
 		return
 	}
 
+	// To show the content of the secret yaml data. Do not uncomment for a final production code.
+	//gotrace.Test("%s\n", string(secretData))
+
 	return s.encrypt(secretData)
 }
 
@@ -153,6 +177,9 @@ func (s *Secrets) ImportToEnv(ciphertext []byte, env *yamlSecure) error {
 	if err != nil {
 		return err
 	}
+
+	// To show the content of the secret yaml data. Do not uncomment for a final production code.
+	//gotrace.Test("%s\n", string(secretData))
 
 	return yaml.Unmarshal(secretData, env)
 }
@@ -211,4 +238,18 @@ func (s *Secrets) decrypt(ciphertext []byte) (secretData []byte, _ error) {
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 
 	return gcm.Open(nil, nonce, ciphertext, nil)
+}
+
+// SetSetterHandler set setter types like 'link'
+func (s *Secrets) setSetterHandler(key string, setter func(v *Value, value *goforjj.ValueStruct) error) {
+	s.init()
+
+	s.setter[key] = setter
+}
+
+// SetGetterHandler set getter types like 'link'
+func (s *Secrets) setGetterHandler(key string, getter func(v *YamlValue) (string, error)) {
+	s.init()
+
+	s.getter[key] = getter
 }

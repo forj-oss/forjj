@@ -53,7 +53,7 @@ func (l *sList) showList() {
 			}
 			info.keyPath += keyName
 
-			var value *creds.ObjectsValue
+			var value *creds.Value
 			if *l.common.common {
 				value, info.found, _, info.env = l.secrets.GetGlobal(objectName, instanceName, keyName)
 			} else {

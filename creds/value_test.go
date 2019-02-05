@@ -8,17 +8,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_NewObjectsValue(t *testing.T) {
+func Test_NewValue(t *testing.T) {
 	t.Log("Expecting NewForjValue to properly initialized the ForjValue object.")
 	assert := assert.New(t)
 	value := goforjj.NewValueStruct("value")
 
 	// ------------- call the function
-	v := NewObjectsValue("forjj", value)
+	v := NewValue("forjj", value)
 
 	// -------------- testing
-	when := "when a new ObjectsValue is set"
-	if assert.NotNilf(v, "Expected ObjectsValue to be returned %s", when) {
+	when := "when a new Value is set"
+	if assert.NotNilf(v, "Expected Value to be returned %s", when) {
 		if assert.NotNilf(v.value, "Expected ObjectValue to have a valid ValueStruct %s", when) {
 			assert.Truef(v.value.Equal(value), "Expected value to be properly set %s", when)
 			assert.Equalf("forjj", v.source, "Expected source to be set properly %s", when)
@@ -29,11 +29,11 @@ func Test_NewObjectsValue(t *testing.T) {
 	}
 }
 
-func Test_ObjectsValue_Set(t *testing.T) {
+func Test_Value_Set(t *testing.T) {
 	t.Log("Expecting ForjValue.Set to properly set the ForjValue object.")
 	assert := assert.New(t)
 
-	v := ObjectsValue{}
+	v := Value{}
 	value := goforjj.NewValueStruct("value")
 
 	// ------------- call the function
@@ -66,8 +66,8 @@ func Test_ObjectsValue_Set(t *testing.T) {
 	v.Set("blabla", value)
 
 	// -------------- testing
-	when = "when an existing ObjectsValue is set"
-	if assert.NotNilf(v, "Expected ObjectsValue to be returned %s", when) {
+	when = "when an existing Value is set"
+	if assert.NotNilf(v, "Expected Value to be returned %s", when) {
 		assert.Truef(v.value.Equal(value), "Expected value to be properly set to new value %s", when)
 		assert.Equalf("blabla", v.source, "Expected source to be set properly to new value %s", when)
 		if assert.NotNilf(v.resource, "Expected resource to be initialized %s", when) {
@@ -76,14 +76,14 @@ func Test_ObjectsValue_Set(t *testing.T) {
 	}
 
 	// -------------- Update context
-	v1 := NewObjectsValue("forjj", goforjj.NewValueStruct("value"))
+	v1 := NewValue("forjj", goforjj.NewValueStruct("value"))
 
 	// ------------- call the function
 	v1.Set("blabla", value)
 
 	// -------------- testing
-	when = "when an existing ObjectsValue is set"
-	if assert.NotNilf(v1, "Expected ObjectsValue to be returned %s", when) {
+	when = "when an existing Value is set"
+	if assert.NotNilf(v1, "Expected Value to be returned %s", when) {
 		assert.Truef(v.value.Equal(value), "Expected value to be properly set to new value %s", when)
 		assert.Equalf("blabla", v1.source, "Expected source to be set properly to new value %s", when)
 		if assert.NotNilf(v1.resource, "Expected resource to be initialized %s", when) {
@@ -92,11 +92,11 @@ func Test_ObjectsValue_Set(t *testing.T) {
 	}
 }
 
-func Test_ObjectsValue_AddResource(t *testing.T) {
+func Test_Value_AddResource(t *testing.T) {
 	t.Log("Expecting ForjValue.AddResource to properly set the ForjValue object resource list.")
 	test := assert.New(t)
 
-	v := ObjectsValue{}
+	v := Value{}
 	r := map[string]string{
 		"key": "value",
 	}
@@ -126,4 +126,41 @@ func Test_ObjectsValue_AddResource(t *testing.T) {
 		test.Lenf(v.resource, 1, "Expected resource to be empty %s", when)
 		test.Truef(reflect.DeepEqual(v.resource, r), "Expected resource to be conform %s", when)
 	}
+}
+
+// ************* TODO: Write test on following functions **************************
+func Test_Value_copyFrom(t *testing.T) {
+
+}
+
+func Test_Value_clone(t *testing.T) {
+
+}
+
+func Test_Value_Clone(t *testing.T) {
+
+}
+
+func Test_Value_setSecrets(t *testing.T) {
+
+}
+
+func Test_Value_SetValue(t *testing.T) {
+
+}
+
+func Test_Value_SetSource(t *testing.T) {
+
+}
+
+func Test_Value_GetSource(t *testing.T) {
+
+}
+
+func Test_Value_GetString(t *testing.T) {
+
+}
+
+func Test_Value_GetResource(t *testing.T) {
+
 }

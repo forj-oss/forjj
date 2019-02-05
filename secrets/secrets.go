@@ -1,13 +1,18 @@
 package secrets
 
 import (
+	"fmt"
 	"forjj/creds"
 	"forjj/drivers"
 	"forjj/forjfile"
+	"forjj/utils"
+	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/alecthomas/kingpin"
 	"github.com/forj-oss/forjj-modules/cli/clier"
+	"github.com/forj-oss/goforjj"
 )
 
 type Secrets struct {
@@ -72,4 +77,80 @@ func (s *Secrets) DefineContext(context clier.ParseContexter) {
 // GetStringValue Return a field value from the given context (parse time, or after)
 func (s *Secrets) GetStringValue(field string) (value string, found, isDefault bool, _ error) {
 	return s.Context.GetStringValue(field)
+}
+
+// DefineSetters define the list of secrets value setters (ex: copied-from, link-to)
+func DefineSetters(s *creds.Secure) {
+
+	// Define how secret set a file link
+	s.SetSetterHandler(link, func(v *creds.Value, value *goforjj.ValueStruct) (_ error) {
+		file := value.GetString()
+
+		if f, err := utils.Abs(file); err != nil {
+			return fmt.Errorf("Unable to determine file path. %s", err)
+		} else {
+			file = f
+		}
+
+		v.SetValue(goforjj.NewValueStruct(""))
+		v.AddResource("linked-to", file)
+		v.AddResource("created-on", time.Now().String())
+
+		return
+	})
+
+	// Define how secret set a file copy
+	s.SetSetterHandler(copy, func(v *creds.Value, value *goforjj.ValueStruct) (_ error) {
+		file := value.GetString()
+
+		if f, err := utils.Abs(file); err != nil {
+			return fmt.Errorf("Unable to determine file path. %s", err)
+		} else {
+			file = f
+		}
+
+		data, err := ioutil.ReadFile(file)
+		if err != nil {
+			err = fmt.Errorf("Unable to copy file content to forjj secret. %s", err)
+			return
+		}
+
+		v.SetValue(goforjj.NewValueStruct(string(data)))
+		v.AddResource("copied-from", file)
+		v.AddResource("copied-on", time.Now().String())
+
+		return
+	})
+
+}
+
+// DefineGetters define the list of secrets value setters (ex: copied-from, link-to)
+func DefineGetters(s *creds.Secure) {
+
+	// Define how secrets get a link
+	s.SetGetterHandler(link, func(v *creds.YamlValue) (value string, err error) {
+		file, found := v.Resource["linked-to"]
+		if !found {
+			err = fmt.Errorf("Invalid Secret type. 'linked-to' resource is empty")
+			return
+		}
+
+		data, err := ioutil.ReadFile(file)
+		if err != nil {
+			err = fmt.Errorf("Unable to copy file content to forjj secret. %s", err)
+			return
+		}
+
+		value = string(data)
+
+		return
+	})
+
+	// Define how secrets get a copy
+	s.SetGetterHandler(copy, func(v *creds.YamlValue) (value string, _ error) {
+		value = v.Value.GetString()
+
+		return
+	})
+
 }

@@ -7,9 +7,9 @@ import (
 	"github.com/forj-oss/goforjj"
 )
 
-func Test_YamlSecure_SetForjValue(t *testing.T) {
+func Test_YamlSecure_SetValue(t *testing.T) {
 
-	t.Log("Expecting yamlSecure.SetForjValue to set values in Forj section.")
+	t.Log("Expecting yamlSecure.SetValue to set values in Forj section.")
 
 	s := yamlSecure{}
 	const (
@@ -18,9 +18,9 @@ func Test_YamlSecure_SetForjValue(t *testing.T) {
 		source = "source"
 	)
 
-	forjValue1 := NewForjValue("forjj", value1)
+	forjValue1 := NewValue("forjj", goforjj.NewValueStruct(value1))
 	// ------------- call the function
-	s.SetForjValue(source, key1, forjValue1)
+	s.setForjValue(source, key1, forjValue1)
 
 	// -------------- testing
 	if s.Forj == nil {
@@ -29,7 +29,7 @@ func Test_YamlSecure_SetForjValue(t *testing.T) {
 		t.Errorf("Expected s.Forj to have 1 element. Got %d.", l)
 	} else if v, found := s.Forj[key1]; !found {
 		t.Errorf("Expected s.Forj[%s] to exist. Not found", key1)
-	} else if v.value != value1 {
+	} else if v.value.GetString() != value1 {
 		t.Errorf("Expected s.Forj[%s] to be '%s'. Got '%s'", key1, value1, v)
 	}
 }
@@ -52,7 +52,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 
 	// ------------- call the function
 	value := goforjj.NewValueStruct(value1)
-	objectsValue := NewObjectsValue("forjj", value)
+	objectsValue := NewValue("forjj", value)
 	result := s.setObjectValue(src1, object1, instance1, key1, objectsValue)
 
 	// -------------- testing
@@ -162,7 +162,7 @@ func Test_YamlSecure_unsetObjectValue(t *testing.T) {
 
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	objectsValue := NewObjectsValue("forjj", value)
+	objectsValue := NewValue("forjj", value)
 	result := s.setObjectValue(src1, object1, instance1, key1, objectsValue)
 	// ------------- call the function
 	result = s.unsetObjectValue(object1, instance1, key1)
@@ -229,7 +229,7 @@ func Test_YamlSecure_get(t *testing.T) {
 
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	objectsValue := NewObjectsValue("forjj", value)
+	objectsValue := NewValue("forjj", value)
 	s.setObjectValue(src1, object1, instance1, key1, objectsValue)
 	// ------------- call the function
 

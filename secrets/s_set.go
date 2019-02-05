@@ -6,11 +6,8 @@ import (
 	"forjj/drivers"
 	"forjj/forjfile"
 	"forjj/scandrivers"
-	"forjj/utils"
-	"io/ioutil"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/forj-oss/forjj-modules/trace"
 	"golang.org/x/crypto/ssh/terminal"
@@ -33,6 +30,11 @@ type sSet struct {
 	drivers  *drivers.Drivers
 	secrets  *creds.Secure
 }
+
+const (
+	copy = "copied-from"
+	link = "link-to"
+)
 
 func (s *sSet) init(parent *kingpin.CmdClause, common *common, forjfile *forjfile.Forge, drivers *drivers.Drivers, secrets *creds.Secure) {
 	s.cmd = parent.Command("set", "store a new credential in forjj secrets")
@@ -125,7 +127,7 @@ func (s *sSet) setInternal(env string) {
 
 	keyPath := strings.Split(*s.key, "/")
 
-	v := creds.NewObjectsValue("internal", goforjj.NewValueStruct(*s.password))
+	v := creds.NewValue("internal", goforjj.NewValueStruct(*s.password))
 
 	if !s.secrets.SetObjectValue(env, "internal", keyPath[0], keyPath[1], keyPath[2], v) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)
@@ -134,26 +136,9 @@ func (s *sSet) setInternal(env string) {
 }
 
 func (s *sSet) copyFromFile(env string) {
-	file := *s.copyFile
-
-	if f, err := utils.Abs(file); err != nil {
-		gotrace.Error("Unable to determine file path. %s", err)
-		return
-	} else {
-		file = f
-	}
-
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		gotrace.Error("Unable to copy file content to forjj secret %s", *s.key)
-		return
-	}
-
 	keyPath := strings.Split(*s.key, "/")
 
-	v := creds.NewObjectsValue("internal", goforjj.NewValueStruct(data))
-	v.AddResource("copied-from", file)
-	v.AddResource("copied-on", time.Now().String())
+	v := creds.NewValue(copy, goforjj.NewValueStruct(*s.copyFile))
 
 	if !s.secrets.SetObjectValue(env, "", keyPath[0], keyPath[1], keyPath[2], v) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)
@@ -162,20 +147,10 @@ func (s *sSet) copyFromFile(env string) {
 }
 
 func (s *sSet) linkToFile(env string) {
-	file := *s.linkFile
-
-	if f, err := utils.Abs(file); err != nil {
-		gotrace.Error("Unable to determine file path. %s", err)
-		return
-	} else {
-		file = f
-	}
 
 	keyPath := strings.Split(*s.key, "/")
 
-	v := creds.NewObjectsValue("link-to", goforjj.NewValueStruct(""))
-	v.AddResource("linked-to", file)
-	v.AddResource("created-on", time.Now().String())
+	v := creds.NewValue(link, goforjj.NewValueStruct(*s.linkFile))
 
 	if !s.secrets.SetObjectValue(env, "", keyPath[0], keyPath[1], keyPath[2], v) {
 		gotrace.Info("'%s' secret text not updated.", *s.key)

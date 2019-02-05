@@ -159,7 +159,7 @@ type ForjCurrentModel struct {
 	Name       string
 	Deployment string
 	Data       interface{}
-	Creds      map[string]*creds.ObjectsValue
+	Creds      map[string]*creds.Value
 }
 
 // Model is used to build a Model to use by text/templates
@@ -227,6 +227,10 @@ func (a *Forj) init() {
 		context.Flag(infra_path_f,
 			cmd.Flag(infra_path_f, infra_path_help)).Envar("FORJJ_INFRA").Short('W').String()
 	})
+
+	secrets.DefineGetters(&a.s)
+	secrets.DefineSetters(&a.s)
+
 	a.workspace.Init(a.app, &a.w, a.cli.IsParsePhase, func(context *forjjWorkspace.Context, cmd *kingpin.CmdClause) {
 		// Define Common flags required by ParseContext
 

@@ -34,16 +34,16 @@ type yamlSecure struct {
 	loaded     bool
 
 	Version string
-	Forj    map[string]*ForjValue
-	Objects map[string]map[string]map[string]*ObjectsValue
+	Forj    map[string]*Value
+	Objects map[string]map[string]map[string]*Value
 	sources *sourcesinfo.Sources
 	s       *Secrets
 }
 
 type yamlSecureData struct {
 	Version string
-	Forj    map[string]*ForjValue
-	Objects map[string]map[string]map[string]*ObjectsValue
+	Forj    map[string]*Value
+	Objects map[string]map[string]map[string]*Value
 }
 
 func (d *yamlSecure) UnmarshalYAML(unmarchal func(interface{}) error) (err error) {
@@ -71,6 +71,25 @@ func (d *yamlSecure) isLoaded() bool {
 		return false
 	}
 	return d.loaded
+}
+
+// initRef set the secret reference to each Value of secrets
+func (d *yamlSecure) initRef() {
+	if d == nil {
+		return
+	}
+
+	for _, value := range d.Forj {
+		value.setSecrets(d.s)
+	}
+
+	for _, instances := range d.Objects {
+		for _, values := range instances {
+			for _, value := range values {
+				value.setSecrets(d.s)
+			}
+		}
+	}
 }
 
 func (d *yamlSecure) foundFiles() (ret []string) {
@@ -117,6 +136,9 @@ func (d *yamlSecure) load(env string, secretFile bool) error {
 		d.iLoad(bufio.NewReader(fd))
 	}
 
+	// Initialize secrets reference
+	d.initRef()
+	
 	gotrace.Trace("Credential file '%s' has been loaded.", file)
 	return nil
 }
@@ -150,21 +172,28 @@ func (d *yamlSecure) save(secretFile bool) (err error) {
 	return
 }
 
-func (d *yamlSecure) SetForjValue(source, key string, value *ForjValue) (updated bool) {
-
-	d.sources = d.sources.Set(source, key, value.value)
+// setForjValue set a Value in 'forj' section
+func (d *yamlSecure) setForjValue(source, key string, value *Value) (updated bool) {
+	d.sources = d.sources.Set(source, key, value.value.GetString())
 	if d.Forj == nil {
-		d.Forj = make(map[string]*ForjValue)
+		d.Forj = make(map[string]*Value)
 	}
-	if v, found := d.Forj[key]; !found || v.value != value.value {
-		d.Forj[key] = value
+	if v, found := d.Forj[key]; found {
+		updated = v.copyFrom(value)
+	} else {
+		d.Forj[key] = value.clone(d.s)
 		updated = true
 	}
 	return
 }
 
-func (d *yamlSecure) GetForjValue(key string) (ret *ForjValue, found bool) {
-	ret, found = d.Forj[key]
+// getForjValue get a value found in 'forj' section
+func (d *yamlSecure) getForjValue(key string) (ret *Value, found bool) {
+	var value *Value
+	if value, found = d.Forj[key]; found {
+		ret = NewValue(value.source, value.value)
+		ret.resource = value.resource
+	}
 	return
 }
 
@@ -187,36 +216,31 @@ func (d *yamlSecure) unsetObjectValue(obj_name, instance_name, key_name string) 
 	return
 }
 
-func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name string, value *ObjectsValue) (updated bool) {
+func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name string, value *Value) (updated bool) {
 	if d.Objects == nil {
-		d.Objects = make(map[string]map[string]map[string]*ObjectsValue)
+		d.Objects = make(map[string]map[string]map[string]*Value)
 	}
-	var instances map[string]map[string]*ObjectsValue
-	var keys map[string]*ObjectsValue
+	var instances map[string]map[string]*Value
+	var keys map[string]*Value
 	if i, found := d.Objects[obj_name]; !found {
-		keys = make(map[string]*ObjectsValue)
-		instances = make(map[string]map[string]*ObjectsValue)
+		keys = make(map[string]*Value)
+		instances = make(map[string]map[string]*Value)
 
-		keys[key_name] = value
+		keys[key_name] = value.clone(d.s)
 		instances[instance_name] = keys
 		d.Objects[obj_name] = instances
 		updated = true
 	} else if k, found := i[instance_name]; !found {
-		keys = make(map[string]*ObjectsValue)
+		keys = make(map[string]*Value)
 
-		keys[key_name] = value
+		keys[key_name] = value.clone(d.s)
 		d.Objects[obj_name][instance_name] = keys
 		updated = true
-	} else if v, found := k[key_name]; found {
-		if v.value != nil && !value.value.Equal(v.value) {
-			*v.value = *value.value
-			v.source = value.source
-			v.resource = value.resource
-			updated = true
-		}
-	} else {
-		k[key_name] = value
+	} else if v, found := k[key_name]; !found {
+		k[key_name] = value.clone(d.s)
 		updated = true
+	} else {
+		updated = v.copyFrom(value)
 	}
 	d.sources = d.sources.Set(source, obj_name+"/"+instance_name+"/"+key_name, value.value.GetString())
 	return
@@ -230,11 +254,11 @@ func (d *yamlSecure) getString(obj_name, instance_name, key_name string) (string
 	return v.value.GetString(), found, source
 }
 
-func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *ObjectsValue, found bool, source string) {
+func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *Value, found bool, source string) {
 	if i, isFound := d.Objects[obj_name]; isFound {
 		if k, isFound := i[instance_name]; isFound {
 			if v, isFound := k[key_name]; isFound && v != nil && v.value != nil {
-				ret = NewObjectsValue(v.source, v.value)
+				ret = NewValue(v.source, v.value)
 				ret.resource = v.resource
 				found = true
 				source = d.sources.Get(obj_name + "/" + instance_name + "/" + key_name)
@@ -245,7 +269,7 @@ func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *Objects
 	return
 }
 
-func (d *yamlSecure) getObjectInstance(obj_name, instance_name string) map[string]*ObjectsValue {
+func (d *yamlSecure) getObjectInstance(obj_name, instance_name string) map[string]*Value {
 	if i, found := d.Objects[obj_name]; found {
 		if k, found := i[instance_name]; found {
 			return k
