@@ -30,7 +30,7 @@ func Test_YamlSecure_SetValue(t *testing.T) {
 	} else if v, found := s.Forj[key1]; !found {
 		t.Errorf("Expected s.Forj[%s] to exist. Not found", key1)
 	} else if v.value.GetString() != value1 {
-		t.Errorf("Expected s.Forj[%s] to be '%s'. Got '%s'", key1, value1, v)
+		t.Errorf("Expected s.Forj[%s] to be '%s'. Got '%s'", key1, value1, v.value.GetString())
 	}
 }
 
@@ -229,7 +229,7 @@ func Test_YamlSecure_get(t *testing.T) {
 
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	objectsValue := NewValue("forjj", value)
+	objectsValue := NewValue(Internal, value)
 	s.setObjectValue(src1, object1, instance1, key1, objectsValue)
 	// ------------- call the function
 
@@ -267,7 +267,7 @@ func Test_YamlSecure_get(t *testing.T) {
 	// ------------- Update context
 	value = result.value
 	result.value.Set(value2)
-	result.Set("forjj", result.value)
+	result.Set(Internal, result.value)
 
 	// ------------- call the function
 	result, found, _ = s.get(object1, instance1, key1)

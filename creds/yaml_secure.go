@@ -258,7 +258,7 @@ func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *Value, 
 	if i, isFound := d.Objects[obj_name]; isFound {
 		if k, isFound := i[instance_name]; isFound {
 			if v, isFound := k[key_name]; isFound && v != nil && v.value != nil {
-				ret = v
+				ret = v.clone(d.s)
 				found = true
 				source = d.sources.Get(obj_name + "/" + instance_name + "/" + key_name)
 				return

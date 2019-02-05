@@ -44,6 +44,7 @@ func (v *Value) init() {
 // clone creates a clone of the Value object and attach the Secrets object ref
 func (v Value) clone(s *Secrets) *Value {
 	v.setSecrets(s)
+	v.value = goforjj.NewValueStruct(v.value)
 	return &v
 }
 

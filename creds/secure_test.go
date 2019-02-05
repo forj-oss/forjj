@@ -176,7 +176,7 @@ func TestSetObjectValue(t *testing.T) {
 
 	// ------------- call the function
 	updated := s.SetObjectValue(prod, source, object1, instance1, key1,
-		NewValue("forjj",
+		NewValue(Internal,
 			goforjj.NewValueStruct(value1)))
 
 	// -------------- testing
@@ -185,7 +185,7 @@ func TestSetObjectValue(t *testing.T) {
 	} else if v, found, src, env := s.Get(object1, instance1, key1); !found {
 		t.Error("Expected value to be found. Got false")
 	} else if v1, err := v.GetString(); v1 != value1 {
-		t.Errorf("Expected value to be '%s'. Got '%s'", v1, value1)
+		t.Errorf("Expected value to be '%s'. Got '%s'", value1, v1)
 	} else if err != nil {
 		t.Errorf("Expected no error. Got '%s'", err)
 	} else if src != source {
