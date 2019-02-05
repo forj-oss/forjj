@@ -8,6 +8,7 @@ import (
 	"forjj/flow"
 	"forjj/forjfile"
 	"forjj/repo"
+	"forjj/secrets"
 	forjjWorkspace "forjj/workspace"
 	"log"
 	"net/url"
@@ -45,15 +46,15 @@ type Forj struct {
 
 	//flags_loaded map[string]string // key/values for flags loaded. Used when doing a create AND maintain at the same time (create case)
 
-	drivers         map[string]*drivers.Driver // List of drivers data/flags/... per instance name (key)
-	plugins         *goforjj.Plugins           // List of plugins loaded
-	drivers_options drivers.DriversOptions     // forjj-maintain.yml See infra-maintain.go
+	drivers         drivers.Drivers        // List of drivers data/flags/... per instance name (key)
+	plugins         *goforjj.Plugins       // List of plugins loaded
+	drivers_options drivers.DriversOptions // forjj-maintain.yml See infra-maintain.go
 
 	cli *cli.ForjCli // ForjCli data
 	app *kingpin.Application
 
 	// cli commands modules
-	secrets   secrets
+	secrets   secrets.Secrets
 	workspace forjjWorkspace.Workspace
 
 	contextAction string // Context action defined in ParseContext.
@@ -158,7 +159,7 @@ type ForjCurrentModel struct {
 	Name       string
 	Deployment string
 	Data       interface{}
-	Creds      map[string]*goforjj.ValueStruct
+	Creds      map[string]*creds.Value
 }
 
 // Model is used to build a Model to use by text/templates
@@ -178,7 +179,7 @@ func (a *Forj) Model(object_name, instance_name, key string) *ForjModel {
 	}
 	data.Secret = ""
 	if v, found := data.Current.Creds[key]; found {
-		data.Secret = v.GetString()
+		data.Secret, _ = v.GetString()
 	}
 	return &data
 }
@@ -210,7 +211,26 @@ func (a *Forj) init() {
 
 	a.app = kingpin.New(os.Args[0], forjj_help).UsageTemplate(DefaultUsageTemplate)
 
-	a.secrets.init(a.app)
+	a.secrets.Init(a.app, &a.f, &a.drivers, &a.s, a.cli.IsParsePhase, func(context *secrets.Context, cmd *kingpin.CmdClause) {
+		// Define Common flags required by ParseContext
+
+		// TODO: Find a way to avoid redefining such common flags option here and re-use cli.Opts
+		// Following flags are parseable by cli, and used by ParseContext (so required), but we do not need them on secrets.
+
+		// ISSUE: Default() affect only cli after ParseContext. Default value is retrieved thanks to a fix in GetLocalPrefs()
+		context.Flag("contribs-repo",
+			cmd.Flag("contribs-repo", contribs_repo_help).Envar("CONTRIBS_REPO").Default(defaultContribsRepo)).String()
+		context.Flag("flows-repo",
+			cmd.Flag("flows-repo", flows_repo_help).Envar("FLOWS_REPO").Default(defaultFlowRepo)).String()
+		context.Flag("repotemplates-repo",
+			cmd.Flag("repotemplates-repo", repotemplates_repo_help).Envar("REPOTEMPLATES_REPO").Default(defaultRepoTemplate)).String()
+		context.Flag(infra_path_f,
+			cmd.Flag(infra_path_f, infra_path_help)).Envar("FORJJ_INFRA").Short('W').String()
+	})
+
+	secrets.DefineGetters(&a.s)
+	secrets.DefineSetters(&a.s)
+
 	a.workspace.Init(a.app, &a.w, a.cli.IsParsePhase, func(context *forjjWorkspace.Context, cmd *kingpin.CmdClause) {
 		// Define Common flags required by ParseContext
 
@@ -265,10 +285,9 @@ func (a *Forj) init() {
 	a.actionDispatch[upd_act] = a.updateAction
 	a.actionDispatch[maint_act] = a.maintainAction
 	a.actionDispatch[val_act] = a.validateAction
-	a.actionDispatch["secrets"] = a.secrets.action
+	a.actionDispatch["secrets"] = a.secrets.Action
 	a.actionDispatch["workspace"] = a.workspace.Action
 
-	a.drivers = make(map[string]*drivers.Driver)
 	a.plugins = goforjj.NewPlugins()
 	//a.Actions = make(map[string]*ActionOpts)
 	//a.o.Drivers = make(map[string]*drivers.Driver)
@@ -469,7 +488,7 @@ func (a *Forj) init() {
 	a.AddMap(infra_name_f, infra, "", infra_name_f, infra, "", "name")
 	a.AddMap(infra_upstream_f, infra, "", infra_upstream_f, infra, "", "apps:upstream")
 	a.AddMap(deployToArg, "_app", "forjj", deployToArg, "settings", "default", "dev-deploy")
-	a.AddMapFunc("secrets", deployToArg, a.secrets.context.GetStringValue)
+	a.AddMapFunc("secrets", deployToArg, a.secrets.Context.GetStringValue)
 
 	a.AddMap(infra_path_f, workspace, "", infra_path_f, workspace, "", infra_path_f)
 	a.AddMapFunc("secrets", infra_path_f, a.secrets.GetStringValue)

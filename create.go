@@ -223,7 +223,7 @@ func (a *Forj) createDeployment(deploy string) error {
 
 	// Loop on drivers requested like github or jenkins
 	for _, instance := range instances {
-		d := a.drivers[instance]
+		d, _ := a.drivers.Get(instance)
 		if err, aborted := a.do_driver_task("create", instance); err != nil {
 			a.doDriverClean(d)
 			if !aborted {
@@ -264,10 +264,10 @@ func (a *Forj) createDeployment(deploy string) error {
 }
 
 func (a *Forj) define_drivers_execution_order() (instances []string) {
-	instances = make([]string, len(a.drivers))
+	instances = make([]string, len(a.drivers.List()))
 	drivers := make(map[string]*drivers.Driver)
 	index := 0
-	for name, driver := range a.drivers {
+	for name, driver := range a.drivers.List() {
 		drivers[name] = driver
 	}
 	// first: execute upstream infra
@@ -307,7 +307,7 @@ func (a *Forj) define_infra_upstream() (err error) {
 			a.w.Set("infra-driver-name", driverName, true)
 			return
 		}
-		if d, found := a.drivers[instanceName]; found {
+		if d, found := a.drivers.Get(instanceName); found {
 			d.InfraRepo = true
 			a.InfraPluginDriver = d
 			a.w.Set("infra-driver-name", d.Name, true)
@@ -358,7 +358,7 @@ func (a *Forj) define_infra_upstream() (err error) {
 		"Forjj is trying to get it from the list of drivers you defined.")
 	upstreams := []*drivers.Driver{}
 	instances := []string{}
-	for _, dv := range a.drivers {
+	for _, dv := range a.drivers.List() {
 		if dv.DriverType == "upstream" {
 			upstreams = append(upstreams, dv)
 			instances = append(instances, dv.InstanceName)

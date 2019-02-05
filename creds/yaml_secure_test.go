@@ -7,9 +7,9 @@ import (
 	"github.com/forj-oss/goforjj"
 )
 
-func Test_YamlSecure_SetForjValue(t *testing.T) {
+func Test_YamlSecure_SetValue(t *testing.T) {
 
-	t.Log("Expecting yamlSecure.SetForjValue to set values in Forj section.")
+	t.Log("Expecting yamlSecure.SetValue to set values in Forj section.")
 
 	s := yamlSecure{}
 	const (
@@ -18,8 +18,9 @@ func Test_YamlSecure_SetForjValue(t *testing.T) {
 		source = "source"
 	)
 
+	forjValue1 := NewValue("forjj", goforjj.NewValueStruct(value1))
 	// ------------- call the function
-	s.SetForjValue(source, key1, value1)
+	s.setForjValue(source, key1, forjValue1)
 
 	// -------------- testing
 	if s.Forj == nil {
@@ -28,8 +29,8 @@ func Test_YamlSecure_SetForjValue(t *testing.T) {
 		t.Errorf("Expected s.Forj to have 1 element. Got %d.", l)
 	} else if v, found := s.Forj[key1]; !found {
 		t.Errorf("Expected s.Forj[%s] to exist. Not found", key1)
-	} else if v != value1 {
-		t.Errorf("Expected s.Forj[%s] to be '%s'. Got '%s'", key1, value1, v)
+	} else if v.value.GetString() != value1 {
+		t.Errorf("Expected s.Forj[%s] to be '%s'. Got '%s'", key1, value1, v.value.GetString())
 	}
 }
 
@@ -50,9 +51,9 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 	)
 
 	// ------------- call the function
-	value := new(goforjj.ValueStruct)
-	value.Set(value1)
-	result := s.setObjectValue(src1, object1, instance1, key1, value)
+	value := goforjj.NewValueStruct(value1)
+	objectsValue := NewValue("forjj", value)
+	result := s.setObjectValue(src1, object1, instance1, key1, objectsValue)
 
 	// -------------- testing
 	if s.Objects == nil {
@@ -75,7 +76,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to exist. Not found", object1, instance1, key1)
 	} else if v3 == nil {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to be set. Got nil", object1, instance1, key1)
-	} else if v4 := v3.GetString(); v4 != value1 {
+	} else if v4, _ := v3.GetString(); v4 != value1 {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to be '%s'. Got '%s'", object1, instance1, key1, v4, value1)
 	} else if !result {
 		t.Error("Expected setObjectValue to return true. got false.")
@@ -84,7 +85,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 	}
 
 	// ------------- call the function
-	result = s.setObjectValue(src1, object1, instance1, key1, value)
+	result = s.setObjectValue(src1, object1, instance1, key1, objectsValue)
 
 	// -------------- testing
 	if result {
@@ -93,15 +94,16 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 
 	// ------------- call the function
 	value.Set(value2)
-	result = s.setObjectValue(src1, object1, instance1, key1, value)
+	result = s.setObjectValue(src1, object1, instance1, key1, objectsValue)
 
 	// -------------- testing
-	if !result {
-		t.Error("Expected setObjectValue to return true. got false.")
+	if result {
+		t.Error("Expected setObjectValue to return false. got true.")
 	}
 
 	// ------------- call the function
-	result = s.setObjectValue(src1, object2, instance1, key1, value)
+	objectsValue.Set("forjj", value)
+	result = s.setObjectValue(src1, object2, instance1, key1, objectsValue)
 
 	// -------------- testing
 	if s.Objects == nil {
@@ -116,7 +118,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 	value.Set(value2)
 	// ------------- call the function
 	// Set a new instance, key and value
-	result = s.setObjectValue(src1, object2, instance2, key1, value)
+	result = s.setObjectValue(src1, object2, instance2, key1, objectsValue)
 
 	// -------------- testing
 	if s.Objects == nil {
@@ -135,7 +137,7 @@ func Test_YamlSecure_setObjectValue(t *testing.T) {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to exist. Not found", object1, instance1, key1)
 	} else if v3 == nil {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to be set. Got nil", object1, instance1, key1)
-	} else if v4 := v3.GetString(); v4 != value2 {
+	} else if v4, _ := v3.GetString(); v4 != value2 {
 		t.Errorf("Expected s.Objects[%s][%s][%s] to be '%s'. Got '%s'", object1, instance1, key1, v4, value2)
 	} else if !result {
 		t.Error("Expected setObjectValue to return true. got false.")
@@ -160,9 +162,10 @@ func Test_YamlSecure_unsetObjectValue(t *testing.T) {
 
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	result := s.setObjectValue(src1, object1, instance1, key1, value)
+	objectsValue := NewValue("forjj", value)
+	result := s.setObjectValue(src1, object1, instance1, key1, objectsValue)
 	// ------------- call the function
-	result = s.unsetObjectValue(src1, object1, instance1, key1)
+	result = s.unsetObjectValue(object1, instance1, key1)
 
 	// -------------- testing
 	if s.Objects == nil {
@@ -188,7 +191,7 @@ func Test_YamlSecure_unsetObjectValue(t *testing.T) {
 	}
 
 	// ------------- call the function
-	result = s.unsetObjectValue(src1, object1, instance2, key1)
+	result = s.unsetObjectValue(object1, instance2, key1)
 	// -------------- testing
 	if s.Objects == nil {
 		t.Error("Expected s.Objects to be set. Got nil")
@@ -226,7 +229,8 @@ func Test_YamlSecure_get(t *testing.T) {
 
 	value := new(goforjj.ValueStruct)
 	value.Set(value1)
-	s.setObjectValue(src1, object1, instance1, key1, value)
+	objectsValue := NewValue(Internal, value)
+	s.setObjectValue(src1, object1, instance1, key1, objectsValue)
 	// ------------- call the function
 
 	result, found, _ := s.get(object1, instance1, key1)
@@ -235,7 +239,7 @@ func Test_YamlSecure_get(t *testing.T) {
 		t.Error("Expected result to be set. Got nil")
 	} else if !found {
 		t.Error("Expected to have found to be true. got false")
-	} else if !result.Equal(value) {
+	} else if !result.value.Equal(value) {
 		t.Error("Expected result to be equal to original value. got false")
 	}
 
@@ -256,19 +260,20 @@ func Test_YamlSecure_get(t *testing.T) {
 	result, found, _ = s.get(object1, instance1, key1)
 
 	// -------------- testing
-	if result.Equal(value) {
+	if result.value.Equal(value) {
 		t.Error("Expected result to NOT be equal to original value. got true.")
 	}
 
 	// ------------- Update context
-	value = result
-	result.Set(value2)
+	value = result.value
+	result.value.Set(value2)
+	result.Set(Internal, result.value)
 
 	// ------------- call the function
 	result, found, _ = s.get(object1, instance1, key1)
 
 	// -------------- testing
-	if result.Equal(value) {
+	if result.value.Equal(value) {
 		t.Error("Expected result to NOT be equal to original value. got true.")
 	}
 
@@ -350,7 +355,7 @@ objects:
     jenkins:
       aws-iam-arn-slave:
 `
-	// update context
+	// ------------- update context
 	r = strings.NewReader(yamlData)
 	err = s.iLoad(r)
 

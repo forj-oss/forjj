@@ -1,4 +1,4 @@
-package main
+package secrets
 
 import (
 	"github.com/alecthomas/kingpin"
@@ -14,17 +14,20 @@ import (
 //
 // Ex: 
 
-type secretsContext struct {
+// Context store the Forjj cli context.
+type Context struct {
 	params     map[string]cli.ForjParam
 	cliContext clier.ParseContexter
+	isParsePhase func() bool
 }
 
-func (s *secretsContext) init() {
+func (s *Context) init(isParsePhase func() bool) {
 	s.params = make(map[string]cli.ForjParam)
+	s.isParsePhase = isParsePhase
 }
 
 // Create a cli flag from a kingpin flag (for forjj-modules/cli)
-func (s *secretsContext) flag(name string, flag *kingpin.FlagClause) (cliFlag *kingpinCli.FlagClause) {
+func (s *Context) Flag(name string, flag *kingpin.FlagClause) (cliFlag *kingpinCli.FlagClause) {
 	if s == nil {
 		return nil
 	}
@@ -36,7 +39,7 @@ func (s *secretsContext) flag(name string, flag *kingpin.FlagClause) (cliFlag *k
 }
 
 // defineContext store the forjj-modules/cli context for GetStringValue
-func (s *secretsContext) defineContext(context clier.ParseContexter) {
+func (s *Context) defineContext(context clier.ParseContexter) {
 	if s == nil {
 		return
 	}
@@ -44,7 +47,7 @@ func (s *secretsContext) defineContext(context clier.ParseContexter) {
 }
 
 // getContextFlagValue Get Flag value from current cli context
-func (s *secretsContext) getContextFlagValue(name string) (interface{}, bool) {
+func (s *Context) getContextFlagValue(name string) (interface{}, bool) {
 	if s == nil {
 		return nil, false
 	}
@@ -60,7 +63,7 @@ func (s *secretsContext) getContextFlagValue(name string) (interface{}, bool) {
 // WARNING: Default status can be set only in cli load context phase (before parse)
 // If we need to incorporate some data feed between real value and default value
 // it must be done and saved during load context phase. (ie ParseContext() in cli_context.go)
-func (s *secretsContext) GetStringValue(field string) (value string, found, isDefault bool, _ error) {
+func (s *Context) GetStringValue(field string) (value string, found, isDefault bool, _ error) {
 	var param cli.ForjParam
 
 	param, found = s.params[field]
@@ -69,7 +72,7 @@ func (s *secretsContext) GetStringValue(field string) (value string, found, isDe
 	}
 
 	var v interface{}
-	if !forj_app.cli.IsParsePhase() {
+	if !s.isParsePhase() {
 		v, found = param.GetContextValue(s.cliContext)
 		if !found {
 			return

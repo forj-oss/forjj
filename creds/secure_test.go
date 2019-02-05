@@ -138,9 +138,10 @@ func TestSetForjValue(t *testing.T) {
 		source = "source"
 	)
 	s.InitEnvDefaults(myPath, prod)
+	forjValue1 := NewValue("forjj", goforjj.NewValueStruct(value1))
 
 	// ------------- call the function
-	updated, err := s.SetForjValue(prod, source, key1, value1)
+	updated, err := s.SetForjValue(prod, source, key1, forjValue1)
 
 	// -------------- testing
 	if !updated {
@@ -174,17 +175,19 @@ func TestSetObjectValue(t *testing.T) {
 	s.InitEnvDefaults(myPath, prod)
 
 	// ------------- call the function
-	value := new(goforjj.ValueStruct)
-	value.Set(value1)
-	updated := s.SetObjectValue(prod, source, object1, instance1, key1, value)
+	updated := s.SetObjectValue(prod, source, object1, instance1, key1,
+		NewValue(Internal,
+			goforjj.NewValueStruct(value1)))
 
 	// -------------- testing
 	if !updated {
 		t.Error("Expected s.SetObjectValue to return updated = true. Got false")
 	} else if v, found, src, env := s.Get(object1, instance1, key1); !found {
 		t.Error("Expected value to be found. Got false")
-	} else if v1 := v.GetString(); v1 != value1 {
-		t.Errorf("Expected value to be '%s'. Got '%s'", v1, value1)
+	} else if v1, err := v.GetString(); v1 != value1 {
+		t.Errorf("Expected value to be '%s'. Got '%s'", value1, v1)
+	} else if err != nil {
+		t.Errorf("Expected no error. Got '%s'", err)
 	} else if src != source {
 		t.Errorf("Expected value to be found from source '%s'. Got '%s'", source, src)
 	} else if env != prod {
@@ -193,7 +196,7 @@ func TestSetObjectValue(t *testing.T) {
 }
 
 func TestGetObjectInstance(t *testing.T) {
-	t.Log("Expecting GetObjectInstance to set properly values.")
+	t.Log("Expecting GetObjectInstance to get key, value properly.")
 
 	s := Secure{}
 	const (
@@ -209,9 +212,10 @@ func TestGetObjectInstance(t *testing.T) {
 		source    = "source"
 	)
 	s.InitEnvDefaults(myPath, prod)
-	value := new(goforjj.ValueStruct)
-	value.Set(value1)
-	s.SetObjectValue(prod, source, object1, instance1, key1, value)
+	value := goforjj.NewValueStruct(value1)
+	objectsValue := NewValue("forjj", value)
+
+	s.SetObjectValue(prod, source, object1, instance1, key1, objectsValue)
 
 	// ------------- call the function
 	result := s.GetObjectInstance(object1, instance1)
@@ -223,8 +227,9 @@ func TestGetObjectInstance(t *testing.T) {
 		t.Errorf("Expected GetObjectInstance to return a map with 1 element. Got %d.", l1)
 	} else if v, found := result[key1]; !found {
 		t.Errorf("Expected GetObjectInstance to return a map containing '%s'. Not found.", key1)
-	} else if !v.Equal(value) {
-		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value1, v.GetString())
+	} else if !v.value.Equal(value) {
+		valueString, _ := v.GetString()
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value1, valueString)
 	}
 	// ------------- call the function
 	result = s.GetObjectInstance(object2, instance1)
@@ -236,7 +241,7 @@ func TestGetObjectInstance(t *testing.T) {
 
 	// --------------- Change context
 	value.Set(value2)
-	s.SetObjectValue(Global, source, object1, instance1, key1, value)
+	s.SetObjectValue(Global, source, object1, instance1, key1, objectsValue)
 
 	// ------------- call the function
 	result = s.GetObjectInstance(object1, instance1)
@@ -248,13 +253,14 @@ func TestGetObjectInstance(t *testing.T) {
 		t.Errorf("Expected GetObjectInstance to return a map with 1 element. Got %d.", l1)
 	} else if v, found := result[key1]; !found {
 		t.Errorf("Expected GetObjectInstance to return a map containing '%s'. Not found.", key1)
-	} else if v.Equal(value) {
-		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value.GetString(), v.GetString())
+	} else if v.value.Equal(value) {
+		valueString, _ := v.GetString()
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value1, valueString)
 	}
 
 	// --------------- Change context
 	value.Set(value1)
-	s.SetObjectValue(Global, source, object2, instance1, key1, value)
+	s.SetObjectValue(Global, source, object2, instance1, key1, objectsValue)
 
 	// ------------- call the function
 	result1 := s.GetObjectInstance(object1, instance1)
@@ -267,8 +273,9 @@ func TestGetObjectInstance(t *testing.T) {
 		t.Errorf("Expected GetObjectInstance to return a map with 1 element. Got %d.", l1)
 	} else if v, found := result1[key1]; !found {
 		t.Errorf("Expected GetObjectInstance to return a map containing '%s'. Not found.", key1)
-	} else if !v.Equal(value) {
-		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value1, v.GetString())
+	} else if !v.value.Equal(value) {
+		valueString, _ := v.GetString()
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value1, valueString)
 	}
 
 	if result2 == nil {
@@ -277,8 +284,9 @@ func TestGetObjectInstance(t *testing.T) {
 		t.Errorf("Expected GetObjectInstance to return a map with 1 element. Got %d.", l1)
 	} else if v, found := result2[key1]; !found {
 		t.Errorf("Expected GetObjectInstance to return a map containing '%s'. Not found.", key1)
-	} else if !v.Equal(value) {
-		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value1, v.GetString())
+	} else if !v.value.Equal(value) {
+		valueString, _ := v.GetString()
+		t.Errorf("Expected GetObjectInstance to return a map containing '%s = %s. Got '%s'", key1, value1, valueString)
 	}
 
 }

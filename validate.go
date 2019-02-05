@@ -21,7 +21,7 @@ func (a *Forj) Validate() error {
 // FoundValidAppFlag return true if the flag checked has been defined by the plugin.
 // if not an error is returned.
 func (a *Forj) FoundValidAppFlag(key, driver, object string, required bool) (_ bool, err error) {
-	d, _ := a.drivers[driver]
+	d, _ := a.drivers.Get(driver)
 	if d == nil {
 		err = fmt.Errorf("Internal issue. Driver %s not found in memory", driver)
 		return

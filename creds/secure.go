@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	CredsVersion = "0.1"
+	// CredsVersion is the latest supported version of Forjj secrets files.
+	CredsVersion = "0.2"
 )
 
 // Secure is the master object to control Forjj security information.
@@ -219,7 +220,7 @@ func (d *Secure) DefineDefaultSecretFileName(aPath, env string) string {
 	return path.Join(aPath, env+"-"+DefaultSecretFile)
 }
 
-// SetDefaultFile
+// SetDefaultFile creates the file information.
 func (d *Secure) SetDefaultFile(env string) {
 	if d == nil || d.secrets.Envs == nil {
 		return
@@ -250,12 +251,12 @@ func (d *Secure) SetFile(filePath, env string) {
 }
 
 // SetForjValue set a value in Forj section.
-func (d *Secure) SetForjValue(env, source, key, value string) (_ bool, _ error) {
+func (d *Secure) SetForjValue(env, source, key string, value *Value) (_ bool, _ error) {
 	if d == nil {
 		return
 	}
 	if v, found := d.secrets.Envs[env]; found {
-		if v.SetForjValue(source, key, value) {
+		if v.setForjValue(source, key, value) {
 			d.secrets.Envs[env] = v
 			d.updated = true
 		}
@@ -264,19 +265,20 @@ func (d *Secure) SetForjValue(env, source, key, value string) (_ bool, _ error) 
 	return d.updated, fmt.Errorf("Credential env '%s' nt found", env)
 }
 
-// SetForjValue set a value in Forj section.
+// GetForjValue get a value from the 'forj' section.
 func (d *Secure) GetForjValue(env, key string) (_ string, _ bool) {
 	if d == nil {
 		return
 	}
 	if v, found := d.secrets.Envs[env]; found {
-		return v.GetForjValue(key)
+		value, foundValue := v.getForjValue(key)
+		return value.value.GetString(), foundValue
 	}
 	return
 }
 
 // SetObjectValue set object value
-func (d *Secure) SetObjectValue(env, source, obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (_ bool) {
+func (d *Secure) SetObjectValue(env, source, obj_name, instance_name, key_name string, value *Value) (_ bool) {
 	if d == nil {
 		return
 	}
@@ -291,12 +293,12 @@ func (d *Secure) SetObjectValue(env, source, obj_name, instance_name, key_name s
 }
 
 // UnsetObjectValue remove the object value
-func (d *Secure) UnsetObjectValue(env, source, objName, instanceName, keyName string) (_ bool) {
+func (d *Secure) UnsetObjectValue(env, objName, instanceName, keyName string) (_ bool) {
 	if d == nil {
 		return
 	}
 	if v, found := d.secrets.Envs[env]; found {
-		if v.unsetObjectValue(source, objName, instanceName, keyName) {
+		if v.unsetObjectValue(objName, instanceName, keyName) {
 			d.updated = true
 			d.secrets.Envs[env] = v
 			return true
@@ -320,7 +322,7 @@ func (d *Secure) GetGlobalString(objName, instanceName, keyName string) (value s
 	return "", false, "", ""
 }
 
-// GetString return a string representation of the value.
+// GetString return a string representation of the value whatever resource is providing the data (forjj data, files, ...)
 func (d *Secure) GetString(objName, instanceName, keyName string) (value string, found bool, source, env string) {
 	if d == nil {
 		return
@@ -335,8 +337,23 @@ func (d *Secure) GetString(objName, instanceName, keyName string) (value string,
 	return "", false, "", ""
 }
 
+// GetGlobal get value of the object instance key in the globql space...
+func (d *Secure) GetGlobal(objName, instanceName, keyName string) (value *Value, found bool, source, env string) {
+	if d == nil {
+		return
+	}
+	for _, env = range []string{Global} {
+		if v, isFound := d.secrets.Envs[env]; isFound {
+			if value, found, source = v.get(objName, instanceName, keyName); found {
+				return
+			}
+		}
+	}
+	return nil, false, "", ""
+}
+
 // Get value of the object instance key...
-func (d *Secure) Get(objName, instanceName, keyName string) (value *goforjj.ValueStruct, found bool, source, env string) {
+func (d *Secure) Get(objName, instanceName, keyName string) (value *Value, found bool, source, env string) {
 	if d == nil {
 		return
 	}
@@ -351,7 +368,7 @@ func (d *Secure) Get(objName, instanceName, keyName string) (value *goforjj.Valu
 }
 
 // GetObjectInstance return the instance data
-func (d *Secure) GetObjectInstance(objName, instanceName string) (values map[string]*goforjj.ValueStruct) {
+func (d *Secure) GetObjectInstance(objName, instanceName string) (values map[string]*Value) {
 	if d == nil {
 		return
 	}
@@ -369,6 +386,7 @@ func (d *Secure) GetObjectInstance(objName, instanceName string) (values map[str
 	return
 }
 
+// GetSecrets Clone the secrets which is returned.
 func (d *Secure) GetSecrets(env string) (result *Secrets) {
 	if d == nil {
 		return
@@ -377,4 +395,14 @@ func (d *Secure) GetSecrets(env string) (result *Secrets) {
 	result.Envs[Global] = d.secrets.Envs[Global]
 	result.Envs[env] = d.secrets.Envs[env]
 	return
+}
+
+// SetSetterHandler set setter types like 'link'
+func (d *Secure) SetSetterHandler(key string, setter func(v *Value, value *goforjj.ValueStruct) error) {
+	d.secrets.setSetterHandler(key, setter)
+}
+
+// SetGetterHandler set getter types like 'link'
+func (d *Secure) SetGetterHandler(key string, getter func(v *YamlValue) (string, error)) {
+	d.secrets.setGetterHandler(key, getter)
 }

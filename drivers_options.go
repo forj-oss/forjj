@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"forjj/creds"
 	"forjj/drivers"
 	"forjj/forjfile"
 	"forjj/scandrivers"
@@ -13,7 +14,7 @@ import (
 	"text/template"
 
 	"github.com/forj-oss/forjj-modules/cli"
-	"github.com/forj-oss/forjj-modules/trace"
+	gotrace "github.com/forj-oss/forjj-modules/trace"
 	"github.com/forj-oss/goforjj"
 )
 
@@ -28,7 +29,7 @@ func (a *Forj) load_driver_options(instance_name string) error {
 	if a.cli.GetCurrentCommand()[0].FullCommand() == val_act {
 		return nil // Do not set plugin flags in validate mode.
 	}
-	if a.drivers[instance_name].Plugin.Yaml.Name != "" { // if true => Driver Def loaded
+	if driver, found := a.drivers.Get(instance_name); found && driver.Plugin.Yaml.Name != "" { // if true => Driver Def loaded
 		if err := a.init_driver_flags(instance_name); err != nil {
 			return err
 		}
@@ -68,7 +69,7 @@ func (a *Forj) read_driver(instance_name string) (err error) {
 	var (
 		driver *drivers.Driver
 	)
-	if d, ok := a.drivers[instance_name]; ok {
+	if d, ok := a.drivers.Get(instance_name); ok {
 		driver = d
 	}
 
@@ -165,7 +166,7 @@ func (a *Forj) init_driver_set_cli_app_instance(instance_name string) error {
 
 // Initialize kingpin/cli command drivers flags with plugin definition loaded from plugin yaml file.
 func (a *Forj) init_driver_flags(instance_name string) error {
-	d := a.drivers[instance_name]
+	d, _ := a.drivers.Get(instance_name)
 	service_type := d.DriverType
 	opts := a.drivers_options.Drivers[instance_name]
 	id := initDriverObjectFlags{
@@ -282,13 +283,13 @@ func (a *Forj) init_driver_flags(instance_name string) error {
 }
 
 func (a *Forj) add_defined_driver(app *forjfile.AppStruct) error {
-	if _, found := a.drivers[app.Name()]; !found {
+	if _, found := a.drivers.Get(app.Name()); !found {
 		driver := new(drivers.Driver)
 		driver.InstanceName = app.Name()
 		driver.Name = app.Driver
 		driver.DriverType = app.Type
 		driver.DriverVersion = app.Version
-		a.drivers[app.Name()] = driver
+		a.drivers.Add(app.Name(), driver)
 		driver.Init()
 	}
 	gotrace.Trace("Registered driver to load: %s - %s", app.Type, app.Name())
@@ -303,10 +304,10 @@ func (a *Forj) add_driver(driver, driver_type, instance string, cli_requested bo
 	if instance == "" {
 		instance = driver
 	}
-	if _, found := a.drivers[instance]; found {
+	if _, found := a.drivers.Get(instance); found {
 		return nil
 	}
-	a.drivers[instance] = drivers.NewDriver(driver, driver_type, instance, true)
+	a.drivers.Add(instance, drivers.NewDriver(driver, driver_type, instance, true))
 	gotrace.Trace("Identified driver to load: %s\n", driver_type, driver)
 	return nil
 }
@@ -331,15 +332,15 @@ func (a *Forj) GetForjjFlags(r *goforjj.PluginReqData, d *drivers.Driver, action
 }
 
 func (a *Forj) moveSecureAppData(ffd *forjfile.DeployForgeYaml, deploy, flag_name string, missing_required bool) error {
-	if v, found, source := ffd.GetString("settings", "", flag_name); found {
-		a.s.SetForjValue(deploy, source, flag_name, v)
+	if v, found, _ := ffd.GetString("settings", "", flag_name); found {
+		a.s.SetForjValue(deploy, "", flag_name, creds.NewValue(creds.Internal, goforjj.NewValueStruct(v)))
 		ffd.Remove("settings", "", flag_name)
 		gotrace.Trace("Moving secure flag data '%s' from Forjfile to creds.yaml", flag_name)
 		return nil
 	}
 	if v, error := a.cli.GetAppStringValue(flag_name); error == nil {
 		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
-		a.s.SetForjValue(deploy, "forjj", flag_name, v)
+		a.s.SetForjValue(deploy, "forjj", flag_name, creds.NewValue(creds.Internal,  goforjj.NewValueStruct(v)))
 		return nil
 	}
 	if missing_required {
@@ -351,11 +352,11 @@ func (a *Forj) moveSecureAppData(ffd *forjfile.DeployForgeYaml, deploy, flag_nam
 func (a *Forj) copyCliData(deploy, flag_name, def_value string) {
 	if v, error := a.cli.GetAppStringValue(flag_name); error == nil && v != "" {
 		gotrace.Trace("Setting Forjfile flag '%s' from cli", flag_name)
-		a.s.SetForjValue(deploy, "forjj", flag_name, v)
+		a.s.SetForjValue(deploy, "forjj", flag_name, creds.NewValue(creds.Internal, goforjj.NewValueStruct(v)))
 	} else {
 		if def_value != "" {
 			gotrace.Trace("Setting Forjfile flag '%s' default value to '%s'", flag_name, def_value)
-			a.s.SetForjValue(deploy, "forjj", flag_name, def_value)
+			a.s.SetForjValue(deploy, "forjj", flag_name, creds.NewValue(creds.Internal, goforjj.NewValueStruct(def_value)))
 		}
 	}
 }
@@ -364,14 +365,14 @@ func (a *Forj) moveSecureObjectData(ffd *forjfile.DeployForgeYaml, deploy, objec
 	if v, found, source := ffd.Get(object_name, instance, "secret_"+flag_name); found {
 		// each key can have a secret_<key> value defined, stored in secret and can be refered in the Forjfile
 		// with {{ Current.Creds.<flag_name> }}
-		a.s.SetObjectValue(deploy, source, object_name, instance, flag_name, v)
+		a.s.SetObjectValue(deploy, source, object_name, instance, flag_name, creds.NewValue(creds.Internal, goforjj.NewValueStruct(v)))
 		ffd.Remove(object_name, instance, flag_name)
 
 		gotrace.Trace("Removing and setting secure Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
 			object_name, instance, "secret_"+flag_name)
 	}
 	if v, found, source := ffd.Get(object_name, instance, flag_name); found {
-		a.s.SetObjectValue(deploy, source, object_name, instance, flag_name, v)
+		a.s.SetObjectValue(deploy, source, object_name, instance, flag_name, creds.NewValue(creds.Internal, goforjj.NewValueStruct(v)))
 		// When no template value is set in Forjfile flag value, (default case in next code line)
 		// forjj will consider this string '{{ .Current.Creds.<flag_name> }}' as way to extract it
 		// The Forjfile can define that flag value to a different template. A simple string is not
@@ -382,12 +383,12 @@ func (a *Forj) moveSecureObjectData(ffd *forjfile.DeployForgeYaml, deploy, objec
 		return nil
 	}
 	if v, found, _, _ := a.cli.GetStringValue(object_name, instance, flag_name); found {
-		a.s.SetObjectValue(deploy, "forjj", object_name, instance, flag_name, new(goforjj.ValueStruct).Set(v))
+		a.s.SetObjectValue(deploy, "forjj", object_name, instance, flag_name, creds.NewValue(creds.Internal, new(goforjj.ValueStruct).Set(v)))
 		gotrace.Trace("Set %s/%s:%s value to Forjfile from cli.", object_name, instance, flag_name)
 		return nil
 	}
 	if _, found3, _, _ := a.s.Get(object_name, instance, flag_name); !found3 && missing_required {
-		return fmt.Errorf("Missing required %s %s flag '%s' value.", object_name, instance, flag_name)
+		return fmt.Errorf("Missing required %s %s flag '%s' value", object_name, instance, flag_name)
 	}
 	return nil
 }
@@ -396,7 +397,7 @@ func (a *Forj) setSecureObjectData(ffd *forjfile.DeployForgeYaml, deploy, object
 	if v, found, source := ffd.Get(object_name, instance, "secret-"+flag_name); found {
 		// each key can have a secret_<key> value defined, stored in secret and can be referred in the Forjfile
 		// with {{ Current.Creds.<flag_name> }}
-		a.s.SetObjectValue(deploy, source, object_name, instance, flag_name, v)
+		a.s.SetObjectValue(deploy, source, object_name, instance, flag_name, creds.NewValue(creds.Internal, v))
 		ffd.Remove(object_name, instance, "secret-"+flag_name)
 		gotrace.Trace("Moving secret Object (%s/%s) flag data '%s' from Forjfile to creds.yaml",
 			object_name, instance, "secret-"+flag_name)
@@ -449,7 +450,7 @@ func (a *Forj) copyCliObjectData(ffd *forjfile.DeployForgeYaml, object_name, ins
 //
 // Used by create and update
 func (a *Forj) scanCreds(ffd *forjfile.DeployForgeYaml, deploy string, missing bool) error {
-	s := scandrivers.NewScanDrivers(ffd, a.drivers)
+	s := scandrivers.NewScanDrivers(ffd, &a.drivers)
 
 	s.SetScanTaskFlagsFunc(
 		func(name string, flag goforjj.YamlFlag) error {
@@ -479,7 +480,7 @@ func (a *Forj) scanCreds(ffd *forjfile.DeployForgeYaml, deploy string, missing b
 }
 
 func (a *Forj) scanAndSetDefaults(ffd *forjfile.DeployForgeYaml, deploy string) error {
-	s := scandrivers.NewScanDrivers(ffd, a.drivers)
+	s := scandrivers.NewScanDrivers(ffd, &a.drivers)
 
 	s.SetScanTaskFlagsFunc(
 		func(name string, flag goforjj.YamlFlag) error {

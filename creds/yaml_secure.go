@@ -3,15 +3,26 @@ package creds
 import (
 	"bufio"
 	"fmt"
-	"forjj/sources_info"
+	sourcesinfo "forjj/sources_info"
 	"io"
 	"io/ioutil"
 	"os"
+	"sync"
 
-	"github.com/forj-oss/forjj-modules/trace"
-	"github.com/forj-oss/goforjj"
-	"gopkg.in/yaml.v2"
+	gotrace "github.com/forj-oss/forjj-modules/trace"
+	yaml "gopkg.in/yaml.v2"
 )
+
+var data *yamlSecureData
+
+// creds is a module to manage secrets data of forjj.
+// It is NOT possible to read secrets recursively, as secret data version is managed through a shared variable
+// used at load time (See UnmarshalYAML)
+//
+// But the module is threadsafe. We can load multiple secrets in parallel but finally will be loaded one by one in series.
+// So there is no sense to do it all in parallel.
+//
+// The version management is made like that, today. If there is a better way to do it, suggest a PR! Until I found a better way to do it.
 
 type yamlSecure struct {
 	file       string
@@ -21,11 +32,38 @@ type yamlSecure struct {
 	secretFile bool
 	file_path  string
 	loaded     bool
-	Version    string
-	Forj       map[string]string
-	Objects    map[string]map[string]map[string]*goforjj.ValueStruct
-	sources    *sourcesinfo.Sources
-	s          *Secrets
+
+	Version string
+	Forj    map[string]*Value
+	Objects map[string]map[string]map[string]*Value
+	sources *sourcesinfo.Sources
+	s       *Secrets
+}
+
+type yamlSecureData struct {
+	Version string
+	Forj    map[string]*Value
+	Objects map[string]map[string]map[string]*Value
+}
+
+func (d *yamlSecure) UnmarshalYAML(unmarchal func(interface{}) error) (err error) {
+	mutex := new(sync.Mutex)
+
+	mutex.Lock()
+	defer func() {
+		mutex.Unlock()
+	}()
+
+	data = new(yamlSecureData)
+	err = unmarchal(data)
+	d.Version = data.Version
+	if d.Version != CredsVersion {
+		gotrace.Trace("Old secret file version loaded: '%s'", d.Version)
+	}
+	d.Forj = data.Forj
+	d.Objects = data.Objects
+	data = nil
+	return
 }
 
 func (d *yamlSecure) isLoaded() bool {
@@ -33,6 +71,25 @@ func (d *yamlSecure) isLoaded() bool {
 		return false
 	}
 	return d.loaded
+}
+
+// initRef set the secret reference to each Value of secrets
+func (d *yamlSecure) initRef() {
+	if d == nil {
+		return
+	}
+
+	for _, value := range d.Forj {
+		value.setSecrets(d.s)
+	}
+
+	for _, instances := range d.Objects {
+		for _, values := range instances {
+			for _, value := range values {
+				value.setSecrets(d.s)
+			}
+		}
+	}
 }
 
 func (d *yamlSecure) foundFiles() (ret []string) {
@@ -79,6 +136,9 @@ func (d *yamlSecure) load(env string, secretFile bool) error {
 		d.iLoad(bufio.NewReader(fd))
 	}
 
+	// Initialize secrets reference
+	d.initRef()
+	
 	gotrace.Trace("Credential file '%s' has been loaded.", file)
 	return nil
 }
@@ -92,6 +152,7 @@ func (d *yamlSecure) save(secretFile bool) (err error) {
 	var (
 		yamlData []byte
 	)
+	d.Version = CredsVersion
 	file := d.credFile
 	if !secretFile {
 		file = d.file
@@ -111,25 +172,32 @@ func (d *yamlSecure) save(secretFile bool) (err error) {
 	return
 }
 
-func (d *yamlSecure) SetForjValue(source, key, value string) (updated bool) {
-
-	d.sources = d.sources.Set(source, key, value)
+// setForjValue set a Value in 'forj' section
+func (d *yamlSecure) setForjValue(source, key string, value *Value) (updated bool) {
+	d.sources = d.sources.Set(source, key, value.value.GetString())
 	if d.Forj == nil {
-		d.Forj = make(map[string]string)
+		d.Forj = make(map[string]*Value)
 	}
-	if v, found := d.Forj[key]; !found || v != value {
-		d.Forj[key] = value
+	if v, found := d.Forj[key]; found {
+		updated = v.copyFrom(value)
+	} else {
+		d.Forj[key] = value.clone(d.s)
 		updated = true
 	}
 	return
 }
 
-func (d *yamlSecure) GetForjValue(key string) (ret string, found bool) {
-	ret, found = d.Forj[key]
+// getForjValue get a value found in 'forj' section
+func (d *yamlSecure) getForjValue(key string) (ret *Value, found bool) {
+	var value *Value
+	if value, found = d.Forj[key]; found {
+		ret = NewValue(value.source, value.value)
+		ret.resource = value.resource
+	}
 	return
 }
 
-func (d *yamlSecure) unsetObjectValue(source, obj_name, instance_name, key_name string) (updated bool) {
+func (d *yamlSecure) unsetObjectValue(obj_name, instance_name, key_name string) (updated bool) {
 	if d.Objects == nil {
 		return
 	}
@@ -148,54 +216,49 @@ func (d *yamlSecure) unsetObjectValue(source, obj_name, instance_name, key_name 
 	return
 }
 
-func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name string, value *goforjj.ValueStruct) (updated bool) {
+func (d *yamlSecure) setObjectValue(source, obj_name, instance_name, key_name string, value *Value) (updated bool) {
 	if d.Objects == nil {
-		d.Objects = make(map[string]map[string]map[string]*goforjj.ValueStruct)
+		d.Objects = make(map[string]map[string]map[string]*Value)
 	}
-	var instances map[string]map[string]*goforjj.ValueStruct
-	var keys map[string]*goforjj.ValueStruct
+	var instances map[string]map[string]*Value
+	var keys map[string]*Value
 	if i, found := d.Objects[obj_name]; !found {
-		keys = make(map[string]*goforjj.ValueStruct)
-		instances = make(map[string]map[string]*goforjj.ValueStruct)
-		newValue := new(goforjj.ValueStruct)
-		*newValue = *value
-		keys[key_name] = newValue
+		keys = make(map[string]*Value)
+		instances = make(map[string]map[string]*Value)
+
+		keys[key_name] = value.clone(d.s)
 		instances[instance_name] = keys
 		d.Objects[obj_name] = instances
 		updated = true
 	} else if k, found := i[instance_name]; !found {
-		keys = make(map[string]*goforjj.ValueStruct)
-		newValue := new(goforjj.ValueStruct)
-		*newValue = *value
-		keys[key_name] = newValue
+		keys = make(map[string]*Value)
+
+		keys[key_name] = value.clone(d.s)
 		d.Objects[obj_name][instance_name] = keys
 		updated = true
-	} else if v, found := k[key_name]; found && v != nil {
-		if !value.Equal(v) {
-			*v = *value
-			updated = true
-		}
-	} else {
-		newValue := new(goforjj.ValueStruct)
-		*newValue = *value
-		k[key_name] = newValue
+	} else if v, found := k[key_name]; !found {
+		k[key_name] = value.clone(d.s)
 		updated = true
+	} else {
+		updated = v.copyFrom(value)
 	}
-	d.sources = d.sources.Set(source, obj_name+"/"+instance_name+"/"+key_name, value.GetString())
+	d.sources = d.sources.Set(source, obj_name+"/"+instance_name+"/"+key_name, value.value.GetString())
 	return
 }
 
 func (d *yamlSecure) getString(obj_name, instance_name, key_name string) (string, bool, string) {
 	v, found, source := d.get(obj_name, instance_name, key_name)
-	return v.GetString(), found, source
+	if !found || v == nil || v.value == nil {
+		return "", found, source
+	}
+	return v.value.GetString(), found, source
 }
 
-func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *goforjj.ValueStruct, found bool, source string) {
+func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *Value, found bool, source string) {
 	if i, isFound := d.Objects[obj_name]; isFound {
 		if k, isFound := i[instance_name]; isFound {
-			if v, isFound := k[key_name]; isFound && v != nil {
-				ret = new(goforjj.ValueStruct)
-				*ret = *v
+			if v, isFound := k[key_name]; isFound && v != nil && v.value != nil {
+				ret = v.clone(d.s)
 				found = true
 				source = d.sources.Get(obj_name + "/" + instance_name + "/" + key_name)
 				return
@@ -205,7 +268,7 @@ func (d *yamlSecure) get(obj_name, instance_name, key_name string) (ret *goforjj
 	return
 }
 
-func (d *yamlSecure) getObjectInstance(obj_name, instance_name string) map[string]*goforjj.ValueStruct {
+func (d *yamlSecure) getObjectInstance(obj_name, instance_name string) map[string]*Value {
 	if i, found := d.Objects[obj_name]; found {
 		if k, found := i[instance_name]; found {
 			return k
