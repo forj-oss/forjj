@@ -1,16 +1,67 @@
-# Forjj - Factory as Code
+# Forjj - Software Factory as Code
 
-[![Build Status](https://jenkins-forjj.eastus.cloudapp.azure.com/buildStatus/icon?job=forjj/master)](https://jenkins-forjj.eastus.cloudapp.azure.com/job/forjj/job/master)
+[![Build Status](https://jenkins-forjj.famille-larsonneur.eu/buildStatus/icon?job=forjj/master)](https://jenkins-forjj.famille-larsonneur.eu/job/forjj/job/master)
+
+<!-- TOC -->
+
+- [Forjj - Software Factory as Code](#forjj---software-factory-as-code)
+  - [Introduction](#introduction)
+    - [The Forj story](#the-forj-story)
+    - [Forjj, the new forj generation](#forjj-the-new-forj-generation)
+  - [Note about Devops and `Forjj`](#note-about-devops-and-forjj)
+  - [How to start your first simple DevOps solution on your workstation](#how-to-start-your-first-simple-devops-solution-on-your-workstation)
+    - [Requirement](#requirement)
+    - [Getting started](#getting-started)
+    - [What is behind the scene?](#what-is-behind-the-scene)
+      - [Create phase](#create-phase)
+      - [Maintain phase](#maintain-phase)
+  - [What do we do next](#what-do-we-do-next)
+    - [What is behind the scene?](#what-is-behind-the-scene-1)
+  - [What next?](#what-next)
+
+<!-- /TOC -->
 
 ## Introduction
 
-What is `Forjj`?
-This is a tool to help building a Factory as Code.
+You do not have time to read? So, [start your factory](#how-to-start-your-first-simple-devops-solution-on-your-workstation), now! And play.
 
-What is Factory as Code?
+### The Forj story
+
+Software is everywhere. We build it, work daily to automate build & deployment, support new projects, control, review, more and more, faster and faster.
+We do it all the same kind of work to increase our velocity in deploying, fixing, ... And we built processes so that our team (small or large) can use and support it.
+
+That's where comes the idea to deliver for us an automated software factory for our projects. It was called `Forj, build for the masses` 
+I think most of you did the same, already for you, only, right? 
+
+In around 2013, we learnt so many things on the agile and DepOps world, opensource, technologies.
+We finally decided to build our first version, contribute to the Opensource world, to deliver faster, for us and our customer. It was based on the Openstack CI and we called it `RedStone`.
+
+Unfortunately, `Forj` & `Redstone` was not really flexible. We built the full stack in about an hour on a Cloud. And often, it fails because of updates on dependent packages.
+Puppet was strongly used to deliver the stack. It was so powerful. But so complex as well... and the project was freezed and then abandonned.
+
+But the need to build, deploy, faster and faster, stay.
+We have a lot of building blocks that we can use, already. github with travis, gitlab with gitlab CI, many integrations every where (vault, grafana, etc...).
+But where to start? How to start? How to apply some techniques shown here and there for my need! Is there any tools that you can lightly configure to start using it? 
+jenkins-x for example?
+
+But a factory is not just a build system connected to an source code management. What about secrets management, delivery management, monitoring, security, etc...
+You all have an answer, how you did it. Can I apply it for my need easily? Usually, no. You start, iterate... and rebuild a new wheel.
+
+So, I thought to build a new tool, based of the so powerful `docker` tool which will bring us a way to define, reproduce and share what we did, so that others can use it, enhance it and 
+contribute it back here.
+But I need you! To let you try, suggest, fix, contribute, etc... in short, I need you to build our Opensource community sharing their Software Factory and experiences, but with CODE! 
+
+So `forjj` was built. It is still light, limited, with bugs and complexity which needs to be cleanup... But, hey? What won't try to build your first Software Factory based on Github/Jenkins, and add a new integrated component with a complete team process...
+
+### Forjj, the new forj generation
+
+So, what is `Forjj`?
+This is a tool to help building a Software Factory as Code.
+
+What is Software Factory as Code?
 In short, it is a way to deploy and maintain a collection of tools and process, Described/Developed from code perspective.
 
-In a little more details, `Forjj` describes in a `Forjfile` (yaml file) a collection of tools, like github, jenkins, vault, etc... and
+In a little more details, `Forjj` describes in a `Forjfile` (yaml file) a collection of applications/tools, like github, jenkins, vault, etc... and
 attach one of more flow process to it to deliver an immediate service to Development and Operators teams.
 
 This means that as soon as you started your Factory with `Forjj`, your next action is ... ask your development teams to start their 
@@ -18,7 +69,7 @@ development work with a minimum viable software factory to run CI/CD, tests, ...
 
 From the operator point of view, with `Forjj`, you deliver services through code as well. So that you do not need to send
 a mail to your preferred Operator to create a repo and configure everything around related to the flow, you just
-explain how to update some configuration files, request a pull request to approve, suggest, discuss and then merge.
+explain how to update some configuration files, request a pull request to approve, suggest, discuss and then merge. (github flow)
 
 Then the `Forjj pipeline` (created by `Forjj`) will deliver the change to your factory (ie new repo (github), webhook (github), pipeline (jenkins), secrets path (vault), etc ...)
 
@@ -35,11 +86,11 @@ But as soon as you want to adopt a `DevOps` Culture for any reasons, `Forjj`
  can help you very much to automate your process to move to a more
  compliant DevOps environment and support your new `DevOps` Culture.
 
-The core design of Forjj implements an automated way to start from
+The core design of `Forjj` implements an automated way to start from
 scratch and maintain a combination of tools completely integrated
 (github/jenkins/...) with some **DevOps paradigm** applied like:
 
-- Everything as Code, declined by Forjj as *Factory as code*.
+- Everything as Code, declined by `Forjj` as *Factory as code*.
 - Control everything from GIT as Source control system.
 - Use a DevOps Flow which helps to eliminates walls between teams.
   Ie, Code open, shared, and accessible to newbies or experts.
@@ -47,7 +98,7 @@ scratch and maintain a combination of tools completely integrated
 We called this **a DevOps Solution**
 
 But do not forget that Your DevOps solution is not only what Forjj can
-do for you, but how you are going to transform your process, organization and teams, with the help of Forjj
+do for you, but how you are going to transform your process, organization and teams, with the help of `Forjj`
 
 Note also, that Forjj requires you to help others.
 What does it mean? Shortly, we need your contribution!
