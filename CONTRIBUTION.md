@@ -2,6 +2,8 @@
 
 Fork it and submit PR!
 
+If you ask yourself about how to contribute to opensource project like `forjj`, look at the [Open Source Guide](https://opensource.guide/)
+
 # How the project is organized:
 
 Currently forjj is a GO binary tool.
@@ -12,7 +14,15 @@ forjj is divided in 2 pieces:
   Shortly, forjj manage an infra GIT repository and communicate with several plugins to do the real task.
   This code is located in this repository
 - forjj plugins: Application drivers for forjj.
-  This code is located in [https://github.com/forj-oss/forjj-contribs](forjj-contribs repository)
+  Plugins code are located in [forj-oss organization](https://github.com/forj-oss)
+  
+  Ex: Following are a limited list of plugins which was developed.
+
+  - forjj-jenkins - Manage Jenkins application
+  - forjj-github - Manage Github application
+  - forjj-gitlab - Manage Gitlab application
+  - forjj-bitbucket - Manage Bitbucket application
+  - ...
 
   Shortly, a plugin is a container started by forjj as a service. The plugin implements a REST API used by Forjj to communicate with.
   The plugin itself implements all the logic to control/configure and install the application that forjj will use.
